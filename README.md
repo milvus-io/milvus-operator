@@ -1,0 +1,3 @@
+# Milvus Operator
+The Milvus Operator provides an easy and solid solution to deploy and manage a full Milvus service stack
+Coming soon...
