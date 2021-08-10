@@ -1,0 +1,23 @@
+apiVersion: milvus.io/v1alpha1
+kind: MilvusCluster
+metadata:
+  name: milvuscluster-sample
+  namespace: test
+spec:
+  etcd:
+    endpoints: [my-release-etcd:2379]
+    rootPath: by-dev
+  s3:
+    endpoint: my-release-minio:2379
+    secretRef: minio
+    insecure: true
+    bucket: milvus-bucket
+  pulsar:
+    endpoint: my-release-milvus-pulsar:6650
+  queryNode:
+    replicas: 1
+    gracefulTime: 500
+  dataNode:
+    replicas: 1
+  logLevel: debug
+  

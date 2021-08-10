@@ -1,0 +1,7 @@
+apiVersion: milvus.io/v1alpha1
+kind: MilvusCluster
+metadata:
+  name: milvuscluster-sample
+spec:
+  # Add fields here
+  foo: bar

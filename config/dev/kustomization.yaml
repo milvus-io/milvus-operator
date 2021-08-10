@@ -1,0 +1,19 @@
+resources:
+- ../default
+
+patches:
+- patch: |
+    - op: "add"
+      path: "/webhooks/0/clientConfig/url"
+      value: "https://host.docker.internal:9443/mutate-milvus-io-v1alpha1-milvuscluster"
+  target:
+    kind: MutatingWebhookConfiguration
+- patch: |
+    - op: "add"
+      path: "/webhooks/0/clientConfig/url"
+      value: "https://host.docker.internal:9443/validate-milvus-io-v1alpha1-milvuscluster"
+  target:
+    kind: ValidatingWebhookConfiguration
+- path: webhook_patch.yaml
+  target:
+    group: admissionregistration.k8s.io
