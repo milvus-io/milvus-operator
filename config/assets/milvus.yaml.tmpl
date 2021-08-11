@@ -1,0 +1,63 @@
+etcd:
+  {{- range .Etcd.Endpoints }}
+  endpoints:
+    - {{ .}}
+  {{- end }}
+  rootPath: {{ .Etcd.RootPath }}
+  metaSubPath: meta # metaRootPath = rootPath + '/' + metaSubPath
+  kvSubPath: kv # kvRootPath = rootPath + '/' + kvSubPath
+  segmentBinlogSubPath: datacoord/binlog/segment  # Full Path = rootPath/metaSubPath/segmentBinlogSubPath
+  collectionBinlogSubPath: datacoord/binlog/collection # Full Path = rootPath/metaSubPath/collectionBinglogSubPath
+  flushStreamPosSubPath: datacoord/flushstream # Full path = rootPath/metaSubPath/flushStreamPosSubPath
+  statsStreamPosSubPath: datacoord/statsstream # Full path = rootPath/metaSubPath/statsStreamPosSubPath
+
+minio:
+  address: {{ .Minio.Address }}
+  port: {{ .Minio.Port | default 9000 }}
+  accessKeyID: {{ .Minio.AccessKeyID }}
+  secretAccessKey: {{ .Minio.SecretAccessKey }}
+  useSSL: {{ .Minio.UseSSL | default false }}
+  bucketName: {{ .Minio.BucketName | default "a-bucket" }}
+
+pulsar:
+  address: {{ .Pulsar.Address }}
+  port: {{ .Pulsar.Port | default 6650 }}
+  maxMessageSize: {{ .Pulsar.MaxMessageSize | default 5242880 }}
+
+rootCoord:
+  address: {{ .RootCoord.Address }}
+  port: {{ .RootCoord.Port | default 53100 }}
+
+proxy:
+  port: {{ .Proxy.Port | default 19530 }}
+
+queryCoord:
+  address: {{ .QueryCoord.Address }}
+  port: {{ .QueryCoord.Port | default 19531 }}
+
+queryNode:
+  gracefulTime: {{ .QueryNode.GracefulTime | default 1000 }}
+  port: {{ .QueryNode.Port | default 21123 }}
+
+indexCoord:
+  address: {{ .IndexCoord.Address }}
+  port: {{ .IndexCoord.Port | default 31000 }}
+
+indexNode:
+  port: {{ .IndexNode.Port | default 21121 }}
+
+dataCoord:
+  address: {{ .DataCoord.Address }}
+  port: {{ .DataCoord.Port | default 13333 }}
+
+dataNode:
+  port: {{ .DataNode.Port | default 21124 }}
+
+log:
+  level: {{ .Log.Level | default "info"}}
+  file:
+    rootPath: "" # default to stdout, stderr
+    maxSize: 300 # MB
+    maxAge: 10 # day
+    maxBackups: 20
+  format: {{ .Log.Format | default "text" }}

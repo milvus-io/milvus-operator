@@ -36,10 +36,49 @@ spec:
           spec:
             description: MilvusClusterSpec defines the desired state of MilvusCluster
             properties:
-              foo:
-                description: Foo is an example field of MilvusCluster. Edit milvuscluster_types.go
-                  to remove/update
+              dataNode:
+                properties:
+                  insertBufSize:
+                    description: Maximum row count of a segment buffered in memory
+                    format: int64
+                    minimum: 1
+                    type: integer
+                  replicas:
+                    default: 1
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+              logLevel:
+                default: info
+                description: LogLevel defines Log level in Milvus. You can configure
+                  this parameter as debug, info, warn, error, panic, or fatal
+                enum:
+                - debug
+                - info
+                - warn
+                - error
+                - panic
+                - fatal
                 type: string
+              queryNode:
+                properties:
+                  gracefulTime:
+                    description: 'Minimum time before the newly inserted data can
+                      be searched. Unit: ms'
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  replicas:
+                    default: 1
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+            required:
+            - dataNode
+            - logLevel
+            - queryNode
             type: object
           status:
             description: MilvusClusterStatus defines the observed state of MilvusCluster

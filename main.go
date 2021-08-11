@@ -33,6 +33,7 @@ import (
 
 	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/controllers"
+	"github.com/milvus-io/milvus-operator/pkg/config"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -79,13 +80,21 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&controllers.MilvusClusterReconciler{
-		Client: mgr.GetClient(),
-		Scheme: mgr.GetScheme(),
-	}).SetupWithManager(mgr); err != nil {
+	config, err := config.NewConfig()
+	if err != nil {
+		setupLog.Error(err, "unable to init config")
+		os.Exit(1)
+	}
+
+	if err = controllers.NewMilvusClusterReconciler(
+		mgr.GetClient(),
+		mgr.GetScheme(),
+		config,
+	).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MilvusCluster")
 		os.Exit(1)
 	}
+
 	if err = (&milvusiov1alpha1.MilvusCluster{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "MilvusCluster")
 		os.Exit(1)

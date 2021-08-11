@@ -41,7 +41,7 @@ var _ webhook.Defaulter = &MilvusCluster{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *MilvusCluster) Default() {
 	milvusclusterlog.Info("default", "name", r.Name)
-	r.Spec.Foo = "testbyzwd"
+
 	// TODO(user): fill in your defaulting logic.
 }
 

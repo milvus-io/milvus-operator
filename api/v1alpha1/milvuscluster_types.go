@@ -28,8 +28,23 @@ type MilvusClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	// Foo is an example field of MilvusCluster. Edit milvuscluster_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	// +kubebuilder:validation:Optional
+	Etcd *MiluvsEtcd `json:"etcd"`
+
+	// +kubebuilder:validation:Optional
+	S3 *MilvusS3 `json:"s3"`
+
+	// +kubebuilder:validation:Optional
+	Pulsar *MilvusPulsar `json:"pulsar"`
+
+	// LogLevel defines Log level in Milvus. You can configure this parameter as debug, info, warn, error, panic, or fatal
+	// +kubebuilder:validation:Enum={"debug", "info", "warn", "error", "panic", "fatal"}
+	// +kubebuilder:default="info"
+	LogLevel string `json:"logLevel"`
+
+	QueryNode *QueryNode `json:"queryNode"`
+
+	DataNode *DataNode `json:"dataNode"`
 }
 
 // MilvusClusterStatus defines the observed state of MilvusCluster

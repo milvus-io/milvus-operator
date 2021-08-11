@@ -25,12 +25,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
+	"github.com/milvus-io/milvus-operator/pkg/config"
 )
 
 // MilvusClusterReconciler reconciles a MilvusCluster object
 type MilvusClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+	config *config.Config
+}
+
+func NewMilvusClusterReconciler(
+	client client.Client, scheme *runtime.Scheme, conf *config.Config) *MilvusClusterReconciler {
+
+	return &MilvusClusterReconciler{
+		Client: client,
+		Scheme: scheme,
+		config: conf,
+	}
 }
 
 //+kubebuilder:rbac:groups=milvus.io,resources=milvusclusters,verbs=get;list;watch;create;update;patch;delete

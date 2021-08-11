@@ -5,7 +5,6 @@
 *.dll
 *.so
 *.dylib
-*.DS_Store
 bin
 testbin/*
 
@@ -27,3 +26,4 @@ testbin/*
 .vscode
 
 __debug_bin
+*.DS_Store
