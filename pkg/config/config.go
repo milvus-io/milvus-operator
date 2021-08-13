@@ -11,12 +11,12 @@ const (
 )
 
 type Config struct {
-	templates map[string][]byte
+	templates map[string]string
 }
 
 func NewConfig() (*Config, error) {
 	config := &Config{
-		templates: make(map[string][]byte),
+		templates: make(map[string]string),
 	}
 
 	tmpls, err := ioutil.ReadDir(TemplateDir)
@@ -29,12 +29,12 @@ func NewConfig() (*Config, error) {
 			return nil, err
 		}
 
-		config.templates[tmpl.Name()] = data
+		config.templates[tmpl.Name()] = string(data)
 	}
 
 	return config, nil
 }
 
-func (c Config) GetTemplate(name string) []byte {
+func (c Config) GetTemplate(name string) string {
 	return c.templates[name]
 }

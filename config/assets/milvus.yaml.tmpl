@@ -14,8 +14,6 @@ etcd:
 minio:
   address: {{ .Minio.Address }}
   port: {{ .Minio.Port | default 9000 }}
-  accessKeyID: {{ .Minio.AccessKeyID }}
-  secretAccessKey: {{ .Minio.SecretAccessKey }}
   useSSL: {{ .Minio.UseSSL | default false }}
   bucketName: {{ .Minio.BucketName | default "a-bucket" }}
 

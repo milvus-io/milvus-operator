@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -26,6 +27,7 @@ import (
 
 	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
+	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 // MilvusClusterReconciler reconciles a MilvusCluster object
@@ -59,9 +61,25 @@ func NewMilvusClusterReconciler(
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
+	logger := log.FromContext(ctx)
 
-	// your logic here
+	milvuscluster := &milvusiov1alpha1.MilvusCluster{}
+	if err := r.Get(ctx, req.NamespacedName, milvuscluster); err != nil {
+		if errors.IsNotFound(err) {
+			// The resource may have be deleted after reconcile request coming in
+			// Reconcile is done
+			return ctrl.Result{}, nil
+		}
+
+		return ctrl.Result{}, fmt.Errorf("error get milvus cluster: %w", err)
+	}
+
+	// Check if it is being deleted
+	if !milvuscluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		logger.Info("milvus cluster is being deleted", "name", req.NamespacedName)
+
+		return ctrl.Result{}, nil
+	}
 
 	return ctrl.Result{}, nil
 }

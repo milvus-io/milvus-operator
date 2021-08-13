@@ -49,6 +49,18 @@ spec:
                     minimum: 0
                     type: integer
                 type: object
+              etcd:
+                properties:
+                  endpoints:
+                    items:
+                      type: string
+                    type: array
+                  rootPath:
+                    type: string
+                required:
+                - endpoints
+                - rootPath
+                type: object
               logLevel:
                 default: info
                 description: LogLevel defines Log level in Milvus. You can configure
@@ -61,6 +73,13 @@ spec:
                 - panic
                 - fatal
                 type: string
+              pulsar:
+                properties:
+                  endpoint:
+                    type: string
+                required:
+                - endpoint
+                type: object
               queryNode:
                 properties:
                   gracefulTime:
@@ -74,6 +93,23 @@ spec:
                     format: int32
                     minimum: 0
                     type: integer
+                type: object
+              s3:
+                properties:
+                  bucket:
+                    type: string
+                  endpoint:
+                    type: string
+                  insecure:
+                    default: false
+                    type: boolean
+                  secretRef:
+                    type: string
+                required:
+                - bucket
+                - endpoint
+                - insecure
+                - secretRef
                 type: object
             required:
             - dataNode

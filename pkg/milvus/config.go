@@ -1,5 +1,12 @@
 package milvus
 
+import (
+	"bytes"
+	"text/template"
+
+	"github.com/Masterminds/sprig"
+)
+
 type MilvusConfig struct {
 	Etcd       MilvusConfigEtcd       `json:"etcd"`
 	Minio      MilvusConfigMinio      `json:"minio"`
@@ -21,12 +28,10 @@ type MilvusConfigEtcd struct {
 }
 
 type MilvusConfigMinio struct {
-	Address         string `json:"address"`
-	Port            int32  `json:"port"`
-	AccessKeyID     string `json:"accessKeyID"`
-	SecretAccessKey string `json:"secretAccessKey"`
-	UseSSL          bool   `json:"useSSL"`
-	BucketName      string `json:"bucketName"`
+	Address    string `json:"address"`
+	Port       int32  `json:"port"`
+	UseSSL     bool   `json:"useSSL"`
+	BucketName string `json:"bucketName"`
 }
 
 type MilvusConfigPulsar struct {
@@ -89,4 +94,40 @@ type MilvusConfigProxy struct {
 type MilvusConfigLog struct {
 	Level  string `json:"level"`
 	Format string `json:"format"`
+}
+
+func NewMinioConfig(endpoint, bucket string, useSSL bool) MilvusConfigMinio {
+	minio := MilvusConfigMinio{
+		BucketName: bucket,
+		UseSSL:     useSSL,
+	}
+	address, port := GetAddressPort(endpoint)
+	minio.Address = address
+	minio.Port = port
+
+	return minio
+}
+
+func NewPulsarConfig(endpoint string) MilvusConfigPulsar {
+	pulsar := MilvusConfigPulsar{}
+	address, port := GetAddressPort(endpoint)
+	pulsar.Address = address
+	pulsar.Port = port
+	return pulsar
+}
+
+func (config MilvusConfig) GetTemplatedConfig(templateConfig string) (string, error) {
+	t, err := template.New("template").
+		Funcs(sprig.TxtFuncMap()).Parse(templateConfig)
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	err = t.Execute(&buf, config)
+	if err != nil {
+		return "", err
+	}
+
+	return buf.String(), nil
 }
