@@ -80,8 +80,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	config, err := config.NewConfig()
-	if err != nil {
+	if err := config.Init(); err != nil {
 		setupLog.Error(err, "unable to init config")
 		os.Exit(1)
 	}
@@ -89,7 +88,6 @@ func main() {
 	if err = controllers.NewMilvusClusterReconciler(
 		mgr.GetClient(),
 		mgr.GetScheme(),
-		config,
 	).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MilvusCluster")
 		os.Exit(1)

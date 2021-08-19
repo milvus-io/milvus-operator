@@ -1,7 +1,13 @@
 package v1alpha1
 
 type Node struct {
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:default=1
+	Replicas *int32 `json:"replicas,omitempty"`
+}
 
+type Coordinator struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:default=1
@@ -28,4 +34,24 @@ type DataNode struct {
 
 type IndexNode struct {
 	Node `json:",inline"`
+}
+
+type Proxy struct {
+	Node `json:",inline"`
+}
+
+type RootCoordinator struct {
+	Coordinator `json:",inline"`
+}
+
+type DataCoordinator struct {
+	Coordinator `json:",inline"`
+}
+
+type QueryCoordinator struct {
+	Coordinator `json:",inline"`
+}
+
+type IndexCoordinator struct {
+	Coordinator `json:",inline"`
 }

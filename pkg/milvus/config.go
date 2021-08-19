@@ -7,6 +7,18 @@ import (
 	"github.com/Masterminds/sprig"
 )
 
+const (
+	MetricPort     = 9091
+	RootCoordPort  = 53100
+	DataCoordPort  = 13333
+	QueryCoordPort = 19531
+	IndexCoordPort = 31000
+	IndexNodePort  = 21121
+	QueryNodePort  = 21123
+	DataNodePort   = 21124
+	ProxyPort      = 19530
+)
+
 type MilvusConfig struct {
 	Etcd       MilvusConfigEtcd       `json:"etcd"`
 	Minio      MilvusConfigMinio      `json:"minio"`

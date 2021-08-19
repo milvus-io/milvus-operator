@@ -2,13 +2,35 @@ package config
 
 import (
 	"io/ioutil"
+
+	corev1 "k8s.io/api/core/v1"
 )
 
 const (
-	TemplateDir     = "config/assets"
-	ProviderName    = "milvus-operator"
-	DefaultPriority = 5
+	DefaultMilvusVersion   = "v2.0.0-rc4-20210811-bdb8396"
+	DefaultMilvusBaseImage = "milvusdb/milvus"
+	DefaultMilvusImage     = DefaultMilvusBaseImage + ":" + DefaultMilvusVersion
+	DefaultImagePullPolicy = corev1.PullIfNotPresent
 )
+
+const (
+	TemplateDir  = "config/assets"
+	ProviderName = "milvus-operator"
+)
+
+var (
+	defaultConfig *Config
+)
+
+func Init() error {
+	c, err := NewConfig()
+	defaultConfig = c
+	return err
+}
+
+func GetTemplate(name string) string {
+	return defaultConfig.templates[name]
+}
 
 type Config struct {
 	templates map[string]string

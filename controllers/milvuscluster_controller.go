@@ -23,10 +23,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
+	"github.com/go-logr/logr"
 	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
-	"github.com/milvus-io/milvus-operator/pkg/config"
 	"k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -34,16 +33,14 @@ import (
 type MilvusClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	config *config.Config
+	logger logr.Logger
 }
 
-func NewMilvusClusterReconciler(
-	client client.Client, scheme *runtime.Scheme, conf *config.Config) *MilvusClusterReconciler {
-
+func NewMilvusClusterReconciler(client client.Client, scheme *runtime.Scheme) *MilvusClusterReconciler {
 	return &MilvusClusterReconciler{
 		Client: client,
 		Scheme: scheme,
-		config: conf,
+		logger: ctrl.Log.WithName("controller").WithName("milvus"),
 	}
 }
 
@@ -53,16 +50,17 @@ func NewMilvusClusterReconciler(
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the MilvusCluster object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
 //
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	logger := log.FromContext(ctx)
+	defer func() {
+		if err := recover(); err != nil {
+			r.logger.Error(err.(error), "reconcile panic")
+		}
+	}()
 
+	r.logger.Info("Starting reconcile", "milvuscluster", req.NamespacedName)
 	milvuscluster := &milvusiov1alpha1.MilvusCluster{}
 	if err := r.Get(ctx, req.NamespacedName, milvuscluster); err != nil {
 		if errors.IsNotFound(err) {
@@ -76,9 +74,16 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Check if it is being deleted
 	if !milvuscluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		logger.Info("milvus cluster is being deleted", "name", req.NamespacedName)
-
+		r.logger.Info("milvus cluster is being deleted", "name", req.NamespacedName)
 		return ctrl.Result{}, nil
+	}
+
+	// Start reconcile
+	if err := r.ReconcileConfigMaps(ctx, milvuscluster); err != nil {
+		return ctrl.Result{}, err
+	}
+	if err := r.ReconcileDeployments(ctx, milvuscluster); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	return ctrl.Result{}, nil

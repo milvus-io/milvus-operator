@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"github.com/milvus-io/milvus-operator/pkg/config"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -42,7 +43,41 @@ var _ webhook.Defaulter = &MilvusCluster{}
 func (r *MilvusCluster) Default() {
 	milvusclusterlog.Info("default", "name", r.Name)
 
-	// TODO(user): fill in your defaulting logic.
+	if r.Spec.Image == "" {
+		r.Spec.Image = config.DefaultMilvusImage
+	}
+
+	if r.Spec.RootCoord == nil {
+		r.Spec.RootCoord = &RootCoordinator{}
+	}
+
+	if r.Spec.DataCoord == nil {
+		r.Spec.DataCoord = &DataCoordinator{}
+	}
+
+	if r.Spec.QueryCoord == nil {
+		r.Spec.QueryCoord = &QueryCoordinator{}
+	}
+
+	if r.Spec.IndexCoord == nil {
+		r.Spec.IndexCoord = &IndexCoordinator{}
+	}
+
+	if r.Spec.DataNode == nil {
+		r.Spec.DataNode = &DataNode{}
+	}
+
+	if r.Spec.QueryNode == nil {
+		r.Spec.QueryNode = &QueryNode{}
+	}
+
+	if r.Spec.IndexNode == nil {
+		r.Spec.IndexNode = &IndexNode{}
+	}
+
+	if r.Spec.Proxy == nil {
+		r.Spec.Proxy = &Proxy{}
+	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.

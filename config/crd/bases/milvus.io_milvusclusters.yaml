@@ -36,6 +36,14 @@ spec:
           spec:
             description: MilvusClusterSpec defines the desired state of MilvusCluster
             properties:
+              dataCoord:
+                properties:
+                  replicas:
+                    default: 1
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
               dataNode:
                 properties:
                   insertBufSize:
@@ -49,6 +57,140 @@ spec:
                     minimum: 0
                     type: integer
                 type: object
+              env:
+                items:
+                  description: EnvVar represents an environment variable present in
+                    a Container.
+                  properties:
+                    name:
+                      description: Name of the environment variable. Must be a C_IDENTIFIER.
+                      type: string
+                    value:
+                      description: 'Variable references $(VAR_NAME) are expanded using
+                        the previous defined environment variables in the container
+                        and any service environment variables. If a variable cannot
+                        be resolved, the reference in the input string will be unchanged.
+                        The $(VAR_NAME) syntax can be escaped with a double $$, ie:
+                        $$(VAR_NAME). Escaped references will never be expanded, regardless
+                        of whether the variable exists or not. Defaults to "".'
+                      type: string
+                    valueFrom:
+                      description: Source for the environment variable's value. Cannot
+                        be used if value is not empty.
+                      properties:
+                        configMapKeyRef:
+                          description: Selects a key of a ConfigMap.
+                          properties:
+                            key:
+                              description: The key to select.
+                              type: string
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                            optional:
+                              description: Specify whether the ConfigMap or its key
+                                must be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                        fieldRef:
+                          description: 'Selects a field of the pod: supports metadata.name,
+                            metadata.namespace, `metadata.labels[''<KEY>'']`, `metadata.annotations[''<KEY>'']`,
+                            spec.nodeName, spec.serviceAccountName, status.hostIP,
+                            status.podIP, status.podIPs.'
+                          properties:
+                            apiVersion:
+                              description: Version of the schema the FieldPath is
+                                written in terms of, defaults to "v1".
+                              type: string
+                            fieldPath:
+                              description: Path of the field to select in the specified
+                                API version.
+                              type: string
+                          required:
+                          - fieldPath
+                          type: object
+                        resourceFieldRef:
+                          description: 'Selects a resource of the container: only
+                            resources limits and requests (limits.cpu, limits.memory,
+                            limits.ephemeral-storage, requests.cpu, requests.memory
+                            and requests.ephemeral-storage) are currently supported.'
+                          properties:
+                            containerName:
+                              description: 'Container name: required for volumes,
+                                optional for env vars'
+                              type: string
+                            divisor:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              description: Specifies the output format of the exposed
+                                resources, defaults to "1"
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            resource:
+                              description: 'Required: resource to select'
+                              type: string
+                          required:
+                          - resource
+                          type: object
+                        secretKeyRef:
+                          description: Selects a key of a secret in the pod's namespace
+                          properties:
+                            key:
+                              description: The key of the secret to select from.  Must
+                                be a valid secret key.
+                              type: string
+                            name:
+                              description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                TODO: Add other useful fields. apiVersion, kind, uid?'
+                              type: string
+                            optional:
+                              description: Specify whether the Secret or its key must
+                                be defined
+                              type: boolean
+                          required:
+                          - key
+                          type: object
+                      type: object
+                  required:
+                  - name
+                  type: object
+                type: array
+              envFrom:
+                items:
+                  description: EnvFromSource represents the source of a set of ConfigMaps
+                  properties:
+                    configMapRef:
+                      description: The ConfigMap to select from
+                      properties:
+                        name:
+                          description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            TODO: Add other useful fields. apiVersion, kind, uid?'
+                          type: string
+                        optional:
+                          description: Specify whether the ConfigMap must be defined
+                          type: boolean
+                      type: object
+                    prefix:
+                      description: An optional identifier to prepend to each key in
+                        the ConfigMap. Must be a C_IDENTIFIER.
+                      type: string
+                    secretRef:
+                      description: The Secret to select from
+                      properties:
+                        name:
+                          description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            TODO: Add other useful fields. apiVersion, kind, uid?'
+                          type: string
+                        optional:
+                          description: Specify whether the Secret must be defined
+                          type: boolean
+                      type: object
+                  type: object
+                type: array
               etcd:
                 properties:
                   endpoints:
@@ -59,7 +201,28 @@ spec:
                     type: string
                 required:
                 - endpoints
-                - rootPath
+                type: object
+              image:
+                type: string
+              imagePullPolicy:
+                description: PullPolicy describes a policy for if/when to pull a container
+                  image
+                type: string
+              indexCoord:
+                properties:
+                  replicas:
+                    default: 1
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+              indexNode:
+                properties:
+                  replicas:
+                    default: 1
+                    format: int32
+                    minimum: 0
+                    type: integer
                 type: object
               logLevel:
                 default: info
@@ -73,12 +236,28 @@ spec:
                 - panic
                 - fatal
                 type: string
+              proxy:
+                properties:
+                  replicas:
+                    default: 1
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
               pulsar:
                 properties:
                   endpoint:
                     type: string
                 required:
                 - endpoint
+                type: object
+              queryCoord:
+                properties:
+                  replicas:
+                    default: 1
+                    format: int32
+                    minimum: 0
+                    type: integer
                 type: object
               queryNode:
                 properties:
@@ -88,6 +267,14 @@ spec:
                     format: int32
                     minimum: 1
                     type: integer
+                  replicas:
+                    default: 1
+                    format: int32
+                    minimum: 0
+                    type: integer
+                type: object
+              rootCoord:
+                properties:
                   replicas:
                     default: 1
                     format: int32
@@ -106,15 +293,10 @@ spec:
                   secretRef:
                     type: string
                 required:
-                - bucket
                 - endpoint
-                - insecure
-                - secretRef
                 type: object
             required:
-            - dataNode
             - logLevel
-            - queryNode
             type: object
           status:
             description: MilvusClusterStatus defines the observed state of MilvusCluster
