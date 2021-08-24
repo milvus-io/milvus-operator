@@ -35,8 +35,14 @@ type MilvusConfig struct {
 }
 
 type MilvusConfigEtcd struct {
-	Endpoints []string `json:"endpoints"`
-	RootPath  string   `json:"rootPath"`
+	Endpoints               []string `json:"endpoints"`
+	RootPath                string   `json:"rootPath"`
+	KVSubPath               string   `json:"kvSubPath"`
+	MetaSubPath             string   `json:"metaSubPath"`
+	SegmentBinlogSubPath    string   `json:"segmentBinlogSubPath"`
+	CollectionBinlogSubPath string   `json:"collectionBinlogSubPath"`
+	FlushStreamPosSubPath   string   `json:"flushStreamPosSubPath"`
+	StatsStreamPosSubPath   string   `json:"statsStreamPosSubPath"`
 }
 
 type MilvusConfigMinio struct {
@@ -53,10 +59,10 @@ type MilvusConfigPulsar struct {
 }
 
 type MilvusConfigGRPC struct {
-	ServerMaxRecvSize int64 `json:"serverMaxRecvSize"`
-	ServerMaxSendSize int64 `json:"serverMaxSendSize"`
-	ClientMaxRecvSize int64 `json:"clientMaxRecvSize"`
-	ClientMaxSendSize int64 `json:"clientMaxSendSize"`
+	ServerMaxRecvSize int32 `json:"serverMaxRecvSize"`
+	ServerMaxSendSize int32 `json:"serverMaxSendSize"`
+	ClientMaxRecvSize int32 `json:"clientMaxRecvSize"`
+	ClientMaxSendSize int32 `json:"clientMaxSendSize"`
 }
 
 type MilvusConfigNode struct {
@@ -88,6 +94,7 @@ type MilvusConfigIndexCoord struct {
 
 type MilvusConfigDataNode struct {
 	MilvusConfigNode `json:",inline"`
+	InsertBufSize    int64 `json:"insertBufSize"`
 }
 
 type MilvusConfigQueryNode struct {
@@ -120,11 +127,12 @@ func NewMinioConfig(endpoint, bucket string, useSSL bool) MilvusConfigMinio {
 	return minio
 }
 
-func NewPulsarConfig(endpoint string) MilvusConfigPulsar {
+func NewPulsarConfig(endpoint string, maxMessageSize int64) MilvusConfigPulsar {
 	pulsar := MilvusConfigPulsar{}
 	address, port := GetAddressPort(endpoint)
 	pulsar.Address = address
 	pulsar.Port = port
+	pulsar.MaxMessageSize = maxMessageSize
 	return pulsar
 }
 

@@ -38,6 +38,26 @@ spec:
             properties:
               dataCoord:
                 properties:
+                  grpc:
+                    properties:
+                      clientMaxRecvSize:
+                        format: int32
+                        type: integer
+                      clientMaxSendSize:
+                        format: int32
+                        type: integer
+                      serverMaxRecvSize:
+                        format: int32
+                        type: integer
+                      serverMaxSendSize:
+                        format: int32
+                        type: integer
+                    type: object
+                  port:
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
                   replicas:
                     default: 1
                     format: int32
@@ -46,10 +66,29 @@ spec:
                 type: object
               dataNode:
                 properties:
+                  grpc:
+                    properties:
+                      clientMaxRecvSize:
+                        format: int32
+                        type: integer
+                      clientMaxSendSize:
+                        format: int32
+                        type: integer
+                      serverMaxRecvSize:
+                        format: int32
+                        type: integer
+                      serverMaxSendSize:
+                        format: int32
+                        type: integer
+                    type: object
                   insertBufSize:
                     description: Maximum row count of a segment buffered in memory
                     format: int64
-                    minimum: 1
+                    type: integer
+                  port:
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
                     type: integer
                   replicas:
                     default: 1
@@ -193,11 +232,23 @@ spec:
                 type: array
               etcd:
                 properties:
+                  collectionBinlogSubPath:
+                    type: string
                   endpoints:
                     items:
                       type: string
                     type: array
+                  flushStreamPosSubPath:
+                    type: string
+                  kvSubPath:
+                    type: string
+                  metaSubPath:
+                    type: string
                   rootPath:
+                    type: string
+                  segmentBinlogSubPath:
+                    type: string
+                  statsStreamPosSubPath:
                     type: string
                 required:
                 - endpoints
@@ -210,6 +261,26 @@ spec:
                 type: string
               indexCoord:
                 properties:
+                  grpc:
+                    properties:
+                      clientMaxRecvSize:
+                        format: int32
+                        type: integer
+                      clientMaxSendSize:
+                        format: int32
+                        type: integer
+                      serverMaxRecvSize:
+                        format: int32
+                        type: integer
+                      serverMaxSendSize:
+                        format: int32
+                        type: integer
+                    type: object
+                  port:
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
                   replicas:
                     default: 1
                     format: int32
@@ -218,6 +289,26 @@ spec:
                 type: object
               indexNode:
                 properties:
+                  grpc:
+                    properties:
+                      clientMaxRecvSize:
+                        format: int32
+                        type: integer
+                      clientMaxSendSize:
+                        format: int32
+                        type: integer
+                      serverMaxRecvSize:
+                        format: int32
+                        type: integer
+                      serverMaxSendSize:
+                        format: int32
+                        type: integer
+                    type: object
+                  port:
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
                   replicas:
                     default: 1
                     format: int32
@@ -237,22 +328,75 @@ spec:
                 - fatal
                 type: string
               proxy:
+                description: Proxy defines the desired state of Proxy
                 properties:
+                  grpc:
+                    properties:
+                      clientMaxRecvSize:
+                        format: int32
+                        type: integer
+                      clientMaxSendSize:
+                        format: int32
+                        type: integer
+                      serverMaxRecvSize:
+                        format: int32
+                        type: integer
+                      serverMaxSendSize:
+                        format: int32
+                        type: integer
+                    type: object
+                  port:
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
                   replicas:
                     default: 1
                     format: int32
                     minimum: 0
                     type: integer
+                  serviceType:
+                    default: ClusterIP
+                    description: Service Type string describes ingress methods for
+                      a service
+                    enum:
+                    - ClusterIP
+                    - NodePort
+                    - LoadBalancer
+                    type: string
                 type: object
               pulsar:
                 properties:
                   endpoint:
                     type: string
+                  maxMessageSize:
+                    format: int64
+                    type: integer
                 required:
                 - endpoint
                 type: object
               queryCoord:
                 properties:
+                  grpc:
+                    properties:
+                      clientMaxRecvSize:
+                        format: int32
+                        type: integer
+                      clientMaxSendSize:
+                        format: int32
+                        type: integer
+                      serverMaxRecvSize:
+                        format: int32
+                        type: integer
+                      serverMaxSendSize:
+                        format: int32
+                        type: integer
+                    type: object
+                  port:
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
                   replicas:
                     default: 1
                     format: int32
@@ -265,7 +409,26 @@ spec:
                     description: 'Minimum time before the newly inserted data can
                       be searched. Unit: ms'
                     format: int32
-                    minimum: 1
+                    type: integer
+                  grpc:
+                    properties:
+                      clientMaxRecvSize:
+                        format: int32
+                        type: integer
+                      clientMaxSendSize:
+                        format: int32
+                        type: integer
+                      serverMaxRecvSize:
+                        format: int32
+                        type: integer
+                      serverMaxSendSize:
+                        format: int32
+                        type: integer
+                    type: object
+                  port:
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
                     type: integer
                   replicas:
                     default: 1
@@ -274,7 +437,28 @@ spec:
                     type: integer
                 type: object
               rootCoord:
+                description: RootCoord defines the desired state of RootCoord
                 properties:
+                  grpc:
+                    properties:
+                      clientMaxRecvSize:
+                        format: int32
+                        type: integer
+                      clientMaxSendSize:
+                        format: int32
+                        type: integer
+                      serverMaxRecvSize:
+                        format: int32
+                        type: integer
+                      serverMaxSendSize:
+                        format: int32
+                        type: integer
+                    type: object
+                  port:
+                    format: int32
+                    maximum: 65535
+                    minimum: 0
+                    type: integer
                   replicas:
                     default: 1
                     format: int32

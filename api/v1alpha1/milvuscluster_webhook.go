@@ -81,7 +81,7 @@ func (r *MilvusCluster) Default() {
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-//+kubebuilder:webhook:path=/validate-milvus-io-v1alpha1-milvuscluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=milvus.io,resources=milvusclusters,verbs=create;update;delete,versions=v1alpha1,name=vmilvuscluster.kb.io,admissionReviewVersions={v1,v1beta1}
+//+kubebuilder:webhook:path=/validate-milvus-io-v1alpha1-milvuscluster,mutating=false,failurePolicy=fail,sideEffects=None,groups=milvus.io,resources=milvusclusters,verbs=create;update,versions=v1alpha1,name=vmilvuscluster.kb.io,admissionReviewVersions={v1,v1beta1}
 
 var _ webhook.Validator = &MilvusCluster{}
 
@@ -98,6 +98,7 @@ func (r *MilvusCluster) ValidateUpdate(old runtime.Object) error {
 	milvusclusterlog.Info("validate update", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object update.
+
 	return nil
 }
 

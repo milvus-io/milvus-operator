@@ -3,6 +3,7 @@ package controllers
 import (
 	_ "crypto/sha256"
 	"fmt"
+	"strings"
 
 	dockerref "github.com/docker/distribution/reference"
 	corev1 "k8s.io/api/core/v1"
@@ -17,6 +18,56 @@ const (
 	AppLabelName      = AppLabel + "name"
 )
 
+func IsServicePortDuplicate(srcPorts []corev1.ServicePort, dst corev1.ServicePort) bool {
+	for _, src := range srcPorts {
+		if src.Name == dst.Name {
+			return true
+		}
+
+		// Check for duplicate Ports, considering (protocol,port) pairs
+		srcKey := corev1.ServicePort{Protocol: src.Protocol, Port: src.Port}
+		dstKey := corev1.ServicePort{Protocol: dst.Protocol, Port: dst.Port}
+		if srcKey == dstKey {
+			return true
+		}
+
+		// Check for duplicate NodePorts, considering (protocol,port) pairs
+		if dst.NodePort != 0 {
+			srcKey = corev1.ServicePort{Protocol: src.Protocol, NodePort: src.NodePort}
+			dstKey = corev1.ServicePort{Protocol: dst.Protocol, NodePort: dst.NodePort}
+			if srcKey == dstKey {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func MergeServicePort(src, dst []corev1.ServicePort) []corev1.ServicePort {
+	if len(src) == 0 {
+		return dst
+	}
+
+	if len(dst) == 0 {
+		return src
+	}
+
+	merged := []corev1.ServicePort{}
+	merged = append(merged, dst...)
+
+	for _, srcPort := range src {
+		if !IsServicePortDuplicate(dst, srcPort) {
+			if srcPort.Name == "" {
+				srcPort.Name = strings.ToLower(fmt.Sprintf("%s-%d", srcPort.Protocol, srcPort.Port))
+			}
+			merged = append(merged, srcPort)
+		}
+	}
+
+	return merged
+}
+
 func MergeVolumeMount(src, dst []corev1.VolumeMount) []corev1.VolumeMount {
 	if len(src) == 0 {
 		return dst
@@ -25,18 +76,21 @@ func MergeVolumeMount(src, dst []corev1.VolumeMount) []corev1.VolumeMount {
 		return src
 	}
 
-	m := map[string]corev1.VolumeMount{}
-	for _, volumeMount := range src {
-		m[volumeMount.MountPath] = volumeMount
-	}
-	for _, volumeMount := range dst {
-		m[volumeMount.MountPath] = volumeMount
+	srcMap := map[string]int{}
+	for i, VolumeMount := range src {
+		srcMap[VolumeMount.MountPath] = i
 	}
 
 	merged := []corev1.VolumeMount{}
-	for _, volumeMount := range m {
-		merged = append(merged, volumeMount)
+	merged = append(merged, src...)
+	for _, VolumeMount := range dst {
+		if idx, ok := srcMap[VolumeMount.MountPath]; ok {
+			merged[idx] = VolumeMount
+		} else {
+			merged = append(merged, VolumeMount)
+		}
 	}
+
 	return merged
 }
 
@@ -48,18 +102,26 @@ func MergeContainerPort(src, dst []corev1.ContainerPort) []corev1.ContainerPort 
 		return src
 	}
 
-	m := map[string]corev1.ContainerPort{}
-	for _, port := range src {
-		m[port.Name] = port
-	}
-	for _, port := range dst {
-		m[port.Name] = port
+	srcMap := map[string]int{}
+	for i, port := range src {
+		if port.Name != "" {
+			srcMap[port.Name] = i
+		}
 	}
 
 	merged := []corev1.ContainerPort{}
-	for _, port := range m {
+	merged = append(merged, src...)
+	for _, port := range dst {
+		if port.Name != "" {
+			if idx, ok := srcMap[port.Name]; ok {
+				merged[idx] = port
+				continue
+			}
+		}
+
 		merged = append(merged, port)
 	}
+
 	return merged
 }
 
@@ -71,19 +133,21 @@ func MergeEnvVar(src, dst []corev1.EnvVar) []corev1.EnvVar {
 		return src
 	}
 
-	m := map[string]corev1.EnvVar{}
-	for _, envVar := range src {
-		m[envVar.Name] = envVar
-	}
-
-	for _, envVar := range dst {
-		m[envVar.Name] = envVar
+	srcMap := map[string]int{}
+	for i, envVar := range src {
+		srcMap[envVar.Name] = i
 	}
 
 	merged := []corev1.EnvVar{}
-	for _, envVar := range m {
-		merged = append(merged, envVar)
+	merged = append(merged, src...)
+	for _, envVar := range dst {
+		if idx, ok := srcMap[envVar.Name]; ok {
+			merged[idx] = envVar
+		} else {
+			merged = append(merged, envVar)
+		}
 	}
+
 	return merged
 }
 
@@ -131,7 +195,7 @@ func NewAppLabels(instance string, component MilvusComponent) map[string]string 
 	return map[string]string{
 		AppLabelInstance:  instance,
 		AppLabelComponent: component.String(),
-		AppLabelName:      "MilvusCluster",
+		AppLabelName:      "milvus",
 	}
 }
 

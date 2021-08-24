@@ -53,7 +53,6 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
-    - DELETE
     resources:
     - milvusclusters
   sideEffects: None

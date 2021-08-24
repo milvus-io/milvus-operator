@@ -1,17 +1,44 @@
 package v1alpha1
 
-type Node struct {
+import (
+	corev1 "k8s.io/api/core/v1"
+)
+
+type Component struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:default=1
 	Replicas *int32 `json:"replicas,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=65535
+	Port int32 `json:"port,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	GRPC *ConfigGRPC `json:"grpc,omitempty"`
+}
+
+type ConfigGRPC struct {
+	// +kubebuilder:validation:Optional
+	ServerMaxRecvSize int32 `json:"serverMaxRecvSize,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	ServerMaxSendSize int32 `json:"serverMaxSendSize,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	ClientMaxRecvSize int32 `json:"clientMaxRecvSize,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	ClientMaxSendSize int32 `json:"clientMaxSendSize,omitempty"`
+}
+
+type Node struct {
+	Component `json:",inline"`
 }
 
 type Coordinator struct {
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:default=1
-	Replicas *int32 `json:"replicas,omitempty"`
+	Component `json:",inline"`
 }
 
 type QueryNode struct {
@@ -19,8 +46,7 @@ type QueryNode struct {
 
 	// Minimum time before the newly inserted data can be searched. Unit: ms
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum=1
-	GracefulTime *int32 `json:"gracefulTime,omitempty"`
+	GracefulTime int32 `json:"gracefulTime,omitempty"`
 }
 
 type DataNode struct {
@@ -28,8 +54,7 @@ type DataNode struct {
 
 	// Maximum row count of a segment buffered in memory
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Minimum=1
-	InsertBufSize *int64 `json:"insertBufSize,omitempty"`
+	InsertBufSize int64 `json:"insertBufSize,omitempty"`
 }
 
 type IndexNode struct {
@@ -38,6 +63,11 @@ type IndexNode struct {
 
 type Proxy struct {
 	Node `json:",inline"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum={"ClusterIP", "NodePort", "LoadBalancer"}
+	// +kubebuilder:default="ClusterIP"
+	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
 }
 
 type RootCoordinator struct {

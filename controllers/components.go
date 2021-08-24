@@ -3,8 +3,10 @@ package controllers
 import (
 	"fmt"
 
+	"github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/milvus"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 type MilvusComponent string
@@ -18,6 +20,8 @@ const (
 	QueryNode  MilvusComponent = "querynode"
 	IndexNode  MilvusComponent = "indexnode"
 	Proxy      MilvusComponent = "proxy"
+
+	MetricPortName = "metrics"
 )
 
 var (
@@ -25,6 +29,29 @@ var (
 		RootCoord, DataCoord, QueryCoord, IndexCoord, DataNode, QueryNode, IndexNode, Proxy,
 	}
 )
+
+func (c MilvusComponent) GetReplicas(spec v1alpha1.MilvusClusterSpec) *int32 {
+	switch c {
+	case Proxy:
+		return spec.Proxy.Replicas
+	case QueryNode:
+		return spec.QueryNode.Replicas
+	case DataNode:
+		return spec.DataNode.Replicas
+	case IndexNode:
+		return spec.IndexNode.Replicas
+	case RootCoord:
+		return spec.RootCoord.Replicas
+	case QueryCoord:
+		return spec.QueryCoord.Replicas
+	case DataCoord:
+		return spec.DataCoord.Replicas
+	case IndexCoord:
+		return spec.IndexCoord.Replicas
+	}
+
+	return nil
+}
 
 func (c MilvusComponent) String() string {
 	return string(c)
@@ -49,40 +76,80 @@ func (c MilvusComponent) GetContainerName() string {
 	return c.String()
 }
 
-func (c MilvusComponent) GetPort() int32 {
+func (c MilvusComponent) GetContainerPorts(spec v1alpha1.MilvusClusterSpec) []corev1.ContainerPort {
+	return []corev1.ContainerPort{
+		{
+			Name:          c.String(),
+			ContainerPort: c.GetComponentPort(spec),
+			Protocol:      corev1.ProtocolTCP,
+		},
+		{
+			Name:          MetricPortName,
+			ContainerPort: milvus.MetricPort,
+			Protocol:      corev1.ProtocolTCP,
+		},
+	}
+}
+
+func (c MilvusComponent) GetServiceType(spec v1alpha1.MilvusClusterSpec) corev1.ServiceType {
+	if c != Proxy {
+		return corev1.ServiceTypeClusterIP
+	}
+
+	return spec.Proxy.ServiceType
+}
+
+func (c MilvusComponent) GetServicePorts(spec v1alpha1.MilvusClusterSpec) []corev1.ServicePort {
+	return []corev1.ServicePort{
+		{
+			Name:       c.String(),
+			Protocol:   corev1.ProtocolTCP,
+			Port:       c.GetComponentPort(spec),
+			TargetPort: intstr.FromString(c.String()),
+		},
+		{
+			Name:       MetricPortName,
+			Protocol:   corev1.ProtocolTCP,
+			Port:       milvus.MetricPort,
+			TargetPort: intstr.FromString(MetricPortName),
+		},
+	}
+}
+
+func (c MilvusComponent) GetComponentPort(spec v1alpha1.MilvusClusterSpec) int32 {
 	switch c {
 	case RootCoord:
-		return milvus.RootCoordPort
+		return GetPortByDefault(spec.RootCoord.Port, milvus.RootCoordPort)
+
 	case DataCoord:
-		return milvus.DataCoordPort
+		return GetPortByDefault(spec.DataCoord.Port, milvus.DataCoordPort)
+
 	case QueryCoord:
-		return milvus.QueryCoordPort
+		return GetPortByDefault(spec.QueryCoord.Port, milvus.QueryCoordPort)
+
 	case IndexCoord:
-		return milvus.IndexCoordPort
+		return GetPortByDefault(spec.IndexCoord.Port, milvus.IndexCoordPort)
+
 	case QueryNode:
-		return milvus.QueryNodePort
+		return GetPortByDefault(spec.QueryNode.Port, milvus.QueryNodePort)
+
 	case DataNode:
-		return milvus.DataNodePort
+		return GetPortByDefault(spec.DataNode.Port, milvus.DataNodePort)
+
 	case IndexNode:
-		return milvus.IndexNodePort
+		return GetPortByDefault(spec.IndexNode.Port, milvus.IndexNodePort)
+
 	case Proxy:
-		return milvus.ProxyPort
+		return GetPortByDefault(spec.Proxy.Port, milvus.ProxyPort)
+
 	default:
 		return 0
 	}
 }
 
-func (c MilvusComponent) GetContainerPorts() []corev1.ContainerPort {
-	return []corev1.ContainerPort{
-		{
-			Name:          c.String(),
-			ContainerPort: c.GetPort(),
-			Protocol:      corev1.ProtocolTCP,
-		},
-		{
-			Name:          "metrics",
-			ContainerPort: milvus.MetricPort,
-			Protocol:      corev1.ProtocolTCP,
-		},
+func GetPortByDefault(specPort, defaultPort int32) int32 {
+	if specPort != 0 {
+		return specPort
 	}
+	return defaultPort
 }

@@ -3,19 +3,19 @@ etcd:
   endpoints:
     - {{ .}}
   {{- end }}
-  rootPath: {{ .Etcd.RootPath }}
-  metaSubPath: meta # metaRootPath = rootPath + '/' + metaSubPath
-  kvSubPath: kv # kvRootPath = rootPath + '/' + kvSubPath
-  segmentBinlogSubPath: datacoord/binlog/segment  # Full Path = rootPath/metaSubPath/segmentBinlogSubPath
-  collectionBinlogSubPath: datacoord/binlog/collection # Full Path = rootPath/metaSubPath/collectionBinglogSubPath
-  flushStreamPosSubPath: datacoord/flushstream # Full path = rootPath/metaSubPath/flushStreamPosSubPath
-  statsStreamPosSubPath: datacoord/statsstream # Full path = rootPath/metaSubPath/statsStreamPosSubPath
+  rootPath: {{ .Etcd.RootPath | default "by-dev" }}
+  metaSubPath: {{ .Etcd.MetaSubPath | default "meta" }}
+  kvSubPath: {{ .Etcd.KVSubPath | default "kv" }}
+  segmentBinlogSubPath: {{ .Etcd.SegmentBinlogSubPath | default "datacoord/binlog/segment" }}
+  collectionBinlogSubPath: {{ .Etcd.CollectionBinlogSubPath | default "datacoord/binlog/collection" }} 
+  flushStreamPosSubPath: {{ .Etcd.FlushStreamPosSubPath | default "datacoord/flushstream" }} 
+  statsStreamPosSubPath: {{ .Etcd.StatsStreamPosSubPath | default "datacoord/statsstream" }} 
 
 minio:
   address: {{ .Minio.Address }}
   port: {{ .Minio.Port | default 9000 }}
   useSSL: {{ .Minio.UseSSL | default false }}
-  bucketName: {{ .Minio.BucketName | default "a-bucket" }}
+  bucketName: {{ .Minio.BucketName | default "milvus-bucket" }}
 
 pulsar:
   address: {{ .Pulsar.Address }}
@@ -25,31 +25,71 @@ pulsar:
 rootCoord:
   address: {{ .RootCoord.Address }}
   port: {{ .RootCoord.Port | default 53100 }}
+  grpc:
+    serverMaxRecvSize: {{ .RootCoord.GRPC.ServerMaxRecvSize | default 2147483647 }}
+    serverMaxSendSize: {{ .RootCoord.GRPC.ServerMaxSendSize | default 2147483647 }}
+    clientMaxRecvSize: {{ .RootCoord.GRPC.ClientMaxRecvSize | default 104857600 }}
+    clientMaxSendSize: {{ .RootCoord.GRPC.ClientMaxSendSize | default 104857600 }}
 
 proxy:
   port: {{ .Proxy.Port | default 19530 }}
+  grpc:
+    serverMaxRecvSize: {{ .Proxy.GRPC.ServerMaxRecvSize | default 2147483647 }}
+    serverMaxSendSize: {{ .Proxy.GRPC.ServerMaxSendSize | default 2147483647 }}
+    clientMaxRecvSize: {{ .Proxy.GRPC.ClientMaxRecvSize | default 104857600 }}
+    clientMaxSendSize: {{ .Proxy.GRPC.ClientMaxSendSize | default 104857600 }}  
 
 queryCoord:
   address: {{ .QueryCoord.Address }}
   port: {{ .QueryCoord.Port | default 19531 }}
+  grpc:
+    serverMaxRecvSize: {{ .QueryCoord.GRPC.ServerMaxRecvSize | default 2147483647 }}
+    serverMaxSendSize: {{ .QueryCoord.GRPC.ServerMaxSendSize | default 2147483647 }}
+    clientMaxRecvSize: {{ .QueryCoord.GRPC.ClientMaxRecvSize | default 104857600 }}
+    clientMaxSendSize: {{ .QueryCoord.GRPC.ClientMaxSendSize | default 104857600 }}  
 
 queryNode:
   gracefulTime: {{ .QueryNode.GracefulTime | default 1000 }}
   port: {{ .QueryNode.Port | default 21123 }}
+  grpc:
+    serverMaxRecvSize: {{ .QueryNode.GRPC.ServerMaxRecvSize | default 2147483647 }}
+    serverMaxSendSize: {{ .QueryNode.GRPC.ServerMaxSendSize | default 2147483647 }}
+    clientMaxRecvSize: {{ .QueryNode.GRPC.ClientMaxRecvSize | default 104857600 }}
+    clientMaxSendSize: {{ .QueryNode.GRPC.ClientMaxSendSize | default 104857600 }}  
 
 indexCoord:
   address: {{ .IndexCoord.Address }}
   port: {{ .IndexCoord.Port | default 31000 }}
+  grpc:
+    serverMaxRecvSize: {{ .IndexCoord.GRPC.ServerMaxRecvSize | default 2147483647 }}
+    serverMaxSendSize: {{ .IndexCoord.GRPC.ServerMaxSendSize | default 2147483647 }}
+    clientMaxRecvSize: {{ .IndexCoord.GRPC.ClientMaxRecvSize | default 104857600 }}
+    clientMaxSendSize: {{ .IndexCoord.GRPC.ClientMaxSendSize | default 104857600 }} 
 
 indexNode:
   port: {{ .IndexNode.Port | default 21121 }}
+  grpc:
+    serverMaxRecvSize: {{ .IndexNode.GRPC.ServerMaxRecvSize | default 2147483647 }}
+    serverMaxSendSize: {{ .IndexNode.GRPC.ServerMaxSendSize | default 2147483647 }}
+    clientMaxRecvSize: {{ .IndexNode.GRPC.ClientMaxRecvSize | default 104857600 }}
+    clientMaxSendSize: {{ .IndexNode.GRPC.ClientMaxSendSize | default 104857600 }} 
 
 dataCoord:
   address: {{ .DataCoord.Address }}
   port: {{ .DataCoord.Port | default 13333 }}
+  grpc:
+    serverMaxRecvSize: {{ .DataCoord.GRPC.ServerMaxRecvSize | default 2147483647 }}
+    serverMaxSendSize: {{ .DataCoord.GRPC.ServerMaxSendSize | default 2147483647 }}
+    clientMaxRecvSize: {{ .DataCoord.GRPC.ClientMaxRecvSize | default 104857600 }}
+    clientMaxSendSize: {{ .DataCoord.GRPC.ClientMaxSendSize | default 104857600 }} 
 
 dataNode:
   port: {{ .DataNode.Port | default 21124 }}
+  grpc:
+    serverMaxRecvSize: {{ .DataNode.GRPC.ServerMaxRecvSize | default 2147483647 }}
+    serverMaxSendSize: {{ .DataNode.GRPC.ServerMaxSendSize | default 2147483647 }}
+    clientMaxRecvSize: {{ .DataNode.GRPC.ClientMaxRecvSize | default 104857600 }}
+    clientMaxSendSize: {{ .DataNode.GRPC.ClientMaxSendSize | default 104857600 }} 
 
 log:
   level: {{ .Log.Level | default "info"}}
@@ -59,3 +99,7 @@ log:
     maxAge: 10 # day
     maxBackups: 20
   format: {{ .Log.Format | default "text" }}
+
+localStorage:
+  path: /var/lib/milvus/data/
+  enabled: true

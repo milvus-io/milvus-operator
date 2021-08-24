@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -60,7 +62,6 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}()
 
-	r.logger.Info("Starting reconcile", "milvuscluster", req.NamespacedName)
 	milvuscluster := &milvusiov1alpha1.MilvusCluster{}
 	if err := r.Get(ctx, req.NamespacedName, milvuscluster); err != nil {
 		if errors.IsNotFound(err) {
@@ -85,6 +86,9 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if err := r.ReconcileDeployments(ctx, milvuscluster); err != nil {
 		return ctrl.Result{}, err
 	}
+	if err := r.ReconcileServices(ctx, milvuscluster); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -93,5 +97,8 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 func (r *MilvusClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&milvusiov1alpha1.MilvusCluster{}).
+		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.ConfigMap{}).
+		Owns(&corev1.Service{}).
 		Complete(r)
 }

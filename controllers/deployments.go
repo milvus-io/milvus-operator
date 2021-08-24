@@ -4,13 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/milvus-io/milvus-operator/api/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/milvus-io/milvus-operator/api/v1alpha1"
 )
 
 const (
@@ -62,26 +63,7 @@ func (r *MilvusClusterReconciler) updateDeployment(
 		return err
 	}
 
-	var replicas int32 = 1
-	switch component {
-	case Proxy:
-		replicas = *mc.Spec.Proxy.Replicas
-	case QueryNode:
-		replicas = *mc.Spec.QueryNode.Replicas
-	case DataNode:
-		replicas = *mc.Spec.DataNode.Replicas
-	case IndexNode:
-		replicas = *mc.Spec.IndexNode.Replicas
-	case RootCoord:
-		replicas = *mc.Spec.RootCoord.Replicas
-	case QueryCoord:
-		replicas = *mc.Spec.QueryCoord.Replicas
-	case DataCoord:
-		replicas = *mc.Spec.DataCoord.Replicas
-	case IndexCoord:
-		replicas = *mc.Spec.IndexCoord.Replicas
-	}
-	deployment.Spec.Replicas = &replicas
+	deployment.Spec.Replicas = component.GetReplicas(mc.Spec)
 
 	if deployment.Spec.Selector == nil {
 		deployment.Spec.Selector = new(metav1.LabelSelector)
@@ -122,7 +104,7 @@ func (r *MilvusClusterReconciler) updateDeployment(
 	env := mc.Spec.Env
 	env = append(env, GetS3SecretRefEnv(mc.Spec.S3.SecretRef)...)
 	container.Env = MergeEnvVar(container.Env, env)
-	container.Ports = MergeContainerPort(container.Ports, component.GetContainerPorts())
+	container.Ports = MergeContainerPort(container.Ports, component.GetContainerPorts(mc.Spec))
 
 	milvusVolumeMount := corev1.VolumeMount{
 		Name:      MilvusConfigVolumeName,
@@ -166,6 +148,7 @@ func (r *MilvusClusterReconciler) ReconcileComponentDeployment(
 			return err
 		}
 
+		r.logger.Info("Create Deployment", "name", new.Name, "namespace", new.Namespace)
 		return r.Create(ctx, new)
 	} else if err != nil {
 		return err
@@ -177,10 +160,11 @@ func (r *MilvusClusterReconciler) ReconcileComponentDeployment(
 	}
 
 	if IsEqual(old, cur) {
-		r.logger.Info("Equal")
+		//r.logger.Info("Equal", "cur", cur.Name)
 		return nil
 	}
 
+	r.logger.Info("Update Deployment", "name", cur.Name, "namespace", cur.Namespace)
 	return r.Update(ctx, cur)
 }
 
