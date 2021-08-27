@@ -14,6 +14,9 @@ require (
 	github.com/onsi/gomega v1.10.2
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/pkg/errors v0.9.1
+	go.etcd.io/etcd v0.5.0-alpha.5.0.20200910180754-dd1b699fc489
+	go.etcd.io/etcd/api/v3 v3.5.0
+	go.etcd.io/etcd/client/v3 v3.5.0
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/api v0.20.2
 	k8s.io/apimachinery v0.20.2

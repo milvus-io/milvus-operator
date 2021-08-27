@@ -85,10 +85,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = controllers.NewMilvusClusterReconciler(
+	conroller := controllers.NewMilvusClusterReconciler(
 		mgr.GetClient(),
 		mgr.GetScheme(),
-	).SetupWithManager(mgr); err != nil {
+	)
+
+	if err = conroller.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MilvusCluster")
 		os.Exit(1)
 	}

@@ -82,10 +82,69 @@ type MilvusClusterSpec struct {
 	LogLevel string `json:"logLevel"`
 }
 
+// MiluvsClusterConditionType is a valid value for MiluvsClusterConditionType.Type.
+type MiluvsClusterConditionType string
+
+// MilvusStatus is a type for milvus status.
+type MilvusStatus string
+
+const (
+	// StatusCreating is the status of creating.
+	StatusCreating MilvusStatus = "Creating"
+	// StatusHealthy is the status of healthy.
+	StatusHealthy MilvusStatus = "Healthy"
+	// StatusUnHealthy is the status of unhealthy.
+	StatusUnHealthy MilvusStatus = "Unhealthy"
+
+	// EtcdReady means the Etcd is ready.
+	EtcdReady MiluvsClusterConditionType = "EtcdReady"
+	// StorageReady means the Storage is ready.
+	StorageReady MiluvsClusterConditionType = "StorageReady"
+	// PulsarReady means the Storage is ready.
+	PulsarReady MiluvsClusterConditionType = "PulsarReady"
+	// ServiceReady means the Service of Milvus is ready.
+	ServiceReady MiluvsClusterConditionType = "ServiceReady"
+)
+
 // MilvusClusterStatus defines the observed state of MilvusCluster
 type MilvusClusterStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
+	// Status indicates the overall status of the Milvus
+	// Status can be "Creating", "Healthy" and "Unhealthy"
+	// +kubebuilder:default="Creating"
+	Status MilvusStatus `json:"status"`
+
+	// Conditions of each components
+	Conditions []MilvusClusterCondition `json:"conditions,omitempty"`
+
+	// Status of each etcd endpoint
+	EtcdStatus MilvusEtcdStatus `json:"etcdStatus,omitempty"`
+}
+
+type MilvusEtcdStatus struct {
+	Endpoint string `json:"endpoint"`
+	Healthy  bool   `json:"healthy"`
+	Error    string `json:"error,omitempty"`
+}
+
+// MilvusClusterCondition contains details for the current condition of this pod.
+type MilvusClusterCondition struct {
+	// Type is the type of the condition.
+	Type MiluvsClusterConditionType `json:"type"`
+	// Status is the status of the condition.
+	// Can be True, False, Unknown.
+	Status corev1.ConditionStatus `json:"status"`
+	// Last time the condition transitioned from one status to another.
+	// +optional
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	// Unique, one-word, CamelCase reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// Human-readable message indicating details about last transition.
+	// +optional
+	Message string `json:"message,omitempty"`
 }
 
 //+kubebuilder:object:root=true

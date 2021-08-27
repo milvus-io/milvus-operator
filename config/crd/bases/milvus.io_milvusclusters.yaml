@@ -484,6 +484,45 @@ spec:
             type: object
           status:
             description: MilvusClusterStatus defines the observed state of MilvusCluster
+            properties:
+              conditions:
+                description: Conditions of each components
+                items:
+                  description: MilvusClusterCondition contains details for the current
+                    condition of this pod.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: Human-readable message indicating details about
+                        last transition.
+                      type: string
+                    reason:
+                      description: Unique, one-word, CamelCase reason for the condition's
+                        last transition.
+                      type: string
+                    status:
+                      description: Status is the status of the condition. Can be True,
+                        False, Unknown.
+                      type: string
+                    type:
+                      description: Type is the type of the condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+              status:
+                default: Creating
+                description: Status indicates the overall status of the Milvus Status
+                  can be "Creating", "Healthy" and "Unhealthy"
+                type: string
+            required:
+            - status
             type: object
         type: object
     served: true
