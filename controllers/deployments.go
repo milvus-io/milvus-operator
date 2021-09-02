@@ -18,15 +18,15 @@ const (
 	MilvusConfigVolumeName   = "milvus-config"
 	MilvusConfigMountPath    = "/milvus/configs/milvus.yaml"
 	MilvusConfigMountSubPath = "milvus.yaml"
-	S3AccessKey              = "accesskey"
-	S3SecretKey              = "secretkey"
+	AccessKey                = "accesskey"
+	SecretKey                = "secretkey"
 )
 
 var (
 	MilvusConfigMapMode int32 = 420
 )
 
-func GetS3SecretRefEnv(secretRef string) []corev1.EnvVar {
+func GetStorageSecretRefEnv(secretRef string) []corev1.EnvVar {
 	env := []corev1.EnvVar{}
 	env = append(env, corev1.EnvVar{
 		Name: "MINIO_ACCESS_KEY",
@@ -35,7 +35,7 @@ func GetS3SecretRefEnv(secretRef string) []corev1.EnvVar {
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: secretRef,
 				},
-				Key: S3AccessKey,
+				Key: AccessKey,
 			},
 		},
 	})
@@ -46,7 +46,7 @@ func GetS3SecretRefEnv(secretRef string) []corev1.EnvVar {
 				LocalObjectReference: corev1.LocalObjectReference{
 					Name: secretRef,
 				},
-				Key: S3SecretKey,
+				Key: SecretKey,
 			},
 		},
 	})
@@ -102,7 +102,7 @@ func (r *MilvusClusterReconciler) updateDeployment(
 	container := &deployment.Spec.Template.Spec.Containers[containerIdx]
 	container.Args = []string{"milvus", "run", component.String()}
 	env := mc.Spec.Env
-	env = append(env, GetS3SecretRefEnv(mc.Spec.S3.SecretRef)...)
+	env = append(env, GetStorageSecretRefEnv(mc.Spec.Storage.SecretRef)...)
 	container.Env = MergeEnvVar(container.Env, env)
 	container.Ports = MergeContainerPort(container.Ports, component.GetContainerPorts(mc.Spec))
 
@@ -125,11 +125,13 @@ func (r *MilvusClusterReconciler) updateDeployment(
 
 	container.Image = mc.Spec.Image
 
+	deployment.Spec.Template.Spec.ImagePullSecrets = mc.Spec.ImagePullSecrets
+
 	return nil
 }
 
 func (r *MilvusClusterReconciler) ReconcileComponentDeployment(
-	ctx context.Context, mc *v1alpha1.MilvusCluster, component MilvusComponent,
+	ctx context.Context, mc v1alpha1.MilvusCluster, component MilvusComponent,
 ) error {
 	namespacedName := types.NamespacedName{
 		Namespace: mc.Namespace,
@@ -144,7 +146,7 @@ func (r *MilvusClusterReconciler) ReconcileComponentDeployment(
 				Namespace: namespacedName.Namespace,
 			},
 		}
-		if err := r.updateDeployment(*mc, new, component); err != nil {
+		if err := r.updateDeployment(mc, new, component); err != nil {
 			return err
 		}
 
@@ -155,7 +157,7 @@ func (r *MilvusClusterReconciler) ReconcileComponentDeployment(
 	}
 
 	cur := old.DeepCopy()
-	if err := r.updateDeployment(*mc, cur, component); err != nil {
+	if err := r.updateDeployment(mc, cur, component); err != nil {
 		return err
 	}
 
@@ -168,10 +170,10 @@ func (r *MilvusClusterReconciler) ReconcileComponentDeployment(
 	return r.Update(ctx, cur)
 }
 
-func (r *MilvusClusterReconciler) ReconcileDeployments(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
+func (r *MilvusClusterReconciler) ReconcileDeployments(ctx context.Context, mc v1alpha1.MilvusCluster) error {
 	g, gtx := NewGroup(ctx)
 	for _, component := range MilvusComponents {
-		g.Go(func(ctx context.Context, mc *v1alpha1.MilvusCluster, component MilvusComponent) func() error {
+		g.Go(func(ctx context.Context, mc v1alpha1.MilvusCluster, component MilvusComponent) func() error {
 			return func() error {
 				return r.ReconcileComponentDeployment(ctx, mc, component)
 			}

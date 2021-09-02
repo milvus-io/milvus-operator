@@ -45,7 +45,7 @@ func GetMilvusConfigFrom(mc v1alpha1.MilvusCluster) milvus.MilvusConfig {
 			FlushStreamPosSubPath:   mc.Spec.Etcd.FlushStreamPosSubPath,
 			StatsStreamPosSubPath:   mc.Spec.Etcd.StatsStreamPosSubPath,
 		},
-		Minio:  milvus.NewMinioConfig(mc.Spec.S3.Endpoint, mc.Spec.S3.Bucket, !mc.Spec.S3.Insecure),
+		Minio:  milvus.NewMinioConfig(mc.Spec.Storage.Endpoint, mc.Spec.Storage.Bucket, !mc.Spec.Storage.Insecure),
 		Pulsar: milvus.NewPulsarConfig(mc.Spec.Pulsar.Endpoint, mc.Spec.Pulsar.MaxMessageSize),
 		Log: milvus.MilvusConfigLog{
 			Level: mc.Spec.LogLevel,
@@ -104,7 +104,7 @@ func (r *MilvusClusterReconciler) updateConfigMap(mc v1alpha1.MilvusCluster, con
 }
 
 //
-func (r *MilvusClusterReconciler) ReconcileConfigMaps(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
+func (r *MilvusClusterReconciler) ReconcileConfigMaps(ctx context.Context, mc v1alpha1.MilvusCluster) error {
 	namespacedName := types.NamespacedName{Namespace: mc.Namespace, Name: mc.Name}
 	old := &corev1.ConfigMap{}
 	err := r.Get(ctx, namespacedName, old)
@@ -115,7 +115,7 @@ func (r *MilvusClusterReconciler) ReconcileConfigMaps(ctx context.Context, mc *v
 				Namespace: mc.Namespace,
 			},
 		}
-		if err = r.updateConfigMap(*mc, new); err != nil {
+		if err = r.updateConfigMap(mc, new); err != nil {
 			return err
 		}
 
@@ -126,7 +126,7 @@ func (r *MilvusClusterReconciler) ReconcileConfigMaps(ctx context.Context, mc *v
 	}
 
 	cur := old.DeepCopy()
-	if err := r.updateConfigMap(*mc, cur); err != nil {
+	if err := r.updateConfigMap(mc, cur); err != nil {
 		return err
 	}
 

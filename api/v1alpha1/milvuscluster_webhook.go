@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	"github.com/milvus-io/milvus-operator/pkg/config"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -98,6 +99,10 @@ func (r *MilvusCluster) ValidateUpdate(old runtime.Object) error {
 	milvusclusterlog.Info("validate update", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object update.
+	_, ok := old.(*MilvusCluster)
+	if !ok {
+		return errors.Errorf("failed type assertion on kind: %s", old.GetObjectKind().GroupVersionKind().String())
+	}
 
 	return nil
 }

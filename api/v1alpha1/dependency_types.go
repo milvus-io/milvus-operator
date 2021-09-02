@@ -25,7 +25,12 @@ type MiluvsEtcd struct {
 	StatsStreamPosSubPath string `json:"statsStreamPosSubPath,omitempty"`
 }
 
-type MilvusS3 struct {
+type MilvusStorage struct {
+	// +kubebuilder:validation:Enum={"minio", "s3"}
+	// +kubebuilder:default="minio"
+	Type string `json:"type"`
+
+	// +kubebuilder:validation:Optional
 	Endpoint string `json:"endpoint"`
 
 	// +kubebuilder:validation:Optional

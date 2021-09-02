@@ -120,16 +120,15 @@ func NewMinioConfig(endpoint, bucket string, useSSL bool) MilvusConfigMinio {
 		BucketName: bucket,
 		UseSSL:     useSSL,
 	}
-	address, port := GetAddressPort(endpoint)
+	address, port := GetHostPort(endpoint)
 	minio.Address = address
 	minio.Port = port
-
 	return minio
 }
 
 func NewPulsarConfig(endpoint string, maxMessageSize int64) MilvusConfigPulsar {
 	pulsar := MilvusConfigPulsar{}
-	address, port := GetAddressPort(endpoint)
+	address, port := GetHostPort(endpoint)
 	pulsar.Address = address
 	pulsar.Port = port
 	pulsar.MaxMessageSize = maxMessageSize

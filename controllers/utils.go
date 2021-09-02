@@ -6,8 +6,10 @@ import (
 	"strings"
 
 	dockerref "github.com/docker/distribution/reference"
+	"github.com/milvus-io/milvus-operator/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -233,4 +235,51 @@ func PodRunningAndReady(pod corev1.Pod) (bool, error) {
 		return false, fmt.Errorf("pod ready condition not found")
 	}
 	return false, nil
+}
+
+func GetConditionStatus(b bool) corev1.ConditionStatus {
+	if b {
+		return corev1.ConditionTrue
+	}
+	return corev1.ConditionFalse
+}
+
+func IsDependencyReady(status v1alpha1.MilvusClusterStatus) bool {
+	ready := 0
+	for _, c := range status.Conditions {
+		if c.Type == v1alpha1.EtcdReady ||
+			c.Type == v1alpha1.PulsarReady ||
+			c.Type == v1alpha1.StorageReady {
+			if c.Status == corev1.ConditionTrue {
+				ready++
+			}
+		}
+	}
+
+	return ready == 3
+}
+
+func UpdateCondition(status *v1alpha1.MilvusClusterStatus, c v1alpha1.MilvusClusterCondition) {
+	for i := range status.Conditions {
+		cp := &status.Conditions[i]
+		if cp.Type == c.Type {
+			if cp.Status != c.Status ||
+				cp.Reason != c.Reason ||
+				cp.Message != c.Message {
+				// Override
+				cp.Status = c.Status
+				cp.Message = c.Message
+				cp.Reason = c.Reason
+				// Update timestamp
+				now := metav1.Now()
+				cp.LastTransitionTime = &now
+			}
+			return
+		}
+	}
+
+	// Append if not existing yet
+	now := metav1.Now()
+	c.LastTransitionTime = &now
+	status.Conditions = append(status.Conditions, c)
 }

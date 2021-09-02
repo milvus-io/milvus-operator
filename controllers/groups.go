@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/pkg/errors"
 )
 
@@ -33,13 +34,15 @@ func (g *Group) Go(f func() error) {
 	g.wait.Add(1)
 
 	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				g.locker.Lock()
-				g.errors = append(g.errors, err.(error))
-				g.locker.Unlock()
-			}
-		}()
+		if !config.IsDebug() {
+			defer func() {
+				if err := recover(); err != nil {
+					g.locker.Lock()
+					g.errors = append(g.errors, err.(error))
+					g.locker.Unlock()
+				}
+			}()
+		}
 		defer g.wait.Done()
 
 		// Run and handle error

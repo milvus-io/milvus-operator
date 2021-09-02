@@ -2,6 +2,7 @@ package config
 
 import (
 	"io/ioutil"
+	"os"
 
 	corev1 "k8s.io/api/core/v1"
 )
@@ -25,7 +26,14 @@ var (
 func Init() error {
 	c, err := NewConfig()
 	defaultConfig = c
+	if os.Getenv("DEBUG") == "true" {
+		defaultConfig.debugMode = true
+	}
 	return err
+}
+
+func IsDebug() bool {
+	return defaultConfig.debugMode
 }
 
 func GetTemplate(name string) string {
@@ -33,6 +41,7 @@ func GetTemplate(name string) string {
 }
 
 type Config struct {
+	debugMode bool
 	templates map[string]string
 }
 

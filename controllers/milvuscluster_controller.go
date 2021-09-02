@@ -19,16 +19,25 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"sync"
+	"time"
 
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	"github.com/go-logr/logr"
 	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
+	"github.com/milvus-io/milvus-operator/pkg/config"
 	"k8s.io/apimachinery/pkg/api/errors"
+)
+
+var (
+	checkStatus sync.Once
 )
 
 // MilvusClusterReconciler reconciles a MilvusCluster object
@@ -56,11 +65,21 @@ func NewMilvusClusterReconciler(client client.Client, scheme *runtime.Scheme) *M
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	defer func() {
-		if err := recover(); err != nil {
-			r.logger.Error(err.(error), "reconcile panic")
-		}
-	}()
+	if !config.IsDebug() {
+		defer func() {
+			if err := recover(); err != nil {
+				r.logger.Error(err.(error), "reconcile panic")
+			}
+		}()
+	}
+
+	/* 	f := func(ctx context.Context) func() {
+	   		return func() {
+	   			r.ConditionsCheck(ctx)
+	   		}
+	   	}(ctx)
+
+	   	go checkStatus.Do(f) */
 
 	milvuscluster := &milvusiov1alpha1.MilvusCluster{}
 	if err := r.Get(ctx, req.NamespacedName, milvuscluster); err != nil {
@@ -80,13 +99,31 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Start reconcile
-	if err := r.ReconcileConfigMaps(ctx, milvuscluster); err != nil {
+	r.logger.Info("start reconcile")
+	if err := r.ReconcileDependencies(ctx, milvuscluster); err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.ReconcileDeployments(ctx, milvuscluster); err != nil {
+
+	if !IsDependencyReady(milvuscluster.Status) {
+		if err := r.Status().Update(ctx, milvuscluster); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	if err := r.ReconcileConfigMaps(ctx, *milvuscluster); err != nil {
 		return ctrl.Result{}, err
 	}
-	if err := r.ReconcileServices(ctx, milvuscluster); err != nil {
+
+	if err := r.ReconcileDeployments(ctx, *milvuscluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.ReconcileServices(ctx, *milvuscluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if err := r.Status().Update(ctx, milvuscluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -95,10 +132,34 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MilvusClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
+	builder := ctrl.NewControllerManagedBy(mgr).
 		For(&milvusiov1alpha1.MilvusCluster{}).
-		Owns(&appsv1.Deployment{}).
-		Owns(&corev1.ConfigMap{}).
-		Owns(&corev1.Service{}).
-		Complete(r)
+		//Owns(&appsv1.Deployment{}).
+		//Owns(&corev1.ConfigMap{}).
+		//Owns(&corev1.Service{}).
+		//WithEventFilter(&MilvusClusterPredicate{}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 1})
+
+	if config.IsDebug() {
+		fmt.Println("debug")
+		builder.WithEventFilter(DebugPredicate())
+	}
+
+	return builder.Complete(r)
+}
+
+var predicateLog = logf.Log.WithName("predicates").WithName("MilvusCluster")
+
+type MilvusClusterPredicate struct {
+	predicate.Funcs
+}
+
+func (*MilvusClusterPredicate) Update(e event.UpdateEvent) bool {
+	if IsEqual(e.ObjectOld, e.ObjectNew) {
+		obj := fmt.Sprintf("%s/%s", e.ObjectNew.GetNamespace(), e.ObjectNew.GetName())
+		predicateLog.Info("Update Equal", "obj", obj, "kind", e.ObjectNew.GetObjectKind())
+		return false
+	}
+
+	return true
 }

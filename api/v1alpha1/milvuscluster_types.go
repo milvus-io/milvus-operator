@@ -36,6 +36,9 @@ type MilvusClusterSpec struct {
 	ImagePullPolicy *corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
 
 	// +kubebuilder:validation:Optional
@@ -45,7 +48,7 @@ type MilvusClusterSpec struct {
 	Etcd *MiluvsEtcd `json:"etcd,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	S3 *MilvusS3 `json:"s3,omitempty"`
+	Storage *MilvusStorage `json:"storage,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	Pulsar *MilvusPulsar `json:"pulsar,omitempty"`
@@ -104,6 +107,9 @@ const (
 	PulsarReady MiluvsClusterConditionType = "PulsarReady"
 	// ServiceReady means the Service of Milvus is ready.
 	ServiceReady MiluvsClusterConditionType = "ServiceReady"
+
+	// ReasonEndpointsHealthy means the
+	ReasonEndpointsHealthy string = "EndpointsHealty"
 )
 
 // MilvusClusterStatus defines the observed state of MilvusCluster
@@ -120,12 +126,24 @@ type MilvusClusterStatus struct {
 	Conditions []MilvusClusterCondition `json:"conditions,omitempty"`
 
 	// Status of each etcd endpoint
-	EtcdStatus MilvusEtcdStatus `json:"etcdStatus,omitempty"`
+	EtcdStatus []MilvusEtcdStatus `json:"etcdStatus,omitempty"`
+
+	// Status of each storage endpoint
+	StorageStatus []MilvusStorageStatus `json:"storageStatus,omitempty"`
 }
 
+// MilvusEtcdStatus contains a list of all etcd endpoints status
 type MilvusEtcdStatus struct {
 	Endpoint string `json:"endpoint"`
 	Healthy  bool   `json:"healthy"`
+	Error    string `json:"error,omitempty"`
+}
+
+// MilvusStorageStatus contains a list of all storage endpoints status
+type MilvusStorageStatus struct {
+	Endpoint string `json:"endpoint"`
+	Status   string `json:"status"`
+	Uptime   string `json:"uptime,omitempty"`
 	Error    string `json:"error,omitempty"`
 }
 

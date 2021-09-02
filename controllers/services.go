@@ -30,7 +30,7 @@ func (r *MilvusClusterReconciler) updateService(
 }
 
 func (r *MilvusClusterReconciler) ReconcileComponentService(
-	ctx context.Context, mc *v1alpha1.MilvusCluster, component MilvusComponent,
+	ctx context.Context, mc v1alpha1.MilvusCluster, component MilvusComponent,
 ) error {
 	namespacedName := types.NamespacedName{
 		Namespace: mc.Namespace,
@@ -45,7 +45,7 @@ func (r *MilvusClusterReconciler) ReconcileComponentService(
 				Namespace: namespacedName.Namespace,
 			},
 		}
-		if err := r.updateService(*mc, new, component); err != nil {
+		if err := r.updateService(mc, new, component); err != nil {
 			return err
 		}
 
@@ -56,7 +56,7 @@ func (r *MilvusClusterReconciler) ReconcileComponentService(
 	}
 
 	cur := old.DeepCopy()
-	if err := r.updateService(*mc, cur, component); err != nil {
+	if err := r.updateService(mc, cur, component); err != nil {
 		return err
 	}
 
@@ -69,10 +69,10 @@ func (r *MilvusClusterReconciler) ReconcileComponentService(
 	return r.Update(ctx, cur)
 }
 
-func (r *MilvusClusterReconciler) ReconcileServices(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
+func (r *MilvusClusterReconciler) ReconcileServices(ctx context.Context, mc v1alpha1.MilvusCluster) error {
 	g, gtx := NewGroup(ctx)
 	for _, component := range MilvusComponents {
-		g.Go(func(ctx context.Context, mc *v1alpha1.MilvusCluster, component MilvusComponent) func() error {
+		g.Go(func(ctx context.Context, mc v1alpha1.MilvusCluster, component MilvusComponent) func() error {
 			return func() error {
 				return r.ReconcileComponentService(ctx, mc, component)
 			}

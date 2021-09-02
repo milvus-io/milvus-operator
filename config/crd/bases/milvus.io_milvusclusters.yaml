@@ -4,7 +4,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.4.1
+    controller-gen.kubebuilder.io/version: v0.6.0
   creationTimestamp: null
   name: milvusclusters.milvus.io
 spec:
@@ -259,6 +259,17 @@ spec:
                 description: PullPolicy describes a policy for if/when to pull a container
                   image
                 type: string
+              imagePullSecrets:
+                items:
+                  description: LocalObjectReference contains enough information to
+                    let you locate the referenced object inside the same namespace.
+                  properties:
+                    name:
+                      description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        TODO: Add other useful fields. apiVersion, kind, uid?'
+                      type: string
+                  type: object
+                type: array
               indexCoord:
                 properties:
                   grpc:
@@ -465,7 +476,7 @@ spec:
                     minimum: 0
                     type: integer
                 type: object
-              s3:
+              storage:
                 properties:
                   bucket:
                     type: string
@@ -476,8 +487,14 @@ spec:
                     type: boolean
                   secretRef:
                     type: string
+                  type:
+                    default: minio
+                    enum:
+                    - minio
+                    - s3
+                    type: string
                 required:
-                - endpoint
+                - type
                 type: object
             required:
             - logLevel
@@ -516,11 +533,47 @@ spec:
                   - type
                   type: object
                 type: array
+              etcdStatus:
+                description: Status of each etcd endpoint
+                items:
+                  description: MilvusEtcdStatus contains a list of all etcd endpoints
+                    status
+                  properties:
+                    endpoint:
+                      type: string
+                    error:
+                      type: string
+                    healthy:
+                      type: boolean
+                  required:
+                  - endpoint
+                  - healthy
+                  type: object
+                type: array
               status:
                 default: Creating
                 description: Status indicates the overall status of the Milvus Status
                   can be "Creating", "Healthy" and "Unhealthy"
                 type: string
+              storageStatus:
+                description: Status of each storage endpoint
+                items:
+                  description: MilvusStorageStatus contains a list of all storage
+                    endpoints status
+                  properties:
+                    endpoint:
+                      type: string
+                    error:
+                      type: string
+                    status:
+                      type: string
+                    uptime:
+                      type: string
+                  required:
+                  - endpoint
+                  - status
+                  type: object
+                type: array
             required:
             - status
             type: object

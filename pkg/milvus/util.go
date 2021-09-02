@@ -1,18 +1,35 @@
 package milvus
 
 import (
+	"net"
+	neturl "net/url"
 	"strconv"
-	"strings"
 )
 
-func GetAddressPort(endpoint string) (string, int32) {
-	s := strings.Split(endpoint, ":")
-	if len(s) > 1 {
-		port, err := strconv.Atoi(s[1])
-		if err == nil {
-			return s[0], int32(port)
-		}
+func GetHostPortFromURL(url string) (string, int32) {
+	u, err := neturl.ParseRequestURI(url)
+	if err != nil {
+		return url, 80
 	}
 
-	return s[0], 0
+	portInt, err := strconv.Atoi(u.Port())
+	if err != nil {
+		return u.Hostname(), 80
+	}
+
+	return u.Hostname(), int32(portInt)
+}
+
+func GetHostPort(endpoint string) (string, int32) {
+	host, port, err := net.SplitHostPort(endpoint)
+	if err != nil {
+		return endpoint, 80
+	}
+
+	portInt, err := strconv.Atoi(port)
+	if err != nil {
+		return host, 80
+	}
+
+	return host, int32(portInt)
 }
