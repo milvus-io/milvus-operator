@@ -29,3 +29,7 @@ config/dev/webhook_patch_ca.yaml
 
 __debug_bin
 *.DS_Store
+
+## goreleaser
+dist/
+vendor/

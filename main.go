@@ -64,13 +64,13 @@ func main() {
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	if err := config.Init(); err != nil {
 		setupLog.Error(err, "unable to init config")
 		os.Exit(1)
 	}
 
-	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	syncPeriod := 1 * time.Minute
 	ctrlOptions := ctrl.Options{
 		Scheme:                 scheme,
