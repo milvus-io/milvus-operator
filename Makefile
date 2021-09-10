@@ -63,12 +63,12 @@ test: manifests generate fmt vet ## Run tests.
 ##@ Build
 
 build: generate fmt vet ## Build manager binary.
-	go build -o bin/manager main.go
+	go build -o bin/milvus-operator main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
-docker-build: test ## Build docker image with the manager.
+docker-build: test build ## Build docker image with the manager.
 	docker build -t ${IMG} .
 
 docker-push: ## Push docker image with the manager.
@@ -92,6 +92,9 @@ undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/confi
 deploy-dev: dev-cert-apply manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/dev | kubectl apply -f -
+
+gen-manifests: manifests kustomize
+	$(KUSTOMIZE) build config/default > config/manifests/default.yaml
 
 # Install local certificate
 # Required for webhook server to start
