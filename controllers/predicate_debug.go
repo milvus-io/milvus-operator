@@ -22,10 +22,11 @@ var _ predicate.Predicate = &debugPredicate{}
 
 // Create returns true if the Create event should be processed
 func (*debugPredicate) Create(evt event.CreateEvent) bool {
-	mc, ok := evt.Object.(*milvusiov1alpha1.MilvusCluster)
+	/* mc, ok := evt.Object.(*milvusiov1alpha1.MilvusCluster)
 	if ok {
 		debugLog.Info("Create", "mc", mc)
-	}
+	} */
+	debugLog.Info("Create", "object", evt.Object)
 	return true
 }
 

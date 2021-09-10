@@ -8,7 +8,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
@@ -56,7 +55,7 @@ func GetStorageSecretRefEnv(secretRef string) []corev1.EnvVar {
 func (r *MilvusClusterReconciler) updateDeployment(
 	mc v1alpha1.MilvusCluster, deployment *appsv1.Deployment, component MilvusComponent,
 ) error {
-	appLabels := NewAppLabels(mc.Name, component)
+	appLabels := NewAppLabels(mc.Name, component.String())
 
 	deployment.Labels = MergeLabels(deployment.Labels, appLabels)
 	if err := ctrl.SetControllerReference(&mc, deployment, r.Scheme); err != nil {
@@ -78,7 +77,7 @@ func (r *MilvusClusterReconciler) updateDeployment(
 		VolumeSource: corev1.VolumeSource{
 			ConfigMap: &corev1.ConfigMapVolumeSource{
 				LocalObjectReference: corev1.LocalObjectReference{
-					Name: GetConfigMapInstanceName(mc.Name),
+					Name: mc.Name,
 				},
 				DefaultMode: &MilvusConfigMapMode,
 			},
@@ -133,10 +132,7 @@ func (r *MilvusClusterReconciler) updateDeployment(
 func (r *MilvusClusterReconciler) ReconcileComponentDeployment(
 	ctx context.Context, mc v1alpha1.MilvusCluster, component MilvusComponent,
 ) error {
-	namespacedName := types.NamespacedName{
-		Namespace: mc.Namespace,
-		Name:      component.GetDeploymentInstanceName(mc.Name),
-	}
+	namespacedName := NamespacedName(mc.Namespace, component.GetDeploymentInstanceName(mc.Name))
 	old := &appsv1.Deployment{}
 	err := r.Get(ctx, namespacedName, old)
 	if errors.IsNotFound(err) {

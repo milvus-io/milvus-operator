@@ -11,7 +11,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -19,10 +18,6 @@ const (
 	TemplateMilvus   = "milvus.yaml.tmpl"
 	MilvusConfigYaml = "milvus.yaml"
 )
-
-func GetConfigMapInstanceName(instance string) string {
-	return instance
-}
 
 func SetGRPCConfig(grpc *milvus.MilvusConfigGRPC, mc *v1alpha1.ConfigGRPC) {
 	if mc != nil {
@@ -105,13 +100,13 @@ func (r *MilvusClusterReconciler) updateConfigMap(mc v1alpha1.MilvusCluster, con
 
 //
 func (r *MilvusClusterReconciler) ReconcileConfigMaps(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	namespacedName := types.NamespacedName{Namespace: mc.Namespace, Name: mc.Name}
+	namespacedName := NamespacedName(mc.Namespace, mc.Name)
 	old := &corev1.ConfigMap{}
 	err := r.Get(ctx, namespacedName, old)
 	if errors.IsNotFound(err) {
 		new := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      GetConfigMapInstanceName(mc.Name),
+				Name:      mc.Name,
 				Namespace: mc.Namespace,
 			},
 		}

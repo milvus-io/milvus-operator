@@ -17,9 +17,15 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -79,6 +85,10 @@ func (r *MilvusCluster) Default() {
 	if r.Spec.Proxy == nil {
 		r.Spec.Proxy = &Proxy{}
 	}
+
+	if r.Status.Status == "" {
+		r.Status.Status = StatusCreating
+	}
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
@@ -91,7 +101,17 @@ func (r *MilvusCluster) ValidateCreate() error {
 	milvusclusterlog.Info("validate create", "name", r.Name)
 
 	// TODO(user): fill in your validation logic upon object creation.
-	return nil
+	var allErrs field.ErrorList
+
+	if err := r.validateEtcd(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
+	return apierrors.NewInvalid(schema.GroupKind{Group: GroupVersion.Group, Kind: "MilvusCluster"}, r.Name, allErrs)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
@@ -113,4 +133,34 @@ func (r *MilvusCluster) ValidateDelete() error {
 
 	// TODO(user): fill in your validation logic upon object deletion.
 	return nil
+}
+
+func (r *MilvusCluster) validateEtcd() *field.Error {
+	fp := field.NewPath("spec").Child("etcd")
+
+	if len(r.Spec.Etcd.Endpoints) == 0 && !r.Spec.Etcd.InCluster {
+		return required(fp.Child("endpoints"))
+	}
+
+	if r.Spec.Etcd.InClusterSpec != nil {
+		if r.Spec.Etcd.InClusterSpec.Storage != "" {
+			if _, err := resource.ParseQuantity(r.Spec.Etcd.InClusterSpec.Storage); err != nil {
+				return invalid(fp.Child("storage"), r.Spec.Etcd.InClusterSpec.Storage, err.Error())
+			}
+		}
+	}
+
+	return nil
+}
+
+func required(mainPath *field.Path) *field.Error {
+	return field.Required(mainPath, fmt.Sprintf("%s should be configured", mainPath.String()))
+}
+
+func invalid(mainPath *field.Path, value interface{}, details string) *field.Error {
+	return field.Invalid(mainPath, value, details)
+}
+
+func forbidden(mainPath fmt.Stringer, conflictPath *field.Path) *field.Error {
+	return field.Forbidden(conflictPath, fmt.Sprintf("conflicts: %s should not be configured as %s has been configured already", conflictPath.String(), mainPath.String()))
 }

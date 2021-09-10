@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	DefaultMilvusVersion   = "v2.0.0-rc4-20210811-bdb8396"
+	DefaultMilvusVersion   = "v2.0.0-rc5-hotfix1-20210901-9e0b2cc"
 	DefaultMilvusBaseImage = "milvusdb/milvus"
 	DefaultMilvusImage     = DefaultMilvusBaseImage + ":" + DefaultMilvusVersion
 	DefaultImagePullPolicy = corev1.PullIfNotPresent
@@ -25,11 +25,14 @@ var (
 
 func Init() error {
 	c, err := NewConfig()
+	if err != nil {
+		return err
+	}
 	defaultConfig = c
 	if os.Getenv("DEBUG") == "true" {
 		defaultConfig.debugMode = true
 	}
-	return err
+	return nil
 }
 
 func IsDebug() bool {

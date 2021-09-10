@@ -1,15 +1,22 @@
 package controllers
 
 import (
+	"bytes"
 	_ "crypto/sha256"
 	"fmt"
 	"strings"
+	"text/template"
 
+	"github.com/Masterminds/sprig"
 	dockerref "github.com/docker/distribution/reference"
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	kstatus "sigs.k8s.io/kustomize/kstatus/status"
+	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -193,10 +200,10 @@ func GetVersionFromImage(image string) string {
 	return image
 }
 
-func NewAppLabels(instance string, component MilvusComponent) map[string]string {
+func NewAppLabels(instance, component string) map[string]string {
 	return map[string]string{
 		AppLabelInstance:  instance,
-		AppLabelComponent: component.String(),
+		AppLabelComponent: component,
 		AppLabelName:      "milvus",
 	}
 }
@@ -217,6 +224,44 @@ func MergeLabels(allLabels ...map[string]string) map[string]string {
 // IsEqual check two object is equal.
 func IsEqual(obj1, obj2 interface{}) bool {
 	return equality.Semantic.DeepEqual(obj1, obj2)
+}
+
+func DeploymentReady(deployment appsv1.Deployment) bool {
+	ready := true
+	errored := false
+	inProgress := false
+	//ignoredConditions := []string{}
+
+	for _, cond := range deployment.Status.Conditions {
+		switch string(cond.Type) {
+		case string(appsv1.DeploymentProgressing):
+			if cond.Status == corev1.ConditionTrue &&
+				cond.Reason != "" &&
+				cond.Reason == "NewReplicaSetAvailable" {
+				continue
+			}
+			inProgress = inProgress || cond.Status != corev1.ConditionFalse
+
+		case kstatus.ConditionInProgress.String():
+			inProgress = inProgress || cond.Status != corev1.ConditionFalse
+
+		case kstatus.ConditionFailed.String(), string(appsv1.DeploymentReplicaFailure):
+			errored = errored || cond.Status == corev1.ConditionTrue
+
+		case "Ready", string(appsv1.DeploymentAvailable):
+			ready = ready && cond.Status == corev1.ConditionTrue
+
+			/* default:
+			ignoredConditions = append(ignoredConditions, string(cond.Type)) */
+		}
+	}
+
+	/* if len(ignoredConditions) > 0 {
+		logger.Get(ctx).V(1).
+			Info("unexpected conditions", "conditions", ignoredConditions)
+	} */
+
+	return ready && !inProgress && !errored
 }
 
 // PodRunningAndReady returns whether a pod is running and each container has
@@ -248,7 +293,7 @@ func IsDependencyReady(status v1alpha1.MilvusClusterStatus) bool {
 	ready := 0
 	for _, c := range status.Conditions {
 		if c.Type == v1alpha1.EtcdReady ||
-			c.Type == v1alpha1.PulsarReady ||
+			//c.Type == v1alpha1.PulsarReady ||
 			c.Type == v1alpha1.StorageReady {
 			if c.Status == corev1.ConditionTrue {
 				ready++
@@ -256,7 +301,7 @@ func IsDependencyReady(status v1alpha1.MilvusClusterStatus) bool {
 		}
 	}
 
-	return ready == 3
+	return ready == 2
 }
 
 func UpdateCondition(status *v1alpha1.MilvusClusterStatus, c v1alpha1.MilvusClusterCondition) {
@@ -282,4 +327,32 @@ func UpdateCondition(status *v1alpha1.MilvusClusterStatus, c v1alpha1.MilvusClus
 	now := metav1.Now()
 	c.LastTransitionTime = &now
 	status.Conditions = append(status.Conditions, c)
+}
+
+func RenderTemplate(templateText string, data interface{}) ([]byte, error) {
+	t, err := template.New("template").
+		Funcs(sprig.TxtFuncMap()).Parse(templateText)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	err = t.Execute(&buf, data)
+	if err != nil {
+		return nil, err
+	}
+
+	objJSON, err := yaml.YAMLToJSON(buf.Bytes())
+	if err != nil {
+		return nil, err
+	}
+
+	return objJSON, nil
+}
+
+func NamespacedName(namespace, name string) types.NamespacedName {
+	return types.NamespacedName{
+		Namespace: namespace,
+		Name:      name,
+	}
 }

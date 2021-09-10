@@ -1,6 +1,6 @@
 
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= milvusdb/milvus-operator:dev-latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 
@@ -10,6 +10,11 @@ GOBIN=$(shell go env GOPATH)/bin
 else
 GOBIN=$(shell go env GOBIN)
 endif
+
+TMPDIR = tmp
+CERT_DIR = $(TMPDIR)/k8s-webhook-server/serving-certs
+CSR_CONF = config/cert/csr.conf
+DEV_HOOK_PATCH  = config/dev/webhook_patch.yaml
 
 # Setting SHELL to bash allows bash commands to be executed by recipes.
 # This is a requirement for 'setup-envtest.sh' in the test target.
@@ -84,9 +89,29 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
-deploy-dev: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+deploy-dev: dev-cert-apply manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/dev | kubectl apply -f -
+
+# Install local certificate
+# Required for webhook server to start
+dev-cert:
+	$(RM) -r $(CERT_DIR)
+	mkdir -p $(CERT_DIR)
+	openssl genrsa -out $(CERT_DIR)/ca.key 2048
+	openssl req -x509 -new -nodes -key $(CERT_DIR)/ca.key -subj "/CN=host.docker.internal" -days 10000 -out $(CERT_DIR)/ca.crt
+	openssl genrsa -out $(CERT_DIR)/tls.key 2048
+	openssl req -new -SHA256 -newkey rsa:2048 -nodes -keyout $(CERT_DIR)/tls.key -out $(CERT_DIR)/tls.csr -subj "/C=CN/ST=Shanghai/L=Shanghai/O=/OU=/CN=host.docker.internal"
+	openssl req -new -key $(CERT_DIR)/tls.key -out $(CERT_DIR)/tls.csr -config $(CSR_CONF)
+	openssl x509 -req -in $(CERT_DIR)/tls.csr -CA $(CERT_DIR)/ca.crt -CAkey $(CERT_DIR)/ca.key -CAcreateserial -out $(CERT_DIR)/tls.crt -days 10000 -extensions v3_ext -extfile $(CSR_CONF)
+	
+CA64=$(shell base64 -i $(CERT_DIR)/ca.crt)
+CA=$(CA64:K==)
+dev-cert-apply: dev-cert
+	$(RM) -r config/dev/webhook_patch_ca.yaml
+	echo '- op: "add"' > config/dev/webhook_patch_ca.yaml
+	echo '  path: "/webhooks/0/clientConfig/caBundle"' >> config/dev/webhook_patch_ca.yaml
+	echo "  value: $(CA)" >> config/dev/webhook_patch_ca.yaml
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
 controller-gen: ## Download controller-gen locally if necessary.

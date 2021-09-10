@@ -23,11 +23,28 @@ type MiluvsEtcd struct {
 
 	// +kubebuilder:validation:Optional
 	StatsStreamPosSubPath string `json:"statsStreamPosSubPath,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	InCluster bool `json:"inCluster,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	InClusterSpec *MilvusEtcdSpec `json:"inClusterSpec,omitempty"`
+}
+
+type MilvusEtcdSpec struct {
+	// +kubebuilder:validation:Optional
+	Name string `json:"name,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum={1,3,5,7}
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	Storage string `json:"storage,omitempty"`
 }
 
 type MilvusStorage struct {
-	// +kubebuilder:validation:Enum={"minio", "s3"}
-	// +kubebuilder:default="minio"
+	// +kubebuilder:validation:Enum={"Minio", "S3"}
+	// +kubebuilder:default="Minio"
 	Type string `json:"type"`
 
 	// +kubebuilder:validation:Optional

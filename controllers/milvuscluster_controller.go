@@ -100,6 +100,8 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Start reconcile
 	r.logger.Info("start reconcile")
+	old := milvuscluster.DeepCopy()
+
 	if err := r.ReconcileDependencies(ctx, milvuscluster); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -111,20 +113,20 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	if err := r.ReconcileConfigMaps(ctx, *milvuscluster); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if err := r.ReconcileDeployments(ctx, *milvuscluster); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if err := r.ReconcileServices(ctx, *milvuscluster); err != nil {
+	if err := r.ReconcileMilvusComponent(ctx, milvuscluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
 	if err := r.Status().Update(ctx, milvuscluster); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	r.logger.Info("debug:", "isdebug", config.IsDebug())
+	if config.IsDebug() {
+		diff, err := client.MergeFrom(old).Data(milvuscluster)
+		if err != nil {
+			r.logger.Info("Update diff", "diff", string(diff))
+		}
 	}
 
 	return ctrl.Result{}, nil
@@ -141,7 +143,6 @@ func (r *MilvusClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		WithOptions(controller.Options{MaxConcurrentReconciles: 1})
 
 	if config.IsDebug() {
-		fmt.Println("debug")
 		builder.WithEventFilter(DebugPredicate())
 	}
 
@@ -152,6 +153,14 @@ var predicateLog = logf.Log.WithName("predicates").WithName("MilvusCluster")
 
 type MilvusClusterPredicate struct {
 	predicate.Funcs
+}
+
+func (*MilvusClusterPredicate) Create(e event.CreateEvent) bool {
+	if _, ok := e.Object.(*milvusiov1alpha1.MilvusCluster); !ok {
+		return false
+	}
+
+	return true
 }
 
 func (*MilvusClusterPredicate) Update(e event.UpdateEvent) bool {

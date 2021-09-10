@@ -105,11 +105,23 @@ const (
 	StorageReady MiluvsClusterConditionType = "StorageReady"
 	// PulsarReady means the Storage is ready.
 	PulsarReady MiluvsClusterConditionType = "PulsarReady"
-	// ServiceReady means the Service of Milvus is ready.
-	ServiceReady MiluvsClusterConditionType = "ServiceReady"
+	// MilvusReady means all components of Milvus are ready.
+	MilvusReady MiluvsClusterConditionType = "MilvusReady"
 
-	// ReasonEndpointsHealthy means the
+	// ReasonEndpointsHealthy means the endpoint is healthy
 	ReasonEndpointsHealthy string = "EndpointsHealty"
+	// ReasonMilvusClusterHealthy means milvus cluster is healthy
+	ReasonMilvusClusterHealthy string = "MilvusClusterHealty"
+	// ReasonMilvusClusterNotHealthy means at least one of milvus component is not healthy
+	ReasonMilvusComponentNotHealthy string = "MilvusComponentNotHealthy"
+
+	ReasonEtcdReady       = "EtcdReady"
+	ReasonEtcdNotReady    = "EtcdNotReady"
+	ReasonStorageReady    = "StorageReady"
+	ReasonStorageNotReady = "StorageNotReady"
+	ReasonSecretNotExist  = "SecretNotExist"
+	ReasonSecretDecodeErr = "SecretDecodeErr"
+	ReasonClientErr       = "ClientErr"
 )
 
 // MilvusClusterStatus defines the observed state of MilvusCluster

@@ -240,6 +240,23 @@ spec:
                     type: array
                   flushStreamPosSubPath:
                     type: string
+                  inCluster:
+                    type: boolean
+                  inClusterSpec:
+                    properties:
+                      name:
+                        type: string
+                      replicas:
+                        enum:
+                        - 1
+                        - 3
+                        - 5
+                        - 7
+                        format: int32
+                        type: integer
+                      storage:
+                        type: string
+                    type: object
                   kvSubPath:
                     type: string
                   metaSubPath:
@@ -488,10 +505,10 @@ spec:
                   secretRef:
                     type: string
                   type:
-                    default: minio
+                    default: Minio
                     enum:
-                    - minio
-                    - s3
+                    - Minio
+                    - S3
                     type: string
                 required:
                 - type

@@ -17,3 +17,6 @@ patches:
 - path: webhook_patch.yaml
   target:
     group: admissionregistration.k8s.io
+- path: webhook_patch_ca.yaml
+  target:
+    group: admissionregistration.k8s.io

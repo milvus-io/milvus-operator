@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"sync"
 	"time"
@@ -11,8 +12,11 @@ import (
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -20,14 +24,6 @@ import (
 )
 
 const (
-	ReasonEtcdReady       = "EtcdReady"
-	ReasonEtcdNotReady    = "EtcdNotReady"
-	ReasonStorageReady    = "StorageReady"
-	ReasonStorageNotReady = "StorageNotReady"
-	ReasonSecretNotExist  = "SecretNotExist"
-	ReasonSecretDecodeErr = "SecretDecodeErr"
-	ReasonClientErr       = "ClientErr"
-
 	MessageEtcdReady       = "Etcd endpoints is healthy"
 	MessageEtcdNotReady    = "All etcd endpoints are unhealthy"
 	MessageStorageReady    = "Storage endpoints is healthy"
@@ -35,6 +31,7 @@ const (
 	MessageSecretNotExist  = "Secret not exist"
 	MessageKeyNotExist     = "accesskey or secretkey not exist in secret"
 	MessageDecodeErr       = "accesskey or secretkey decode error"
+	MessageMilvusHealthy   = "All Milvus components are healthy"
 )
 
 type madminServerSlice []madmin.ServerProperties
@@ -99,28 +96,21 @@ func (s *statusChecker) checkStorageStatus() error {
 	}
 
 	if errors.IsNotFound(err) {
-		s.updateCondition(newErrStorageCondition(ReasonSecretNotExist, MessageSecretNotExist))
+		s.updateCondition(newErrStorageCondition(v1alpha1.ReasonSecretNotExist, MessageSecretNotExist))
 		return nil
 	}
 
 	accesskey, exist1 := secret.Data[AccessKey]
 	secretkey, exist2 := secret.Data[SecretKey]
 	if !exist1 || !exist2 {
-		s.updateCondition(newErrStorageCondition(ReasonSecretNotExist, MessageKeyNotExist))
+		s.updateCondition(newErrStorageCondition(v1alpha1.ReasonSecretNotExist, MessageKeyNotExist))
 		return nil
 	}
-
-	/* accesskey, err1 := base64.StdEncoding.DecodeString(string(accesskey64))
-	secretkey, err2 := base64.StdEncoding.DecodeString(string(secretkey64))
-	if err1 != nil || err2 != nil {
-		s.updateCondition(newErrStorageCondition(ReasonSecretDecodeErr, MessageDecodeErr))
-		return nil
-	} */
 
 	mdmClnt, err := madmin.New(
 		s.mc.Spec.Storage.Endpoint, string(accesskey), string(secretkey), s.mc.Spec.Storage.Insecure)
 	if err != nil {
-		s.updateCondition(newErrStorageCondition(ReasonClientErr, err.Error()))
+		s.updateCondition(newErrStorageCondition(v1alpha1.ReasonClientErr, err.Error()))
 		return nil
 	}
 
@@ -128,7 +118,7 @@ func (s *statusChecker) checkStorageStatus() error {
 	defer cancel()
 	st, err := mdmClnt.ServerInfo(ctx)
 	if err != nil {
-		s.updateCondition(newErrStorageCondition(ReasonClientErr, err.Error()))
+		s.updateCondition(newErrStorageCondition(v1alpha1.ReasonClientErr, err.Error()))
 		return nil
 	}
 	sort.Sort(madminServerSlice(st.Servers))
@@ -150,7 +140,7 @@ func (s *statusChecker) checkStorageStatus() error {
 	c := v1alpha1.MilvusClusterCondition{
 		Type:   v1alpha1.StorageReady,
 		Status: GetConditionStatus(onlines > 0),
-		Reason: ReasonStorageReady,
+		Reason: v1alpha1.ReasonStorageReady,
 	}
 	UpdateCondition(&s.mc.Status, c)
 	s.Unlock()
@@ -180,15 +170,63 @@ func (s *statusChecker) checkEtcdStatus() error {
 	c := v1alpha1.MilvusClusterCondition{
 		Type:    v1alpha1.EtcdReady,
 		Status:  GetConditionStatus(etcdReady),
-		Reason:  ReasonEtcdReady,
+		Reason:  v1alpha1.ReasonEtcdReady,
 		Message: MessageEtcdReady,
 	}
 	if !etcdReady {
-		c.Reason = ReasonEtcdNotReady
+		c.Reason = v1alpha1.ReasonEtcdNotReady
 		c.Message = MessageEtcdNotReady
 	}
 
 	UpdateCondition(&s.mc.Status, c)
+	return nil
+}
+
+func (s *statusChecker) checkMilvusClusterStatus() error {
+	deployments := &appsv1.DeploymentList{}
+	opts := &client.ListOptions{}
+	opts.LabelSelector = labels.SelectorFromSet(map[string]string{
+		AppLabelInstance: s.mc.Name,
+		AppLabelName:     "milvus",
+	})
+	if err := s.Client.List(s.ctx, deployments, opts); err != nil {
+		return err
+	}
+
+	ready := 0
+	notReadyComponents := []string{}
+	for _, deployment := range deployments.Items {
+		if metav1.IsControlledBy(&deployment, s.mc) {
+			if DeploymentReady(deployment) {
+				ready++
+			} else {
+				notReadyComponents = append(notReadyComponents, deployment.Labels[AppLabelComponent])
+			}
+		}
+	}
+
+	cond := v1alpha1.MilvusClusterCondition{
+		Type: v1alpha1.MilvusReady,
+	}
+	if ready == len(MilvusComponents) {
+		cond.Status = corev1.ConditionTrue
+		cond.Reason = v1alpha1.ReasonMilvusClusterHealthy
+		cond.Message = MessageMilvusHealthy
+	} else {
+		cond.Status = corev1.ConditionFalse
+		cond.Reason = v1alpha1.ReasonMilvusComponentNotHealthy
+		sort.Strings(notReadyComponents)
+		cond.Message = fmt.Sprintf("%s not ready", notReadyComponents)
+	}
+
+	UpdateCondition(&s.mc.Status, cond)
+
+	if cond.Status != corev1.ConditionTrue {
+		s.mc.Status.Status = v1alpha1.StatusUnHealthy
+	} else {
+		s.mc.Status.Status = v1alpha1.StatusHealthy
+	}
+
 	return nil
 }
 

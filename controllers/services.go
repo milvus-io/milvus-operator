@@ -7,7 +7,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
@@ -16,7 +15,7 @@ import (
 func (r *MilvusClusterReconciler) updateService(
 	mc v1alpha1.MilvusCluster, service *corev1.Service, component MilvusComponent,
 ) error {
-	appLabels := NewAppLabels(mc.Name, component)
+	appLabels := NewAppLabels(mc.Name, component.String())
 	service.Labels = MergeLabels(service.Labels, appLabels)
 	if err := ctrl.SetControllerReference(&mc, service, r.Scheme); err != nil {
 		return err
@@ -32,10 +31,7 @@ func (r *MilvusClusterReconciler) updateService(
 func (r *MilvusClusterReconciler) ReconcileComponentService(
 	ctx context.Context, mc v1alpha1.MilvusCluster, component MilvusComponent,
 ) error {
-	namespacedName := types.NamespacedName{
-		Namespace: mc.Namespace,
-		Name:      component.GetServiceInstanceName(mc.Name),
-	}
+	namespacedName := NamespacedName(mc.Namespace, component.GetServiceInstanceName(mc.Name))
 	old := &corev1.Service{}
 	err := r.Get(ctx, namespacedName, old)
 	if errors.IsNotFound(err) {
