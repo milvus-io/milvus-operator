@@ -65,10 +65,14 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+	if err := config.Init(); err != nil {
+		setupLog.Error(err, "unable to init config")
+		os.Exit(1)
+	}
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 	syncPeriod := 1 * time.Minute
-
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	ctrlOptions := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
 		Port:                   9443,
@@ -76,15 +80,12 @@ func main() {
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "71808ec5.milvus.io",
 		SyncPeriod:             &syncPeriod,
-		CertDir:                "tmp/k8s-webhook-server/serving-certs/", // 手动指定证书位置用于测试
-	})
-	if err != nil {
-		setupLog.Error(err, "unable to start manager")
-		os.Exit(1)
+		CertDir:                config.CertDir(),
 	}
 
-	if err := config.Init(); err != nil {
-		setupLog.Error(err, "unable to init config")
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrlOptions)
+	if err != nil {
+		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 

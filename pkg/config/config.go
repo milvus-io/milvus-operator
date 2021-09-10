@@ -32,11 +32,18 @@ func Init() error {
 	if os.Getenv("DEBUG") == "true" {
 		defaultConfig.debugMode = true
 	}
+
+	defaultConfig.certDir = os.Getenv("CERT_DIR")
+
 	return nil
 }
 
 func IsDebug() bool {
 	return defaultConfig.debugMode
+}
+
+func CertDir() string {
+	return defaultConfig.certDir
 }
 
 func GetTemplate(name string) string {
@@ -45,6 +52,7 @@ func GetTemplate(name string) string {
 
 type Config struct {
 	debugMode bool
+	certDir   string
 	templates map[string]string
 }
 
