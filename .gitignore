@@ -8,6 +8,7 @@
 bin
 testbin/*
 tmp
+config/dev/webhook_patch_ca.yaml
 
 # Test binary, build with `go test -c`
 *.test
