@@ -15,7 +15,8 @@ const (
 )
 
 const (
-	TemplateDir  = "config/assets"
+	TemplateDir  = "config/assets/templates"
+	ChartDir     = "config/assets/charts"
 	ProviderName = "milvus-operator"
 )
 
@@ -33,17 +34,11 @@ func Init() error {
 		defaultConfig.debugMode = true
 	}
 
-	defaultConfig.certDir = os.Getenv("CERT_DIR")
-
 	return nil
 }
 
 func IsDebug() bool {
 	return defaultConfig.debugMode
-}
-
-func CertDir() string {
-	return defaultConfig.certDir
 }
 
 func GetTemplate(name string) string {

@@ -23,6 +23,7 @@ import (
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
+	"helm.sh/helm/v3/pkg/cli"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -80,18 +81,24 @@ func main() {
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "71808ec5.milvus.io",
 		SyncPeriod:             &syncPeriod,
-		CertDir:                config.CertDir(),
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrlOptions)
+	conf := ctrl.GetConfigOrDie()
+	mgr, err := ctrl.NewManager(conf, ctrlOptions)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
+	settings := cli.New()
+	settings.KubeAPIServer = conf.Host
+	settings.MaxHistory = 2
+	settings.KubeToken = conf.BearerToken
+
 	conroller := controllers.NewMilvusClusterReconciler(
 		mgr.GetClient(),
 		mgr.GetScheme(),
+		settings,
 	)
 
 	if err = conroller.SetupWithManager(mgr); err != nil {

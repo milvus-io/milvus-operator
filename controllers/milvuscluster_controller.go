@@ -22,6 +22,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
+	"helm.sh/helm/v3/pkg/cli"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -30,10 +33,8 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	"github.com/go-logr/logr"
 	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
-	"k8s.io/apimachinery/pkg/api/errors"
 )
 
 var (
@@ -43,15 +44,17 @@ var (
 // MilvusClusterReconciler reconciles a MilvusCluster object
 type MilvusClusterReconciler struct {
 	client.Client
-	Scheme *runtime.Scheme
-	logger logr.Logger
+	Scheme       *runtime.Scheme
+	logger       logr.Logger
+	helmSettings *cli.EnvSettings
 }
 
-func NewMilvusClusterReconciler(client client.Client, scheme *runtime.Scheme) *MilvusClusterReconciler {
+func NewMilvusClusterReconciler(client client.Client, scheme *runtime.Scheme, settings *cli.EnvSettings) *MilvusClusterReconciler {
 	return &MilvusClusterReconciler{
-		Client: client,
-		Scheme: scheme,
-		logger: ctrl.Log.WithName("controller").WithName("milvus"),
+		Client:       client,
+		Scheme:       scheme,
+		logger:       ctrl.Log.WithName("controller").WithName("milvus"),
+		helmSettings: settings,
 	}
 }
 
@@ -127,7 +130,6 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	r.logger.Info("debug:", "isdebug", config.IsDebug())
 	if config.IsDebug() {
 		diff, err := client.MergeFrom(old).Data(milvuscluster)
 		if err != nil {

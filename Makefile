@@ -11,8 +11,7 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-TMPDIR = tmp
-CERT_DIR = $(TMPDIR)/k8s-webhook-server/serving-certs
+CERT_DIR = ${TMPDIR}/k8s-webhook-server/serving-certs
 CSR_CONF = config/cert/csr.conf
 DEV_HOOK_PATCH  = config/dev/webhook_patch.yaml
 
