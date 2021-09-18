@@ -17,8 +17,8 @@ const (
 	MilvusConfigVolumeName   = "milvus-config"
 	MilvusConfigMountPath    = "/milvus/configs/milvus.yaml"
 	MilvusConfigMountSubPath = "milvus.yaml"
-	AccessKey                = "accesskey"
-	SecretKey                = "secretkey"
+	AccessKey                = "access-key"
+	SecretKey                = "secret-key"
 )
 
 var (

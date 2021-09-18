@@ -1,6 +1,7 @@
 FROM golang:1.16 as builder
 
 WORKDIR /workspace
+ENV GOPROXY https://goproxy.cn
 # Copy the Go Modules manifests
 # # cache deps before building and copying source so that we don't need to re-download as much
 # # and so that source changes don't invalidate our downloaded layer
@@ -8,13 +9,13 @@ WORKDIR /workspace
 # # Copy the go source
 COPY go.mod go.mod
 COPY go.sum go.sum
+RUN go mod download
 #
 # # Build
 COPY main.go main.go
 COPY api/ api/
 COPY controllers/ controllers/
 COPY pkg/ pkg/
-RUN go mod tidy
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o manager main.go
 #

@@ -356,3 +356,39 @@ func NamespacedName(namespace, name string) types.NamespacedName {
 		Name:      name,
 	}
 }
+
+func EtcdEndpoints(etcd v1alpha1.MilvusEtcd) []string {
+	if etcd.External != nil {
+		return etcd.External.Endpoints
+	}
+
+	if etcd.InCluster != nil {
+		return etcd.InCluster.Endpoints
+	}
+
+	return []string{}
+}
+
+func StorageEndpoint(storage v1alpha1.MilvusStorage) string {
+	if storage.External != nil {
+		return storage.External.Endpoint
+	}
+
+	if storage.InCluster != nil {
+		return storage.InCluster.Endpoint
+	}
+
+	return ""
+}
+
+func PulsarEndpoint(pulsar v1alpha1.MilvusPulsar) string {
+	if pulsar.External != nil {
+		return pulsar.External.Endpoint
+	}
+
+	if pulsar.InCluster != nil {
+		return pulsar.InCluster.Endpoint
+	}
+
+	return ""
+}

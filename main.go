@@ -94,15 +94,14 @@ func main() {
 	settings.KubeAPIServer = conf.Host
 	settings.MaxHistory = 2
 	settings.KubeToken = conf.BearerToken
-
-	conroller := controllers.NewMilvusClusterReconciler(
-		mgr.GetClient(),
-		mgr.GetScheme(),
-		settings,
-	)
+	conroller := controllers.NewMilvusClusterReconciler(mgr.GetClient(), mgr.GetScheme(), settings)
+	if err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "MilvusCluster")
+		os.Exit(1)
+	}
 
 	if err = conroller.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MilvusCluster")
+		setupLog.Error(err, "unable to setup controller with manager", "controller", "MilvusCluster")
 		os.Exit(1)
 	}
 

@@ -21,6 +21,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// +genclient
+
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -45,7 +47,7 @@ type MilvusClusterSpec struct {
 	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	Etcd *MiluvsEtcd `json:"etcd,omitempty"`
+	Etcd *MilvusEtcd `json:"etcd,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	Storage *MilvusStorage `json:"storage,omitempty"`
@@ -119,6 +121,8 @@ const (
 	ReasonEtcdNotReady    = "EtcdNotReady"
 	ReasonStorageReady    = "StorageReady"
 	ReasonStorageNotReady = "StorageNotReady"
+	ReasonPulsarReady     = "PulsarReady"
+	ReasonPulsarNotReady  = "PulsarNotReady"
 	ReasonSecretNotExist  = "SecretNotExist"
 	ReasonSecretDecodeErr = "SecretDecodeErr"
 	ReasonClientErr       = "ClientErr"
@@ -138,10 +142,10 @@ type MilvusClusterStatus struct {
 	Conditions []MilvusClusterCondition `json:"conditions,omitempty"`
 
 	// Status of each etcd endpoint
-	EtcdStatus []MilvusEtcdStatus `json:"etcdStatus,omitempty"`
+	//EtcdStatus []MilvusEtcdStatus `json:"etcdStatus,omitempty"`
 
 	// Status of each storage endpoint
-	StorageStatus []MilvusStorageStatus `json:"storageStatus,omitempty"`
+	//StorageStatus []MilvusStorageStatus `json:"storageStatus,omitempty"`
 }
 
 // MilvusEtcdStatus contains a list of all etcd endpoints status

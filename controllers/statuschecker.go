@@ -28,6 +28,8 @@ const (
 	MessageEtcdNotReady    = "All etcd endpoints are unhealthy"
 	MessageStorageReady    = "Storage endpoints is healthy"
 	MessageStorageNotReady = "All Storage endpoints are unhealthy"
+	MessagePulsarReady     = "Pulsar is ready"
+	MessagePulsarNotReady  = "Pulsar is not ready"
 	MessageSecretNotExist  = "Secret not exist"
 	MessageKeyNotExist     = "accesskey or secretkey not exist in secret"
 	MessageDecodeErr       = "accesskey or secretkey decode error"
@@ -76,18 +78,63 @@ func (s *statusChecker) updateCondition(c v1alpha1.MilvusClusterCondition) {
 	UpdateCondition(&s.mc.Status, c)
 }
 
-func (s *statusChecker) checkStorageStatus() error {
-	defer func() {
-		for _, c := range s.mc.Status.Conditions {
-			if c.Type == v1alpha1.StorageReady && c.Status == corev1.ConditionFalse {
-				s.Lock()
-				s.mc.Status.StorageStatus = nil
-				s.Unlock()
-				return
-			}
-		}
-	}()
+func (s *statusChecker) checkPulsarStatus() error {
+	if s.mc.Spec.Pulsar.External != nil {
+		//TODO use pulsar client to check external
+		return nil
+	}
 
+	pulsar := &appsv1.StatefulSet{}
+	if err := s.Get(s.ctx, NamespacedName(s.mc.Namespace, fmt.Sprintf("%s-pulsar-proxy", s.mc.Name)), pulsar); err != nil {
+		return err
+	}
+
+	ready := pulsar.Status.ReadyReplicas > 0
+
+	c := v1alpha1.MilvusClusterCondition{
+		Type:    v1alpha1.PulsarReady,
+		Status:  GetConditionStatus(ready),
+		Reason:  v1alpha1.ReasonPulsarReady,
+		Message: MessagePulsarReady,
+	}
+	if !ready {
+		c.Reason = v1alpha1.ReasonPulsarNotReady
+		c.Message = MessagePulsarNotReady
+	}
+
+	UpdateCondition(&s.mc.Status, c)
+	return nil
+}
+
+func (s *statusChecker) checkStorageStatus() error {
+	if s.mc.Spec.Storage.External != nil {
+		return s.checkExternalStorageStatus()
+	}
+
+	minio := &appsv1.Deployment{}
+	if err := s.Get(s.ctx, NamespacedName(s.mc.Namespace, fmt.Sprintf("%s-minio", s.mc.Name)), minio); err != nil {
+		return err
+	}
+
+	ready := DeploymentReady(*minio)
+
+	c := v1alpha1.MilvusClusterCondition{
+		Type:    v1alpha1.StorageReady,
+		Status:  GetConditionStatus(ready),
+		Reason:  v1alpha1.ReasonStorageReady,
+		Message: MessageStorageReady,
+	}
+	if !ready {
+		c.Reason = v1alpha1.ReasonStorageNotReady
+		c.Message = MessageStorageNotReady
+	}
+
+	UpdateCondition(&s.mc.Status, c)
+	return nil
+
+}
+
+func (s *statusChecker) checkExternalStorageStatus() error {
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: s.mc.Namespace, Name: s.mc.Spec.Storage.SecretRef}
 	err := s.Get(s.ctx, key, secret)
@@ -108,7 +155,7 @@ func (s *statusChecker) checkStorageStatus() error {
 	}
 
 	mdmClnt, err := madmin.New(
-		s.mc.Spec.Storage.Endpoint, string(accesskey), string(secretkey), s.mc.Spec.Storage.Insecure)
+		StorageEndpoint(*s.mc.Spec.Storage), string(accesskey), string(secretkey), s.mc.Spec.Storage.Insecure)
 	if err != nil {
 		s.updateCondition(newErrStorageCondition(v1alpha1.ReasonClientErr, err.Error()))
 		return nil
@@ -124,7 +171,7 @@ func (s *statusChecker) checkStorageStatus() error {
 	sort.Sort(madminServerSlice(st.Servers))
 
 	s.Lock()
-	s.mc.Status.StorageStatus = []v1alpha1.MilvusStorageStatus{}
+	//s.mc.Status.StorageStatus = []v1alpha1.MilvusStorageStatus{}
 	onlines := 0
 	for _, server := range st.Servers {
 		storageStatus := v1alpha1.MilvusStorageStatus{
@@ -135,7 +182,7 @@ func (s *statusChecker) checkStorageStatus() error {
 		if storageStatus.Status == "online" {
 			onlines++
 		}
-		s.mc.Status.StorageStatus = append(s.mc.Status.StorageStatus, storageStatus)
+		//s.mc.Status.StorageStatus = append(s.mc.Status.StorageStatus, storageStatus)
 	}
 	c := v1alpha1.MilvusClusterCondition{
 		Type:   v1alpha1.StorageReady,
@@ -149,22 +196,51 @@ func (s *statusChecker) checkStorageStatus() error {
 }
 
 func (s *statusChecker) checkEtcdStatus() error {
-	health := GetEndpointsHealth(s.mc.Spec.Etcd.Endpoints)
+	if s.mc.Spec.Etcd.External != nil {
+		return s.checkExternalEtcdStatus()
+	}
+
+	etcd := &appsv1.StatefulSet{}
+	if err := s.Get(s.ctx, NamespacedName(s.mc.Namespace, fmt.Sprintf("%s-etcd", s.mc.Name)), etcd); err != nil {
+		return err
+	}
+
+	etcdReady := etcd.Status.ReadyReplicas > 0
+
+	c := v1alpha1.MilvusClusterCondition{
+		Type:    v1alpha1.EtcdReady,
+		Status:  GetConditionStatus(etcdReady),
+		Reason:  v1alpha1.ReasonEtcdReady,
+		Message: MessageEtcdReady,
+	}
+	if !etcdReady {
+		c.Reason = v1alpha1.ReasonEtcdNotReady
+		c.Message = MessageEtcdNotReady
+	}
+
+	UpdateCondition(&s.mc.Status, c)
+	return nil
+
+}
+
+func (s *statusChecker) checkExternalEtcdStatus() error {
+	endpoints := EtcdEndpoints(*s.mc.Spec.Etcd)
+	health := GetEndpointsHealth(endpoints)
 
 	s.Lock()
 	defer s.Unlock()
 	etcdReady := false
-	s.mc.Status.EtcdStatus = []v1alpha1.MilvusEtcdStatus{}
-	for _, ep := range s.mc.Spec.Etcd.Endpoints {
+	//s.mc.Status.EtcdStatus = []v1alpha1.MilvusEtcdStatus{}
+	for _, ep := range endpoints {
 		epHealth := health[ep]
 		if epHealth.Health {
 			etcdReady = true
 		}
-		s.mc.Status.EtcdStatus = append(s.mc.Status.EtcdStatus, v1alpha1.MilvusEtcdStatus{
+		/* s.mc.Status.EtcdStatus = append(s.mc.Status.EtcdStatus, v1alpha1.MilvusEtcdStatus{
 			Endpoint: epHealth.Ep,
 			Healthy:  epHealth.Health,
 			Error:    epHealth.Error,
-		})
+		}) */
 	}
 
 	c := v1alpha1.MilvusClusterCondition{

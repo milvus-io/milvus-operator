@@ -22,7 +22,6 @@ import (
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -86,8 +85,47 @@ func (r *MilvusCluster) Default() {
 		r.Spec.Proxy = &Proxy{}
 	}
 
-	if r.Status.Status == "" {
-		r.Status.Status = StatusCreating
+	if r.Spec.Etcd == nil {
+		r.Spec.Etcd = &MilvusEtcd{}
+	}
+
+	if r.Spec.Pulsar == nil {
+		r.Spec.Pulsar = &MilvusPulsar{}
+	}
+
+	if r.Spec.Storage == nil {
+		r.Spec.Storage = &MilvusStorage{}
+	}
+
+	// set in cluster etcd endpoints
+	if r.Spec.Etcd.External == nil && r.Spec.Etcd.InCluster == nil {
+		r.Spec.Etcd.InCluster = &InClusterEtcd{
+			Values: Extension{Data: map[string]interface{}{}},
+		}
+	}
+	if len(r.Spec.Etcd.InCluster.Endpoints) == 0 {
+		r.Spec.Etcd.InCluster.Endpoints = []string{fmt.Sprintf("%s-etcd.%s:2379", r.Name, r.Namespace)}
+	}
+
+	// set in cluster pulsar endpoint
+	if r.Spec.Pulsar.External == nil && r.Spec.Pulsar.InCluster == nil {
+		r.Spec.Pulsar.InCluster = &InClusterPulsar{
+			Values: Extension{Data: map[string]interface{}{}},
+		}
+	}
+	if len(r.Spec.Pulsar.InCluster.Endpoint) == 0 {
+		r.Spec.Pulsar.InCluster.Endpoint = fmt.Sprintf("%s-pulsar-proxy.%s:6650", r.Name, r.Namespace)
+	}
+
+	// set in cluster storage
+	if r.Spec.Storage.External == nil && r.Spec.Storage.InCluster == nil {
+		r.Spec.Storage.InCluster = &InClusterStorage{
+			Values: Extension{Data: map[string]interface{}{}},
+		}
+		r.Spec.Storage.SecretRef = r.Name + "-minio"
+	}
+	if len(r.Spec.Storage.InCluster.Endpoint) == 0 {
+		r.Spec.Storage.InCluster.Endpoint = fmt.Sprintf("%s-minio.%s:9000", r.Name, r.Namespace)
 	}
 }
 
@@ -103,8 +141,8 @@ func (r *MilvusCluster) ValidateCreate() error {
 	// TODO(user): fill in your validation logic upon object creation.
 	var allErrs field.ErrorList
 
-	if err := r.validateEtcd(); err != nil {
-		allErrs = append(allErrs, err)
+	if errs := r.validateExternal(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
 	}
 
 	if len(allErrs) == 0 {
@@ -124,6 +162,15 @@ func (r *MilvusCluster) ValidateUpdate(old runtime.Object) error {
 		return errors.Errorf("failed type assertion on kind: %s", old.GetObjectKind().GroupVersionKind().String())
 	}
 
+	var allErrs field.ErrorList
+	if errs := r.validateExternal(); len(errs) > 0 {
+		allErrs = append(allErrs, errs...)
+	}
+
+	if len(allErrs) == 0 {
+		return nil
+	}
+
 	return nil
 }
 
@@ -135,22 +182,23 @@ func (r *MilvusCluster) ValidateDelete() error {
 	return nil
 }
 
-func (r *MilvusCluster) validateEtcd() *field.Error {
-	fp := field.NewPath("spec").Child("etcd")
+func (r *MilvusCluster) validateExternal() field.ErrorList {
+	var allErrs field.ErrorList
+	fp := field.NewPath("spec")
 
-	if len(r.Spec.Etcd.Endpoints) == 0 && !r.Spec.Etcd.InCluster {
-		return required(fp.Child("endpoints"))
+	if r.Spec.Etcd.External != nil && len(r.Spec.Etcd.External.Endpoints) == 0 {
+		allErrs = append(allErrs, required(fp.Child("etcd").Child("external").Child("endpoints")))
 	}
 
-	if r.Spec.Etcd.InClusterSpec != nil {
-		if r.Spec.Etcd.InClusterSpec.Storage != "" {
-			if _, err := resource.ParseQuantity(r.Spec.Etcd.InClusterSpec.Storage); err != nil {
-				return invalid(fp.Child("storage"), r.Spec.Etcd.InClusterSpec.Storage, err.Error())
-			}
-		}
+	if r.Spec.Storage.External != nil && len(r.Spec.Storage.External.Endpoint) == 0 {
+		allErrs = append(allErrs, required(fp.Child("storage").Child("external").Child("endpoint")))
 	}
 
-	return nil
+	if r.Spec.Pulsar.External != nil && len(r.Spec.Pulsar.External.Endpoint) == 0 {
+		allErrs = append(allErrs, required(fp.Child("pulsar").Child("external").Child("endpoint")))
+	}
+
+	return allErrs
 }
 
 func required(mainPath *field.Path) *field.Error {

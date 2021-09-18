@@ -234,28 +234,26 @@ spec:
                 properties:
                   collectionBinlogSubPath:
                     type: string
-                  endpoints:
-                    items:
-                      type: string
-                    type: array
+                  external:
+                    properties:
+                      endpoints:
+                        items:
+                          type: string
+                        type: array
+                    required:
+                    - endpoints
+                    type: object
                   flushStreamPosSubPath:
                     type: string
                   inCluster:
-                    type: boolean
-                  inClusterSpec:
                     properties:
-                      name:
-                        type: string
-                      replicas:
-                        enum:
-                        - 1
-                        - 3
-                        - 5
-                        - 7
-                        format: int32
-                        type: integer
-                      storage:
-                        type: string
+                      endpoints:
+                        items:
+                          type: string
+                        type: array
+                      values:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
                     type: object
                   kvSubPath:
                     type: string
@@ -267,8 +265,6 @@ spec:
                     type: string
                   statsStreamPosSubPath:
                     type: string
-                required:
-                - endpoints
                 type: object
               image:
                 type: string
@@ -395,13 +391,24 @@ spec:
                 type: object
               pulsar:
                 properties:
-                  endpoint:
-                    type: string
+                  external:
+                    properties:
+                      endpoint:
+                        type: string
+                    required:
+                    - endpoint
+                    type: object
+                  inCluster:
+                    properties:
+                      endpoint:
+                        type: string
+                      values:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                    type: object
                   maxMessageSize:
                     format: int64
                     type: integer
-                required:
-                - endpoint
                 type: object
               queryCoord:
                 properties:
@@ -497,8 +504,21 @@ spec:
                 properties:
                   bucket:
                     type: string
-                  endpoint:
-                    type: string
+                  external:
+                    properties:
+                      endpoint:
+                        type: string
+                    required:
+                    - endpoint
+                    type: object
+                  inCluster:
+                    properties:
+                      endpoint:
+                        type: string
+                      values:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                    type: object
                   insecure:
                     default: false
                     type: boolean
@@ -550,47 +570,11 @@ spec:
                   - type
                   type: object
                 type: array
-              etcdStatus:
-                description: Status of each etcd endpoint
-                items:
-                  description: MilvusEtcdStatus contains a list of all etcd endpoints
-                    status
-                  properties:
-                    endpoint:
-                      type: string
-                    error:
-                      type: string
-                    healthy:
-                      type: boolean
-                  required:
-                  - endpoint
-                  - healthy
-                  type: object
-                type: array
               status:
                 default: Creating
                 description: Status indicates the overall status of the Milvus Status
                   can be "Creating", "Healthy" and "Unhealthy"
                 type: string
-              storageStatus:
-                description: Status of each storage endpoint
-                items:
-                  description: MilvusStorageStatus contains a list of all storage
-                    endpoints status
-                  properties:
-                    endpoint:
-                      type: string
-                    error:
-                      type: string
-                    status:
-                      type: string
-                    uptime:
-                      type: string
-                  required:
-                  - endpoint
-                  - status
-                  type: object
-                type: array
             required:
             - status
             type: object
