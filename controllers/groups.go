@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/pkg/errors"
 )
@@ -77,4 +78,20 @@ func (g *Group) Wait() error {
 	}
 
 	return nil
+}
+
+func WarppedReconcileFunc(
+	f func(context.Context, v1alpha1.MilvusCluster) error,
+	ctx context.Context, mc v1alpha1.MilvusCluster) func() error {
+	return func() error {
+		return f(ctx, mc)
+	}
+}
+
+func WarppedReconcileComponentFunc(
+	f func(context.Context, v1alpha1.MilvusCluster, MilvusComponent) error,
+	ctx context.Context, mc v1alpha1.MilvusCluster, c MilvusComponent) func() error {
+	return func() error {
+		return f(ctx, mc, c)
+	}
 }

@@ -68,11 +68,7 @@ func (r *MilvusClusterReconciler) ReconcileComponentService(
 func (r *MilvusClusterReconciler) ReconcileServices(ctx context.Context, mc v1alpha1.MilvusCluster) error {
 	g, gtx := NewGroup(ctx)
 	for _, component := range MilvusComponents {
-		g.Go(func(ctx context.Context, mc v1alpha1.MilvusCluster, component MilvusComponent) func() error {
-			return func() error {
-				return r.ReconcileComponentService(ctx, mc, component)
-			}
-		}(gtx, mc, component))
+		g.Go(WarppedReconcileComponentFunc(r.ReconcileComponentService, gtx, mc, component))
 	}
 
 	if err := g.Wait(); err != nil {

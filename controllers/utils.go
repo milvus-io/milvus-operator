@@ -293,7 +293,7 @@ func IsDependencyReady(status v1alpha1.MilvusClusterStatus) bool {
 	ready := 0
 	for _, c := range status.Conditions {
 		if c.Type == v1alpha1.EtcdReady ||
-			//c.Type == v1alpha1.PulsarReady ||
+			c.Type == v1alpha1.PulsarReady ||
 			c.Type == v1alpha1.StorageReady {
 			if c.Status == corev1.ConditionTrue {
 				ready++
@@ -301,7 +301,7 @@ func IsDependencyReady(status v1alpha1.MilvusClusterStatus) bool {
 		}
 	}
 
-	return ready == 2
+	return ready == 3
 }
 
 func UpdateCondition(status *v1alpha1.MilvusClusterStatus, c v1alpha1.MilvusClusterCondition) {

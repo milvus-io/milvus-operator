@@ -10,6 +10,12 @@ import (
 	"helm.sh/helm/v3/pkg/action"
 )
 
+const (
+	EtcdChart   = "config/assets/charts/etcd"
+	MinioChart  = "config/assets/charts/minio"
+	PulsarChart = "config/assets/charts/pulsar"
+)
+
 func (r *MilvusClusterReconciler) NewHelmCfg(namespace string) (*action.Configuration, error) {
 	cfg := new(action.Configuration)
 	helmLogger := func(format string, v ...interface{}) {
@@ -22,91 +28,69 @@ func (r *MilvusClusterReconciler) NewHelmCfg(namespace string) (*action.Configur
 	return cfg, nil
 }
 
-func (r *MilvusClusterReconciler) HelmUpgradePulsar(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
-	cfg, err := r.NewHelmCfg(mc.Namespace)
+func (r *MilvusClusterReconciler) ReconcileHelm(ctx context.Context, request helm.ChartRequest) error {
+	cfg, err := r.NewHelmCfg(request.Namespace)
 	if err != nil {
 		return err
 	}
 
-	releaseName := mc.Name + "-pulsar"
-	exist, err := helm.ReleaseExist(cfg, releaseName)
+	exist, err := helm.ReleaseExist(cfg, request.ReleaseName)
 	if err != nil {
 		return err
+	}
+
+	if !exist {
+		if request.Chart == PulsarChart {
+			request.Values["initialize"] = true
+		}
+		return helm.Install(cfg, request)
+	}
+
+	//todo update
+	return nil
+}
+
+func (r *MilvusClusterReconciler) ReconcileEtcd(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+	if mc.Spec.Etcd.External != nil {
+		return nil
+	}
+
+	request := helm.ChartRequest{
+		ReleaseName: mc.Name + "-etcd",
+		Namespace:   mc.Namespace,
+		Chart:       EtcdChart,
+		Values:      mc.Spec.Etcd.InCluster.Values.Data,
+	}
+
+	return r.ReconcileHelm(ctx, request)
+}
+
+func (r *MilvusClusterReconciler) ReconcilePulsar(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+	if mc.Spec.Pulsar.External != nil {
+		return nil
 	}
 
 	request := helm.ChartRequest{
 		ReleaseName: mc.Name + "-pulsar",
 		Namespace:   mc.Namespace,
-		Chart:       "config/assets/charts/pulsar",
+		Chart:       PulsarChart,
 		Values:      mc.Spec.Pulsar.InCluster.Values.Data,
 	}
 
-	if !exist {
-		request.Values["initialize"] = true
-		return helm.Install(cfg, request)
-	}
-
-	return nil
-	//return helm.Update(cfg, request)
+	return r.ReconcileHelm(ctx, request)
 }
 
-func (r *MilvusClusterReconciler) HelmUpgradeMinio(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
-	cfg, err := r.NewHelmCfg(mc.Namespace)
-	if err != nil {
-		return err
+func (r *MilvusClusterReconciler) ReconcileMinio(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+	if mc.Spec.Storage.External != nil {
+		return nil
 	}
 
-	return helm.Upgrade(cfg, helm.ChartRequest{
+	request := helm.ChartRequest{
 		ReleaseName: mc.Name + "-minio",
 		Namespace:   mc.Namespace,
-		Chart:       "config/assets/charts/minio",
+		Chart:       MinioChart,
 		Values:      mc.Spec.Storage.InCluster.Values.Data,
-	})
-}
-
-func (r *MilvusClusterReconciler) HelmUpgradeEtcd(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
-	cfg, err := r.NewHelmCfg(mc.Namespace)
-	if err != nil {
-		return err
 	}
 
-	return helm.Upgrade(cfg, helm.ChartRequest{
-		ReleaseName: mc.Name + "-etcd",
-		Namespace:   mc.Namespace,
-		Chart:       "config/assets/charts/etcd",
-		Values:      mc.Spec.Etcd.InCluster.Values.Data,
-	})
-}
-
-func (r *MilvusClusterReconciler) ReconcileDependencies(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
-	if mc.Spec.Etcd.InCluster != nil {
-		if err := r.HelmUpgradeEtcd(ctx, mc); err != nil {
-			return err
-		}
-	}
-
-	if mc.Spec.Pulsar.InCluster != nil {
-		if err := r.HelmUpgradePulsar(ctx, mc); err != nil {
-			return err
-		}
-	}
-
-	if mc.Spec.Storage.InCluster != nil {
-		if err := r.HelmUpgradeMinio(ctx, mc); err != nil {
-			return err
-		}
-	}
-
-	checker := newStatusChecker(ctx, r.Client, mc)
-
-	g, _ := NewGroup(ctx)
-	g.Go(checker.checkEtcdStatus)
-	g.Go(checker.checkStorageStatus)
-	g.Go(checker.checkPulsarStatus)
-
-	if err := g.Wait(); err != nil {
-		return fmt.Errorf("reconcile milvus dependencies: %w", err)
-	}
-
-	return nil
+	return r.ReconcileHelm(ctx, request)
 }

@@ -24,6 +24,7 @@ import (
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	"helm.sh/helm/v3/pkg/cli"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -94,6 +95,10 @@ func main() {
 	settings.KubeAPIServer = conf.Host
 	settings.MaxHistory = 2
 	settings.KubeToken = conf.BearerToken
+	getter := settings.RESTClientGetter()
+	config := getter.(*genericclioptions.ConfigFlags)
+	insecure := true
+	config.Insecure = &insecure
 	conroller := controllers.NewMilvusClusterReconciler(mgr.GetClient(), mgr.GetScheme(), settings)
 	if err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MilvusCluster")

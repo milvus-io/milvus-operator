@@ -19,8 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sync"
-	"time"
 
 	"github.com/go-logr/logr"
 	"helm.sh/helm/v3/pkg/cli"
@@ -35,10 +33,6 @@ import (
 
 	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
-)
-
-var (
-	checkStatus sync.Once
 )
 
 // MilvusClusterReconciler reconciles a MilvusCluster object
@@ -62,11 +56,21 @@ func NewMilvusClusterReconciler(client client.Client, scheme *runtime.Scheme, se
 //+kubebuilder:rbac:groups=milvus.io,resources=milvusclusters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=milvus.io,resources=milvusclusters/finalizers,verbs=update
 //+kubebuilder:rbac:groups=apps,resources=statefulsets;deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=services,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups="",resources=sercrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="policy",resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="policy",resources=podsecuritypolicies,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="networking.k8s.io",resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="extensions",resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -81,14 +85,6 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 		}()
 	}
-
-	/* 	f := func(ctx context.Context) func() {
-	   		return func() {
-	   			r.ConditionsCheck(ctx)
-	   		}
-	   	}(ctx)
-
-	   	go checkStatus.Do(f) */
 
 	milvuscluster := &milvusiov1alpha1.MilvusCluster{}
 	if err := r.Get(ctx, req.NamespacedName, milvuscluster); err != nil {
@@ -111,18 +107,7 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	r.logger.Info("start reconcile")
 	old := milvuscluster.DeepCopy()
 
-	if err := r.ReconcileDependencies(ctx, milvuscluster); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	if !IsDependencyReady(milvuscluster.Status) {
-		if err := r.Status().Update(ctx, milvuscluster); err != nil {
-			return ctrl.Result{}, err
-		}
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-	}
-
-	if err := r.ReconcileMilvusComponent(ctx, milvuscluster); err != nil {
+	if err := r.ReconcileAll(ctx, *milvuscluster); err != nil {
 		return ctrl.Result{}, err
 	}
 

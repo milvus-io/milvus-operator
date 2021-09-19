@@ -19,8 +19,8 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.0
 	helm.sh/helm/v3 v3.6.3
 	k8s.io/api v0.21.3
-	k8s.io/apiextensions-apiserver v0.21.3
 	k8s.io/apimachinery v0.21.3
+	k8s.io/cli-runtime v0.21.0
 	k8s.io/client-go v0.21.3
 	rsc.io/letsencrypt v0.0.3 // indirect
 	sigs.k8s.io/controller-runtime v0.9.6

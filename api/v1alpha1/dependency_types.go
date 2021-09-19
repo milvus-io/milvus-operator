@@ -51,7 +51,7 @@ type MilvusStorage struct {
 	SecretRef string `json:"secretRef"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=false
+	// +kubebuilder:default=true
 	Insecure bool `json:"insecure"`
 
 	// +kubebuilder:validation:Optional

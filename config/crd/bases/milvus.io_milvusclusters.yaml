@@ -520,7 +520,7 @@ spec:
                         x-kubernetes-preserve-unknown-fields: true
                     type: object
                   insecure:
-                    default: false
+                    default: true
                     type: boolean
                   secretRef:
                     type: string
