@@ -3,6 +3,7 @@ package helm
 import (
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
+	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
@@ -11,6 +12,36 @@ type ChartRequest struct {
 	Namespace   string
 	Chart       string
 	Values      map[string]interface{}
+}
+
+func NeedUpdate(status release.Status) bool {
+	return status == release.StatusFailed ||
+		status == release.StatusUnknown ||
+		status == release.StatusUninstalled
+}
+
+func GetStatus(cfg *action.Configuration, releaseName string) (release.Status, error) {
+	client := action.NewStatus(cfg)
+	rel, err := client.Run(releaseName)
+	if err != nil {
+		return release.StatusUnknown, err
+	}
+
+	return rel.Info.Status, nil
+}
+
+func GetValues(cfg *action.Configuration, releaseName string) (map[string]interface{}, error) {
+	client := action.NewGetValues(cfg)
+	vals, err := client.Run(releaseName)
+	if err != nil {
+		return nil, err
+	}
+
+	if vals == nil {
+		return map[string]interface{}{}, nil
+	}
+
+	return vals, nil
 }
 
 func ReleaseExist(cfg *action.Configuration, releaseName string) (bool, error) {
@@ -33,9 +64,7 @@ func Upgrade(cfg *action.Configuration, request ChartRequest) error {
 		return Install(cfg, request)
 	}
 
-	return nil
-
-	//return Update(cfg, request)
+	return Update(cfg, request)
 }
 
 func Update(cfg *action.Configuration, request ChartRequest) error {

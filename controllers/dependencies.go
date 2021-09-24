@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"reflect"
 
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/helm"
@@ -46,12 +47,29 @@ func (r *MilvusClusterReconciler) ReconcileHelm(ctx context.Context, request hel
 		return helm.Install(cfg, request)
 	}
 
-	//todo update
-	return nil
+	vals, err := helm.GetValues(cfg, request.ReleaseName)
+	if err != nil {
+		return err
+	}
+
+	status, err := helm.GetStatus(cfg, request.ReleaseName)
+	if err != nil {
+		return err
+	}
+
+	if request.Chart == PulsarChart {
+		delete(vals, "initialize")
+	}
+
+	if reflect.DeepEqual(vals, request.Values) && !helm.NeedUpdate(status) {
+		return nil
+	}
+
+	return helm.Update(cfg, request)
 }
 
 func (r *MilvusClusterReconciler) ReconcileEtcd(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	if mc.Spec.Etcd.External != nil {
+	if mc.Spec.Etcd.External {
 		return nil
 	}
 
@@ -66,7 +84,7 @@ func (r *MilvusClusterReconciler) ReconcileEtcd(ctx context.Context, mc v1alpha1
 }
 
 func (r *MilvusClusterReconciler) ReconcilePulsar(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	if mc.Spec.Pulsar.External != nil {
+	if mc.Spec.Pulsar.External {
 		return nil
 	}
 
@@ -81,7 +99,7 @@ func (r *MilvusClusterReconciler) ReconcilePulsar(ctx context.Context, mc v1alph
 }
 
 func (r *MilvusClusterReconciler) ReconcileMinio(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	if mc.Spec.Storage.External != nil {
+	if mc.Spec.Storage.External {
 		return nil
 	}
 

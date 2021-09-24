@@ -234,23 +234,17 @@ spec:
                 properties:
                   collectionBinlogSubPath:
                     type: string
+                  endpoints:
+                    items:
+                      type: string
+                    type: array
                   external:
-                    properties:
-                      endpoints:
-                        items:
-                          type: string
-                        type: array
-                    required:
-                    - endpoints
-                    type: object
+                    default: false
+                    type: boolean
                   flushStreamPosSubPath:
                     type: string
                   inCluster:
                     properties:
-                      endpoints:
-                        items:
-                          type: string
-                        type: array
                       values:
                         type: object
                         x-kubernetes-preserve-unknown-fields: true
@@ -391,17 +385,13 @@ spec:
                 type: object
               pulsar:
                 properties:
+                  endpoint:
+                    type: string
                   external:
-                    properties:
-                      endpoint:
-                        type: string
-                    required:
-                    - endpoint
-                    type: object
+                    default: false
+                    type: boolean
                   inCluster:
                     properties:
-                      endpoint:
-                        type: string
                       values:
                         type: object
                         x-kubernetes-preserve-unknown-fields: true
@@ -504,23 +494,19 @@ spec:
                 properties:
                   bucket:
                     type: string
+                  endpoint:
+                    type: string
                   external:
-                    properties:
-                      endpoint:
-                        type: string
-                    required:
-                    - endpoint
-                    type: object
+                    default: false
+                    type: boolean
                   inCluster:
                     properties:
-                      endpoint:
-                        type: string
                       values:
                         type: object
                         x-kubernetes-preserve-unknown-fields: true
                     type: object
                   insecure:
-                    default: true
+                    default: false
                     type: boolean
                   secretRef:
                     type: string

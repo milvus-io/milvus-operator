@@ -117,15 +117,17 @@ const (
 	// ReasonMilvusClusterNotHealthy means at least one of milvus component is not healthy
 	ReasonMilvusComponentNotHealthy string = "MilvusComponentNotHealthy"
 
-	ReasonEtcdReady       = "EtcdReady"
-	ReasonEtcdNotReady    = "EtcdNotReady"
-	ReasonStorageReady    = "StorageReady"
-	ReasonStorageNotReady = "StorageNotReady"
-	ReasonPulsarReady     = "PulsarReady"
-	ReasonPulsarNotReady  = "PulsarNotReady"
-	ReasonSecretNotExist  = "SecretNotExist"
-	ReasonSecretDecodeErr = "SecretDecodeErr"
-	ReasonClientErr       = "ClientErr"
+	ReasonEtcdReady          = "EtcdReady"
+	ReasonEtcdNotReady       = "EtcdNotReady"
+	ReasonStorageReady       = "StorageReady"
+	ReasonStorageNotReady    = "StorageNotReady"
+	ReasonPulsarReady        = "PulsarReady"
+	ReasonPulsarNotReady     = "PulsarNotReady"
+	ReasonSecretNotExist     = "SecretNotExist"
+	ReasonSecretErr          = "SecretError"
+	ReasonSecretDecodeErr    = "SecretDecodeError"
+	ReasonClientErr          = "ClientError"
+	ReasonDependencyNotReady = "DependencyNotReady"
 )
 
 // MilvusClusterStatus defines the observed state of MilvusCluster

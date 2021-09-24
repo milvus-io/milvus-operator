@@ -23,23 +23,20 @@ type MilvusEtcd struct {
 	StatsStreamPosSubPath string `json:"statsStreamPosSubPath,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	InCluster *InClusterEtcd `json:"inCluster,omitempty"`
+	Endpoints []string `json:"endpoints"`
 
 	// +kubebuilder:validation:Optional
-	External *ExternalEtcd `json:"external,omitempty"`
+	// +kubebuilder:default=false
+	External bool `json:"external,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	InCluster *InClusterEtcd `json:"inCluster,omitempty"`
 }
 
 type InClusterEtcd struct {
 	// +kubebuilder:validation:Optional
-	Endpoints []string `json:"endpoints"`
-
-	// +kubebuilder:validation:Optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Values Extension `json:"values,omitempty"`
-}
-
-type ExternalEtcd struct {
-	Endpoints []string `json:"endpoints"`
 }
 
 type MilvusStorage struct {
@@ -51,30 +48,27 @@ type MilvusStorage struct {
 	SecretRef string `json:"secretRef"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=true
-	Insecure bool `json:"insecure"`
+	// +kubebuilder:default=false
+	Insecure bool `json:"insecure,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	Bucket string `json:"bucket,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	Endpoint string `json:"endpoint"`
+
+	// +kubebuilder:validation:Optional
 	InCluster *InClusterStorage `json:"inCluster,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	External *ExternalStorage `json:"external,omitempty"`
+	// +kubebuilder:default=false
+	External bool `json:"external,omitempty"`
 }
 
 type InClusterStorage struct {
 	// +kubebuilder:validation:Optional
-	Endpoint string `json:"endpoint"`
-
-	// +kubebuilder:validation:Optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Values Extension `json:"values,omitempty"`
-}
-
-type ExternalStorage struct {
-	Endpoint string `json:"endpoint"`
 }
 
 type MilvusPulsar struct {
@@ -85,18 +79,15 @@ type MilvusPulsar struct {
 	InCluster *InClusterPulsar `json:"inCluster,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	External *ExternalPulsar `json:"external,omitempty"`
+	// +kubebuilder:default=false
+	External bool `json:"external,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Endpoint string `json:"endpoint"`
 }
 
 type InClusterPulsar struct {
 	// +kubebuilder:validation:Optional
-	Endpoint string `json:"endpoint"`
-
-	// +kubebuilder:validation:Optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Values Extension `json:"values,omitempty"`
-}
-
-type ExternalPulsar struct {
-	Endpoint string `json:"endpoint"`
 }

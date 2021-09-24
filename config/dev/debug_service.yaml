@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: milvus-operator-debug
+  namespace: milvus-operator-system
+spec:
+  ports:
+  - nodePort: 31666
+    port: 31666
+    protocol: TCP
+    targetPort: 31666
+  selector:
+    control-plane: controller-manager
+  type: NodePort

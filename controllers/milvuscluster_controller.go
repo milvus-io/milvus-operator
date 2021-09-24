@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-logr/logr"
 	"helm.sh/helm/v3/pkg/cli"
@@ -31,6 +32,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	"github.com/milvus-io/milvus-operator/api/v1alpha1"
 	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 )
@@ -107,20 +109,32 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	r.logger.Info("start reconcile")
 	old := milvuscluster.DeepCopy()
 
+	if err := r.SetDefault(ctx, milvuscluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if !IsEqual(old.Spec, milvuscluster.Spec) {
+		return ctrl.Result{}, r.Update(ctx, milvuscluster)
+	}
+
 	if err := r.ReconcileAll(ctx, *milvuscluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if err := r.Status().Update(ctx, milvuscluster); err != nil {
+	if err := r.UpdateStatus(ctx, milvuscluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if config.IsDebug() {
+	if milvuscluster.Status.Status == v1alpha1.StatusUnHealthy {
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
+	/* 	if config.IsDebug() {
 		diff, err := client.MergeFrom(old).Data(milvuscluster)
 		if err != nil {
 			r.logger.Info("Update diff", "diff", string(diff))
 		}
-	}
+	} */
 
 	return ctrl.Result{}, nil
 }
