@@ -1,10 +1,7 @@
 package milvus
 
 import (
-	"bytes"
-	"text/template"
-
-	"github.com/Masterminds/sprig"
+	"github.com/milvus-io/milvus-operator/pkg/util"
 )
 
 const (
@@ -120,7 +117,7 @@ func NewMinioConfig(endpoint, bucket string, useSSL bool) MilvusConfigMinio {
 		BucketName: bucket,
 		UseSSL:     useSSL,
 	}
-	address, port := GetHostPort(endpoint)
+	address, port := util.GetHostPort(endpoint)
 	minio.Address = address
 	minio.Port = port
 	return minio
@@ -128,25 +125,9 @@ func NewMinioConfig(endpoint, bucket string, useSSL bool) MilvusConfigMinio {
 
 func NewPulsarConfig(endpoint string, maxMessageSize int64) MilvusConfigPulsar {
 	pulsar := MilvusConfigPulsar{}
-	address, port := GetHostPort(endpoint)
+	address, port := util.GetHostPort(endpoint)
 	pulsar.Address = address
 	pulsar.Port = port
 	pulsar.MaxMessageSize = maxMessageSize
 	return pulsar
-}
-
-func (config MilvusConfig) GetTemplatedConfig(templateConfig string) (string, error) {
-	t, err := template.New("template").
-		Funcs(sprig.TxtFuncMap()).Parse(templateConfig)
-	if err != nil {
-		return "", err
-	}
-
-	var buf bytes.Buffer
-	err = t.Execute(&buf, config)
-	if err != nil {
-		return "", err
-	}
-
-	return buf.String(), nil
 }

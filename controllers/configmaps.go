@@ -2,16 +2,16 @@ package controllers
 
 import (
 	"context"
-	"fmt"
-
-	"github.com/milvus-io/milvus-operator/api/v1alpha1"
-	"github.com/milvus-io/milvus-operator/pkg/config"
-	"github.com/milvus-io/milvus-operator/pkg/milvus"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/yaml"
+
+	"github.com/milvus-io/milvus-operator/api/v1alpha1"
+	"github.com/milvus-io/milvus-operator/pkg/config"
+	"github.com/milvus-io/milvus-operator/pkg/util"
 )
 
 const (
@@ -19,73 +19,33 @@ const (
 	MilvusConfigYaml = "milvus.yaml"
 )
 
-func SetGRPCConfig(grpc *milvus.MilvusConfigGRPC, mc *v1alpha1.ConfigGRPC) {
-	if mc != nil {
-		grpc.ClientMaxRecvSize = mc.ClientMaxRecvSize
-		grpc.ClientMaxSendSize = mc.ClientMaxSendSize
-		grpc.ServerMaxRecvSize = mc.ServerMaxRecvSize
-		grpc.ServerMaxSendSize = mc.ServerMaxSendSize
-	}
-}
-
-func GetMilvusConfigFrom(mc v1alpha1.MilvusCluster) milvus.MilvusConfig {
-	conf := milvus.MilvusConfig{
-		Etcd: milvus.MilvusConfigEtcd{
-			Endpoints:               *&mc.Spec.Etcd.Endpoints,
-			RootPath:                mc.Spec.Etcd.RootPath,
-			KVSubPath:               mc.Spec.Etcd.KVSubPath,
-			MetaSubPath:             mc.Spec.Etcd.MetaSubPath,
-			SegmentBinlogSubPath:    mc.Spec.Etcd.SegmentBinlogSubPath,
-			CollectionBinlogSubPath: mc.Spec.Etcd.CollectionBinlogSubPath,
-			FlushStreamPosSubPath:   mc.Spec.Etcd.FlushStreamPosSubPath,
-			StatsStreamPosSubPath:   mc.Spec.Etcd.StatsStreamPosSubPath,
-		},
-		Minio:  milvus.NewMinioConfig(*&mc.Spec.Storage.Endpoint, mc.Spec.Storage.Bucket, !mc.Spec.Storage.Insecure),
-		Pulsar: milvus.NewPulsarConfig(*&mc.Spec.Pulsar.Endpoint, mc.Spec.Pulsar.MaxMessageSize),
-		Log: milvus.MilvusConfigLog{
-			Level: mc.Spec.LogLevel,
-		},
-	}
-	conf.RootCoord.Address = fmt.Sprintf("%s-milvus-rootcoord", mc.Name)
-	conf.RootCoord.Port = mc.Spec.RootCoord.Port
-	SetGRPCConfig(&conf.RootCoord.GRPC, mc.Spec.RootCoord.GRPC)
-
-	conf.DataCoord.Address = fmt.Sprintf("%s-milvus-datacoord", mc.Name)
-	conf.DataCoord.Port = mc.Spec.DataCoord.Port
-	SetGRPCConfig(&conf.DataCoord.GRPC, mc.Spec.DataCoord.GRPC)
-
-	conf.QueryCoord.Address = fmt.Sprintf("%s-milvus-querycoord", mc.Name)
-	conf.QueryCoord.Port = mc.Spec.QueryCoord.Port
-	SetGRPCConfig(&conf.QueryCoord.GRPC, mc.Spec.QueryCoord.GRPC)
-
-	conf.IndexCoord.Address = fmt.Sprintf("%s-milvus-indexcoord", mc.Name)
-	conf.IndexCoord.Port = mc.Spec.IndexCoord.Port
-	SetGRPCConfig(&conf.IndexCoord.GRPC, mc.Spec.IndexCoord.GRPC)
-
-	conf.DataNode.Port = mc.Spec.DataNode.Port
-	SetGRPCConfig(&conf.DataNode.GRPC, mc.Spec.DataNode.GRPC)
-	conf.DataNode.InsertBufSize = mc.Spec.DataNode.InsertBufSize
-
-	conf.QueryNode.Port = mc.Spec.QueryNode.Port
-	SetGRPCConfig(&conf.QueryNode.GRPC, mc.Spec.QueryNode.GRPC)
-	conf.QueryNode.GracefulTime = mc.Spec.QueryNode.GracefulTime
-
-	conf.IndexNode.Port = mc.Spec.IndexNode.Port
-	SetGRPCConfig(&conf.IndexNode.GRPC, mc.Spec.IndexNode.GRPC)
-
-	conf.Proxy.Port = mc.Spec.Proxy.Port
-	SetGRPCConfig(&conf.Proxy.GRPC, mc.Spec.Proxy.GRPC)
-
-	return conf
-}
-
 func (r *MilvusClusterReconciler) updateConfigMap(mc v1alpha1.MilvusCluster, configmap *corev1.ConfigMap) error {
-	configuration := GetMilvusConfigFrom(mc)
-
-	yaml, err := configuration.GetTemplatedConfig(config.GetTemplate(TemplateMilvus))
+	confYaml, err := util.GetTemplatedValues(config.GetMilvusConfigTemplate(), mc)
 	if err != nil {
 		return err
 	}
+
+	conf := map[string]interface{}{}
+	if err := yaml.Unmarshal(confYaml, &conf); err != nil {
+		return err
+	}
+
+	util.MergeValues(conf, mc.Spec.Conf.Data)
+	util.SetValue(conf, mc.Spec.Dep.Etcd.Endpoints, "etcd", "endpoints")
+
+	host, port := util.GetHostPort(mc.Spec.Dep.Storage.Endpoint)
+	util.SetValue(conf, host, "minio", "address")
+	util.SetValue(conf, port, "minio", "port")
+
+	host, port = util.GetHostPort(mc.Spec.Dep.Pulsar.Endpoint)
+	util.SetValue(conf, host, "pulsar", "address")
+	util.SetValue(conf, port, "pulsar", "port")
+
+	milvusYaml, err := yaml.Marshal(conf)
+	if err != nil {
+		return err
+	}
+
 	if err := ctrl.SetControllerReference(&mc, configmap, r.Scheme); err != nil {
 		return err
 	}
@@ -93,7 +53,7 @@ func (r *MilvusClusterReconciler) updateConfigMap(mc v1alpha1.MilvusCluster, con
 	if configmap.Data == nil {
 		configmap.Data = make(map[string]string)
 	}
-	configmap.Data[MilvusConfigYaml] = yaml
+	configmap.Data[MilvusConfigYaml] = string(milvusYaml)
 
 	return nil
 }

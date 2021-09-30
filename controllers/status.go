@@ -171,7 +171,7 @@ func (r *MilvusClusterReconciler) GetPulsarCondition(
 func (r *MilvusClusterReconciler) GetMinioCondition(
 	ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
 	secret := &corev1.Secret{}
-	key := types.NamespacedName{Namespace: mc.Namespace, Name: mc.Spec.Storage.SecretRef}
+	key := types.NamespacedName{Namespace: mc.Namespace, Name: mc.Spec.Dep.Storage.SecretRef}
 	err := r.Get(ctx, key, secret)
 	if err != nil && !errors.IsNotFound(err) {
 		return condResult{err: err}
@@ -192,7 +192,10 @@ func (r *MilvusClusterReconciler) GetMinioCondition(
 	}
 
 	mdmClnt, err := madmin.New(
-		*&mc.Spec.Storage.Endpoint, string(accesskey), string(secretkey), mc.Spec.Storage.Insecure)
+		mc.Spec.Dep.Storage.Endpoint,
+		string(accesskey), string(secretkey),
+		GetMinioSecure(mc.Spec.Conf.Data),
+	)
 	if err != nil {
 		return condResult{
 			cond: newErrStorageCondition(v1alpha1.ReasonClientErr, err.Error()),
@@ -231,7 +234,7 @@ func (r *MilvusClusterReconciler) GetMinioCondition(
 }
 
 func (r *MilvusClusterReconciler) GetEtcdCondition(ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
-	endpoints := mc.Spec.Etcd.Endpoints
+	endpoints := mc.Spec.Dep.Etcd.Endpoints
 	health := GetEndpointsHealth(endpoints)
 	etcdReady := false
 	for _, ep := range endpoints {

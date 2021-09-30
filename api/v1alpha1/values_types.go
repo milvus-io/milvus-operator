@@ -2,18 +2,16 @@ package v1alpha1
 
 import "encoding/json"
 
-type Extension struct {
+type Values struct {
 	// Work around for https://github.com/kubernetes-sigs/kubebuilder/issues/528
 	Data map[string]interface{} `json:"-"`
 }
 
-// MarshalJSON marshals the HelmValues data to a JSON blob.
-func (e Extension) MarshalJSON() ([]byte, error) {
-	return json.Marshal(e.Data)
+func (v Values) MarshalJSON() ([]byte, error) {
+	return json.Marshal(v.Data)
 }
 
-// UnmarshalJSON sets the HelmValues to a copy of data.
-func (e *Extension) UnmarshalJSON(data []byte) error {
+func (v *Values) UnmarshalJSON(data []byte) error {
 	var out map[string]interface{}
 
 	err := json.Unmarshal(data, &out)
@@ -21,7 +19,7 @@ func (e *Extension) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
-	e.Data = out
+	v.Data = out
 
 	return nil
 }
@@ -33,8 +31,8 @@ func (e *Extension) UnmarshalJSON(data []byte) error {
 // This exists here to work around https://github.com/kubernetes/code-generator/issues/50,
 // and partially around https://github.com/kubernetes-sigs/controller-tools/pull/126
 // and https://github.com/kubernetes-sigs/controller-tools/issues/294.
-func (e *Extension) DeepCopyInto(out *Extension) {
-	b, err := json.Marshal(e.Data)
+func (v *Values) DeepCopyInto(out *Values) {
+	b, err := json.Marshal(v.Data)
 	if err != nil {
 		// The marshal should have been performed cleanly as otherwise
 		// the resource would not have been created by the API server.

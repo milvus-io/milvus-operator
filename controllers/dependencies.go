@@ -69,7 +69,7 @@ func (r *MilvusClusterReconciler) ReconcileHelm(ctx context.Context, request hel
 }
 
 func (r *MilvusClusterReconciler) ReconcileEtcd(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	if mc.Spec.Etcd.External {
+	if mc.Spec.Dep.Etcd.External {
 		return nil
 	}
 
@@ -77,14 +77,14 @@ func (r *MilvusClusterReconciler) ReconcileEtcd(ctx context.Context, mc v1alpha1
 		ReleaseName: mc.Name + "-etcd",
 		Namespace:   mc.Namespace,
 		Chart:       EtcdChart,
-		Values:      mc.Spec.Etcd.InCluster.Values.Data,
+		Values:      mc.Spec.Dep.Etcd.InCluster.Values.Data,
 	}
 
 	return r.ReconcileHelm(ctx, request)
 }
 
 func (r *MilvusClusterReconciler) ReconcilePulsar(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	if mc.Spec.Pulsar.External {
+	if mc.Spec.Dep.Pulsar.External {
 		return nil
 	}
 
@@ -92,14 +92,14 @@ func (r *MilvusClusterReconciler) ReconcilePulsar(ctx context.Context, mc v1alph
 		ReleaseName: mc.Name + "-pulsar",
 		Namespace:   mc.Namespace,
 		Chart:       PulsarChart,
-		Values:      mc.Spec.Pulsar.InCluster.Values.Data,
+		Values:      mc.Spec.Dep.Pulsar.InCluster.Values.Data,
 	}
 
 	return r.ReconcileHelm(ctx, request)
 }
 
 func (r *MilvusClusterReconciler) ReconcileMinio(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	if mc.Spec.Storage.External {
+	if mc.Spec.Dep.Storage.External {
 		return nil
 	}
 
@@ -107,7 +107,7 @@ func (r *MilvusClusterReconciler) ReconcileMinio(ctx context.Context, mc v1alpha
 		ReleaseName: mc.Name + "-minio",
 		Namespace:   mc.Namespace,
 		Chart:       MinioChart,
-		Values:      mc.Spec.Storage.InCluster.Values.Data,
+		Values:      mc.Spec.Dep.Storage.InCluster.Values.Data,
 	}
 
 	return r.ReconcileHelm(ctx, request)

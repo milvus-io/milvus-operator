@@ -49,83 +49,56 @@ var _ webhook.Defaulter = &MilvusCluster{}
 func (r *MilvusCluster) Default() {
 	milvusclusterlog.Info("default", "name", r.Name)
 
-	if r.Spec.Image == "" {
-		r.Spec.Image = config.DefaultMilvusImage
+	if r.Spec.Com.Image == "" {
+		r.Spec.Com.Image = config.DefaultMilvusImage
 	}
 
-	if r.Spec.RootCoord == nil {
-		r.Spec.RootCoord = &RootCoordinator{}
+	replicas := int32(1)
+	if r.Spec.Com.Proxy.Replicas == nil {
+		r.Spec.Com.Proxy.Replicas = &replicas
 	}
-
-	if r.Spec.DataCoord == nil {
-		r.Spec.DataCoord = &DataCoordinator{}
+	if r.Spec.Com.RootCoord.Replicas == nil {
+		r.Spec.Com.RootCoord.Replicas = &replicas
 	}
-
-	if r.Spec.QueryCoord == nil {
-		r.Spec.QueryCoord = &QueryCoordinator{}
+	if r.Spec.Com.DataCoord.Replicas == nil {
+		r.Spec.Com.DataCoord.Replicas = &replicas
 	}
-
-	if r.Spec.IndexCoord == nil {
-		r.Spec.IndexCoord = &IndexCoordinator{}
+	if r.Spec.Com.IndexCoord.Replicas == nil {
+		r.Spec.Com.IndexCoord.Replicas = &replicas
 	}
-
-	if r.Spec.DataNode == nil {
-		r.Spec.DataNode = &DataNode{}
+	if r.Spec.Com.QueryCoord.Replicas == nil {
+		r.Spec.Com.QueryCoord.Replicas = &replicas
 	}
-
-	if r.Spec.QueryNode == nil {
-		r.Spec.QueryNode = &QueryNode{}
+	if r.Spec.Com.DataNode.Replicas == nil {
+		r.Spec.Com.DataNode.Replicas = &replicas
 	}
-
-	if r.Spec.IndexNode == nil {
-		r.Spec.IndexNode = &IndexNode{}
+	if r.Spec.Com.IndexNode.Replicas == nil {
+		r.Spec.Com.IndexNode.Replicas = &replicas
 	}
-
-	if r.Spec.Proxy == nil {
-		r.Spec.Proxy = &Proxy{}
-	}
-
-	if r.Spec.Etcd == nil {
-		r.Spec.Etcd = &MilvusEtcd{}
-	}
-
-	if r.Spec.Pulsar == nil {
-		r.Spec.Pulsar = &MilvusPulsar{}
-	}
-
-	if r.Spec.Storage == nil {
-		r.Spec.Storage = &MilvusStorage{}
+	if r.Spec.Com.QueryNode.Replicas == nil {
+		r.Spec.Com.QueryNode.Replicas = &replicas
 	}
 
 	// set in cluster etcd endpoints
-	if !r.Spec.Etcd.External && r.Spec.Etcd.InCluster == nil {
-		r.Spec.Etcd.InCluster = &InClusterEtcd{
-			Values: Extension{Data: map[string]interface{}{}},
+	if !r.Spec.Dep.Etcd.External && r.Spec.Dep.Etcd.InCluster == nil {
+		r.Spec.Dep.Etcd.InCluster = &InClusterEtcd{
+			Values: Values{Data: map[string]interface{}{}},
 		}
-	}
-	if len(r.Spec.Etcd.Endpoints) == 0 {
-		r.Spec.Etcd.Endpoints = []string{fmt.Sprintf("%s-etcd.%s:2379", r.Name, r.Namespace)}
 	}
 
 	// set in cluster pulsar endpoint
-	if !r.Spec.Pulsar.External && r.Spec.Pulsar.InCluster == nil {
-		r.Spec.Pulsar.InCluster = &InClusterPulsar{
-			Values: Extension{Data: map[string]interface{}{}},
+	if !r.Spec.Dep.Pulsar.External && r.Spec.Dep.Pulsar.InCluster == nil {
+		r.Spec.Dep.Pulsar.InCluster = &InClusterPulsar{
+			Values: Values{Data: map[string]interface{}{}},
 		}
-	}
-	if len(r.Spec.Pulsar.Endpoint) == 0 {
-		r.Spec.Pulsar.Endpoint = fmt.Sprintf("%s-pulsar-proxy.%s:6650", r.Name, r.Namespace)
 	}
 
 	// set in cluster storage
-	if !r.Spec.Storage.External && r.Spec.Storage.InCluster == nil {
-		r.Spec.Storage.InCluster = &InClusterStorage{
-			Values: Extension{Data: map[string]interface{}{}},
+	if !r.Spec.Dep.Storage.External && r.Spec.Dep.Storage.InCluster == nil {
+		r.Spec.Dep.Storage.InCluster = &InClusterStorage{
+			Values: Values{Data: map[string]interface{}{}},
 		}
-		r.Spec.Storage.SecretRef = r.Name + "-minio"
-	}
-	if len(r.Spec.Storage.Endpoint) == 0 {
-		r.Spec.Storage.Endpoint = fmt.Sprintf("%s-minio.%s:9000", r.Name, r.Namespace)
+		r.Spec.Dep.Storage.SecretRef = r.Name + "-minio"
 	}
 }
 
@@ -184,18 +157,18 @@ func (r *MilvusCluster) ValidateDelete() error {
 
 func (r *MilvusCluster) validateExternal() field.ErrorList {
 	var allErrs field.ErrorList
-	fp := field.NewPath("spec")
+	fp := field.NewPath("spec").Child("dependencies")
 
-	if r.Spec.Etcd.External && len(r.Spec.Etcd.Endpoints) == 0 {
-		allErrs = append(allErrs, required(fp.Child("etcd").Child("external").Child("endpoints")))
+	if r.Spec.Dep.Etcd.External && len(r.Spec.Dep.Etcd.Endpoints) == 0 {
+		allErrs = append(allErrs, required(fp.Child("etcd").Child("endpoints")))
 	}
 
-	if r.Spec.Storage.External && len(r.Spec.Storage.Endpoint) == 0 {
-		allErrs = append(allErrs, required(fp.Child("storage").Child("external").Child("endpoint")))
+	if r.Spec.Dep.Storage.External && len(r.Spec.Dep.Storage.Endpoint) == 0 {
+		allErrs = append(allErrs, required(fp.Child("storage").Child("endpoint")))
 	}
 
-	if r.Spec.Pulsar.External && len(r.Spec.Pulsar.Endpoint) == 0 {
-		allErrs = append(allErrs, required(fp.Child("pulsar").Child("external").Child("endpoint")))
+	if r.Spec.Dep.Pulsar.External && len(r.Spec.Dep.Pulsar.Endpoint) == 0 {
+		allErrs = append(allErrs, required(fp.Child("pulsar").Child("endpoint")))
 	}
 
 	return allErrs

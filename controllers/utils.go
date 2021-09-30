@@ -10,6 +10,7 @@ import (
 	"github.com/Masterminds/sprig"
 	dockerref "github.com/docker/distribution/reference"
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
+	"github.com/milvus-io/milvus-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -355,4 +356,14 @@ func NamespacedName(namespace, name string) types.NamespacedName {
 		Namespace: namespace,
 		Name:      name,
 	}
+}
+
+func GetMinioSecure(conf map[string]interface{}) bool {
+	fields := []string{"minio", "useSSL"}
+	usessl, exist := util.GetBoolValue(conf, fields...)
+	if exist {
+		return usessl
+	}
+
+	return false
 }

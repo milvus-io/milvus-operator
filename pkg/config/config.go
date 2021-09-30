@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	DefaultMilvusVersion   = "v2.0.0-rc5-hotfix1-20210901-9e0b2cc"
+	DefaultMilvusVersion   = "v2.0.0-rc6-20210910-020f109"
 	DefaultMilvusBaseImage = "milvusdb/milvus"
 	DefaultMilvusImage     = DefaultMilvusBaseImage + ":" + DefaultMilvusVersion
 	DefaultImagePullPolicy = corev1.PullIfNotPresent
@@ -45,9 +45,12 @@ func GetTemplate(name string) string {
 	return defaultConfig.templates[name]
 }
 
+func GetMilvusConfigTemplate() string {
+	return defaultConfig.GetTemplate("milvus.yaml.tmpl")
+}
+
 type Config struct {
 	debugMode bool
-	certDir   string
 	templates map[string]string
 }
 

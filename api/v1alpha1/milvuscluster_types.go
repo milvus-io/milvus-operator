@@ -32,59 +32,14 @@ type MilvusClusterSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// +kubebuilder:validation:Optional
-	Image string `json:"image,omitempty"`
+	Com MilvusComponents `json:"components,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	ImagePullPolicy *corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
+	Dep MilvusDependencies `json:"dependencies,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	ImagePullSecrets []corev1.LocalObjectReference `json:"imagePullSecrets,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	Env []corev1.EnvVar `json:"env,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	Etcd *MilvusEtcd `json:"etcd,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	Storage *MilvusStorage `json:"storage,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	Pulsar *MilvusPulsar `json:"pulsar,omitempty"`
-
-	// Proxy defines the desired state of Proxy
-	// +kubebuilder:validation:Optional
-	Proxy *Proxy `json:"proxy,omitempty"`
-
-	// RootCoord defines the desired state of RootCoord
-	// +kubebuilder:validation:Optional
-	RootCoord *RootCoordinator `json:"rootCoord,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	DataCoord *DataCoordinator `json:"dataCoord,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	QueryCoord *QueryCoordinator `json:"queryCoord,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	IndexCoord *IndexCoordinator `json:"indexCoord,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	QueryNode *QueryNode `json:"queryNode,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	DataNode *DataNode `json:"dataNode,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	IndexNode *IndexNode `json:"indexNode,omitempty"`
-
-	// LogLevel defines Log level in Milvus. You can configure this parameter as debug, info, warn, error, panic, or fatal
-	// +kubebuilder:validation:Enum={"debug", "info", "warn", "error", "panic", "fatal"}
-	// +kubebuilder:default="info"
-	LogLevel string `json:"logLevel"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Conf Values `json:"config,omitempty"`
 }
 
 // MiluvsClusterConditionType is a valid value for MiluvsClusterConditionType.Type.

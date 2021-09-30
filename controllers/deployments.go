@@ -100,8 +100,8 @@ func (r *MilvusClusterReconciler) updateDeployment(
 	}
 	container := &deployment.Spec.Template.Spec.Containers[containerIdx]
 	container.Args = []string{"milvus", "run", component.String()}
-	env := mc.Spec.Env
-	env = append(env, GetStorageSecretRefEnv(mc.Spec.Storage.SecretRef)...)
+	env := mc.Spec.Com.Env
+	env = append(env, GetStorageSecretRefEnv(mc.Spec.Dep.Storage.SecretRef)...)
 	container.Env = MergeEnvVar(container.Env, env)
 	container.Ports = MergeContainerPort(container.Ports, component.GetContainerPorts(mc.Spec))
 
@@ -118,13 +118,13 @@ func (r *MilvusClusterReconciler) updateDeployment(
 		container.VolumeMounts[mountIdx] = milvusVolumeMount
 	}
 
-	if mc.Spec.ImagePullPolicy != nil {
-		container.ImagePullPolicy = *mc.Spec.ImagePullPolicy
+	if mc.Spec.Com.ImagePullPolicy != nil {
+		container.ImagePullPolicy = *mc.Spec.Com.ImagePullPolicy
 	}
 
-	container.Image = mc.Spec.Image
+	container.Image = mc.Spec.Com.Image
 
-	deployment.Spec.Template.Spec.ImagePullSecrets = mc.Spec.ImagePullSecrets
+	deployment.Spec.Template.Spec.ImagePullSecrets = mc.Spec.Com.ImagePullSecrets
 
 	return nil
 }
