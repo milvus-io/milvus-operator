@@ -24,8 +24,13 @@ func DeleteValue(values map[string]interface{}, fields ...string) {
 	unstructured.RemoveNestedField(values, fields...)
 }
 
+//only contains types bool, int64, float64, string, []interface{}, map[string]interface{}, json.Number and nil
 func SetValue(values map[string]interface{}, v interface{}, fields ...string) {
 	unstructured.SetNestedField(values, v, fields...)
+}
+
+func SetStringSlice(values map[string]interface{}, v []string, fields ...string) {
+	unstructured.SetNestedStringSlice(values, v, fields...)
 }
 
 func MergeValues(origin, patch map[string]interface{}) {

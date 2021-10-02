@@ -135,6 +135,7 @@ func MergeContainerPort(src, dst []corev1.ContainerPort) []corev1.ContainerPort 
 	return merged
 }
 
+// Merge dst env into src
 func MergeEnvVar(src, dst []corev1.EnvVar) []corev1.EnvVar {
 	if len(src) == 0 {
 		return dst

@@ -2,23 +2,25 @@ package controllers
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
-	"github.com/milvus-io/milvus-operator/pkg/milvus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 const (
-	MetricPortName     = "metrics"
-	RootCoordName      = "rootcoord"
-	DataCoordName      = "datacoord"
-	QueryCoordName     = "querycoord"
-	IndexCoordName     = "indexcoord"
-	DataNodeName       = "datanode"
-	QueryNodeName      = "querynode"
-	IndexNodeName      = "indexnode"
-	ProxyName          = "proxy"
+	MetricPortName = "metrics"
+
+	RootCoordName  = "rootcoord"
+	DataCoordName  = "datacoord"
+	QueryCoordName = "querycoord"
+	IndexCoordName = "indexcoord"
+	DataNodeName   = "datanode"
+	QueryNodeName  = "querynode"
+	IndexNodeName  = "indexnode"
+	ProxyName      = "proxy"
+
 	RootCoordConfName  = "rootCoord"
 	DataCoordConfName  = "dataCoord"
 	QueryCoordConfName = "queryCoord"
@@ -27,22 +29,43 @@ const (
 	QueryNodeConfName  = "queryNode"
 	IndexNodeConfName  = "indexNode"
 	ProxyConfName      = "proxy"
+
+	RootCoordFieldName  = "RootCoord"
+	DataCoordFieldName  = "DataCoord"
+	QueryCoordFieldName = "QueryCoord"
+	IndexCoordFieldName = "IndexCoord"
+	DataNodeFieldName   = "DataNode"
+	QueryNodeFieldName  = "QueryNode"
+	IndexNodeFieldName  = "IndexNode"
+	ProxyFieldName      = "Proxy"
+
+	MetricPort     = 9091
+	RootCoordPort  = 53100
+	DataCoordPort  = 13333
+	QueryCoordPort = 19531
+	IndexCoordPort = 31000
+	IndexNodePort  = 21121
+	QueryNodePort  = 21123
+	DataNodePort   = 21124
+	ProxyPort      = 19530
 )
 
 type MilvusComponent struct {
-	Name     string
-	ConfName string
+	Name        string
+	ConfName    string
+	FieldName   string
+	DefaultPort int32
 }
 
 var (
-	RootCoord  MilvusComponent = MilvusComponent{RootCoordName, RootCoordConfName}
-	DataCoord  MilvusComponent = MilvusComponent{DataCoordName, DataCoordConfName}
-	QueryCoord MilvusComponent = MilvusComponent{QueryCoordName, QueryCoordConfName}
-	IndexCoord MilvusComponent = MilvusComponent{IndexCoordName, IndexCoordConfName}
-	DataNode   MilvusComponent = MilvusComponent{DataNodeName, DataNodeConfName}
-	QueryNode  MilvusComponent = MilvusComponent{QueryNodeName, QueryNodeConfName}
-	IndexNode  MilvusComponent = MilvusComponent{IndexNodeName, IndexNodeConfName}
-	Proxy      MilvusComponent = MilvusComponent{ProxyName, ProxyConfName}
+	RootCoord  = MilvusComponent{RootCoordName, RootCoordConfName, RootCoordFieldName, RootCoordPort}
+	DataCoord  = MilvusComponent{DataCoordName, DataCoordConfName, DataCoordFieldName, DataCoordPort}
+	QueryCoord = MilvusComponent{QueryCoordName, QueryCoordConfName, QueryCoordFieldName, QueryCoordPort}
+	IndexCoord = MilvusComponent{IndexCoordName, IndexCoordConfName, IndexCoordFieldName, IndexCoordPort}
+	DataNode   = MilvusComponent{DataNodeName, DataNodeConfName, DataNodeFieldName, DataNodePort}
+	QueryNode  = MilvusComponent{QueryNodeName, QueryNodeConfName, QueryNodeFieldName, QueryNodePort}
+	IndexNode  = MilvusComponent{IndexNodeName, IndexNodeConfName, IndexNodeFieldName, IndexNodePort}
+	Proxy      = MilvusComponent{ProxyName, ProxyConfName, ProxyFieldName, ProxyPort}
 
 	MilvusComponents = []MilvusComponent{
 		RootCoord, DataCoord, QueryCoord, IndexCoord, DataNode, QueryNode, IndexNode, Proxy,
@@ -53,62 +76,46 @@ var (
 	}
 )
 
-var GetReplicasFuncMap = map[string]func(v1alpha1.MilvusClusterSpec) *int32{
-	RootCoordName: func(spec v1alpha1.MilvusClusterSpec) *int32 {
-		return spec.Com.RootCoord.Replicas
-	},
-	DataCoordName: func(spec v1alpha1.MilvusClusterSpec) *int32 {
-		return spec.Com.DataCoord.Replicas
-	},
-	QueryCoordName: func(spec v1alpha1.MilvusClusterSpec) *int32 {
-		return spec.Com.QueryCoord.Replicas
-	},
-	IndexCoordName: func(spec v1alpha1.MilvusClusterSpec) *int32 {
-		return spec.Com.IndexCoord.Replicas
-	},
-	DataNodeName: func(spec v1alpha1.MilvusClusterSpec) *int32 {
-		return spec.Com.DataNode.Replicas
-	},
-	QueryNodeName: func(spec v1alpha1.MilvusClusterSpec) *int32 {
-		return spec.Com.QueryNode.Replicas
-	},
-	IndexNodeName: func(spec v1alpha1.MilvusClusterSpec) *int32 {
-		return spec.Com.IndexNode.Replicas
-	},
-	ProxyName: func(spec v1alpha1.MilvusClusterSpec) *int32 {
-		return spec.Com.Proxy.Replicas
-	},
+func (c MilvusComponent) GetEnv(spec v1alpha1.MilvusClusterSpec) []corev1.EnvVar {
+	env := c.GetComponentSpec(spec).Env
+	return MergeEnvVar(spec.Com.Env, env)
 }
 
-var GetPortFuncMap = map[string]func(v1alpha1.MilvusClusterSpec) int32{
-	RootCoordName: func(spec v1alpha1.MilvusClusterSpec) int32 {
-		return GetPortByDefault(spec.Com.RootCoord.Port, milvus.RootCoordPort)
-	},
-	DataCoordName: func(spec v1alpha1.MilvusClusterSpec) int32 {
-		return GetPortByDefault(spec.Com.DataCoord.Port, milvus.DataCoordPort)
-	},
-	QueryCoordName: func(spec v1alpha1.MilvusClusterSpec) int32 {
-		return GetPortByDefault(spec.Com.QueryCoord.Port, milvus.QueryCoordPort)
-	},
-	IndexCoordName: func(spec v1alpha1.MilvusClusterSpec) int32 {
-		return GetPortByDefault(spec.Com.IndexCoord.Port, milvus.IndexCoordPort)
-	},
-	DataNodeName: func(spec v1alpha1.MilvusClusterSpec) int32 {
-		return GetPortByDefault(spec.Com.DataNode.Port, milvus.DataNodePort)
-	},
-	QueryNodeName: func(spec v1alpha1.MilvusClusterSpec) int32 {
-		return GetPortByDefault(spec.Com.QueryNode.Port, milvus.QueryNodePort)
-	},
-	IndexNodeName: func(spec v1alpha1.MilvusClusterSpec) int32 {
-		return GetPortByDefault(spec.Com.IndexNode.Port, milvus.IndexNodePort)
-	},
-	ProxyName: func(spec v1alpha1.MilvusClusterSpec) int32 {
-		return GetPortByDefault(spec.Com.Proxy.Port, milvus.ProxyPort)
-	},
+func (c MilvusComponent) GetImagePullSecrets(spec v1alpha1.MilvusClusterSpec) []corev1.LocalObjectReference {
+	pullSecrets := c.GetComponentSpec(spec).ImagePullSecrets
+	if len(pullSecrets) > 0 {
+		return pullSecrets
+	}
+	return spec.Com.ImagePullSecrets
+}
+
+func (c MilvusComponent) GetImagePullPolicy(spec v1alpha1.MilvusClusterSpec) corev1.PullPolicy {
+	pullPolicy := c.GetComponentSpec(spec).ImagePullPolicy
+	if pullPolicy != nil {
+		return *pullPolicy
+	}
+
+	if spec.Com.ImagePullPolicy != nil {
+		return *spec.Com.ImagePullPolicy
+	}
+	return corev1.PullIfNotPresent
+}
+
+func (c MilvusComponent) GetImage(spec v1alpha1.MilvusClusterSpec) string {
+	componentImage := c.GetComponentSpec(spec).Image
+	if len(componentImage) > 0 {
+		return componentImage
+	}
+
+	return spec.Com.Image
 }
 
 func (c MilvusComponent) GetReplicas(spec v1alpha1.MilvusClusterSpec) *int32 {
-	return GetReplicasFuncMap[c.Name](spec)
+	replicas, _ := reflect.ValueOf(spec.Com).
+		FieldByName(c.FieldName).
+		FieldByName("Component").
+		FieldByName("Replicas").Interface().(*int32)
+	return replicas
 }
 
 func (c MilvusComponent) String() string {
@@ -143,7 +150,7 @@ func (c MilvusComponent) GetContainerPorts(spec v1alpha1.MilvusClusterSpec) []co
 		},
 		{
 			Name:          MetricPortName,
-			ContainerPort: milvus.MetricPort,
+			ContainerPort: MetricPort,
 			Protocol:      corev1.ProtocolTCP,
 		},
 	}
@@ -168,19 +175,27 @@ func (c MilvusComponent) GetServicePorts(spec v1alpha1.MilvusClusterSpec) []core
 		{
 			Name:       MetricPortName,
 			Protocol:   corev1.ProtocolTCP,
-			Port:       milvus.MetricPort,
+			Port:       MetricPort,
 			TargetPort: intstr.FromString(MetricPortName),
 		},
 	}
 }
 
 func (c MilvusComponent) GetComponentPort(spec v1alpha1.MilvusClusterSpec) int32 {
-	return GetPortFuncMap[c.Name](spec)
+	port, _ := reflect.ValueOf(spec.Com).
+		FieldByName(c.FieldName).
+		FieldByName("Component").
+		FieldByName("Port").Interface().(int32)
+
+	if port != 0 {
+		return port
+	}
+
+	return c.DefaultPort
 }
 
-func GetPortByDefault(specPort, defaultPort int32) int32 {
-	if specPort != 0 {
-		return specPort
-	}
-	return defaultPort
+func (c MilvusComponent) GetComponentSpec(spec v1alpha1.MilvusClusterSpec) v1alpha1.ComponentSpec {
+	value := reflect.ValueOf(spec.Com).FieldByName(c.FieldName).FieldByName("ComponentSpec")
+	comSpec, _ := value.Interface().(v1alpha1.ComponentSpec)
+	return comSpec
 }

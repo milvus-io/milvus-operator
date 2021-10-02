@@ -19,6 +19,12 @@ type ComponentSpec struct {
 
 	// +kubebuilder:validation:Optional
 	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 }
 
 type MilvusComponents struct {
@@ -63,28 +69,20 @@ type Component struct {
 	Port int32 `json:"port,omitempty"`
 }
 
-type Node struct {
-	Component `json:",inline"`
-}
-
-type Coordinator struct {
-	Component `json:",inline"`
-}
-
 type QueryNode struct {
-	Node `json:",inline"`
+	Component `json:",inline"`
 }
 
 type DataNode struct {
-	Node `json:",inline"`
+	Component `json:",inline"`
 }
 
 type IndexNode struct {
-	Node `json:",inline"`
+	Component `json:",inline"`
 }
 
 type Proxy struct {
-	Node `json:",inline"`
+	Component `json:",inline"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum={"ClusterIP", "NodePort", "LoadBalancer"}
@@ -93,17 +91,17 @@ type Proxy struct {
 }
 
 type RootCoordinator struct {
-	Coordinator `json:",inline"`
+	Component `json:",inline"`
 }
 
 type DataCoordinator struct {
-	Coordinator `json:",inline"`
+	Component `json:",inline"`
 }
 
 type QueryCoordinator struct {
-	Coordinator `json:",inline"`
+	Component `json:",inline"`
 }
 
 type IndexCoordinator struct {
-	Coordinator `json:",inline"`
+	Component `json:",inline"`
 }

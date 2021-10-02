@@ -16,7 +16,7 @@ type MilvusEtcd struct {
 	Endpoints []string `json:"endpoints"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=false
+	// +kubebuilder:default:=false
 	External bool `json:"external,omitempty"`
 
 	// +kubebuilder:validation:Optional
@@ -30,8 +30,8 @@ type InClusterEtcd struct {
 }
 
 type MilvusStorage struct {
-	// +kubebuilder:validation:Enum={"Minio", "S3"}
-	// +kubebuilder:default="Minio"
+	// +kubebuilder:default:="Minio"
+	// +kubebuilder:validation:Enum:={"Minio", "S3"}
 	Type string `json:"type"`
 
 	// +kubebuilder:validation:Optional
@@ -44,7 +44,7 @@ type MilvusStorage struct {
 	InCluster *InClusterStorage `json:"inCluster,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=false
+	// +kubebuilder:default:=false
 	External bool `json:"external,omitempty"`
 }
 
@@ -59,7 +59,7 @@ type MilvusPulsar struct {
 	InCluster *InClusterPulsar `json:"inCluster,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default=false
+	// +kubebuilder:default:=false
 	External bool `json:"external,omitempty"`
 
 	// +kubebuilder:validation:Optional

@@ -49,6 +49,14 @@ var _ webhook.Defaulter = &MilvusCluster{}
 func (r *MilvusCluster) Default() {
 	milvusclusterlog.Info("default", "name", r.Name)
 
+	if r.Spec.Dep.Storage.Type == "" {
+		r.Spec.Dep.Storage.Type = "Minio"
+	}
+
+	if r.Spec.Conf.Data == nil {
+		r.Spec.Conf.Data = map[string]interface{}{}
+	}
+
 	if r.Spec.Com.Image == "" {
 		r.Spec.Com.Image = config.DefaultMilvusImage
 	}
@@ -80,25 +88,40 @@ func (r *MilvusCluster) Default() {
 	}
 
 	// set in cluster etcd endpoints
-	if !r.Spec.Dep.Etcd.External && r.Spec.Dep.Etcd.InCluster == nil {
-		r.Spec.Dep.Etcd.InCluster = &InClusterEtcd{
-			Values: Values{Data: map[string]interface{}{}},
+	if !r.Spec.Dep.Etcd.External {
+		if r.Spec.Dep.Etcd.InCluster == nil {
+			r.Spec.Dep.Etcd.InCluster = &InClusterEtcd{
+				Values: Values{Data: map[string]interface{}{}},
+			}
+		}
+		if len(r.Spec.Dep.Etcd.Endpoints) == 0 {
+			r.Spec.Dep.Etcd.Endpoints = []string{fmt.Sprintf("%s-etcd.%s:2379", r.Name, r.Namespace)}
 		}
 	}
 
 	// set in cluster pulsar endpoint
-	if !r.Spec.Dep.Pulsar.External && r.Spec.Dep.Pulsar.InCluster == nil {
-		r.Spec.Dep.Pulsar.InCluster = &InClusterPulsar{
-			Values: Values{Data: map[string]interface{}{}},
+	if !r.Spec.Dep.Pulsar.External {
+		if r.Spec.Dep.Pulsar.InCluster == nil {
+			r.Spec.Dep.Pulsar.InCluster = &InClusterPulsar{
+				Values: Values{Data: map[string]interface{}{}},
+			}
+		}
+		if len(r.Spec.Dep.Pulsar.Endpoint) == 0 {
+			r.Spec.Dep.Pulsar.Endpoint = fmt.Sprintf("%s-pulsar.%s:6650", r.Name, r.Namespace)
 		}
 	}
 
 	// set in cluster storage
-	if !r.Spec.Dep.Storage.External && r.Spec.Dep.Storage.InCluster == nil {
-		r.Spec.Dep.Storage.InCluster = &InClusterStorage{
-			Values: Values{Data: map[string]interface{}{}},
+	if !r.Spec.Dep.Storage.External {
+		if r.Spec.Dep.Storage.InCluster == nil {
+			r.Spec.Dep.Storage.InCluster = &InClusterStorage{
+				Values: Values{Data: map[string]interface{}{}},
+			}
+			r.Spec.Dep.Storage.SecretRef = r.Name + "-minio"
 		}
-		r.Spec.Dep.Storage.SecretRef = r.Name + "-minio"
+		if len(r.Spec.Dep.Storage.Endpoint) == 0 {
+			r.Spec.Dep.Storage.Endpoint = fmt.Sprintf("%s-minio.%s:9000", r.Name, r.Namespace)
+		}
 	}
 }
 

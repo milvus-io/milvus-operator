@@ -92,7 +92,7 @@ type MilvusClusterStatus struct {
 
 	// Status indicates the overall status of the Milvus
 	// Status can be "Creating", "Healthy" and "Unhealthy"
-	// +kubebuilder:default="Creating"
+	// +kubebuilder:default:="Creating"
 	Status MilvusStatus `json:"status"`
 
 	// Conditions of each components

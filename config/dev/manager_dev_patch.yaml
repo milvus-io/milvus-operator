@@ -13,3 +13,5 @@ spec:
         env:
         - name: GOPROXY
           value: https://goproxy.cn
+        - name: DEBUG
+          value: 'true'

@@ -27,26 +27,29 @@ func (r *MilvusClusterReconciler) updateConfigMap(mc v1alpha1.MilvusCluster, con
 
 	conf := map[string]interface{}{}
 	if err := yaml.Unmarshal(confYaml, &conf); err != nil {
+		r.logger.Error(err, "yaml Unmarshal conf error")
 		return err
 	}
 
 	util.MergeValues(conf, mc.Spec.Conf.Data)
-	util.SetValue(conf, mc.Spec.Dep.Etcd.Endpoints, "etcd", "endpoints")
+	util.SetStringSlice(conf, mc.Spec.Dep.Etcd.Endpoints, "etcd", "endpoints")
 
 	host, port := util.GetHostPort(mc.Spec.Dep.Storage.Endpoint)
 	util.SetValue(conf, host, "minio", "address")
-	util.SetValue(conf, port, "minio", "port")
+	util.SetValue(conf, int64(port), "minio", "port")
 
 	host, port = util.GetHostPort(mc.Spec.Dep.Pulsar.Endpoint)
 	util.SetValue(conf, host, "pulsar", "address")
-	util.SetValue(conf, port, "pulsar", "port")
+	util.SetValue(conf, int64(port), "pulsar", "port")
 
 	milvusYaml, err := yaml.Marshal(conf)
 	if err != nil {
+		r.logger.Error(err, "yaml Marshal conf error")
 		return err
 	}
 
 	if err := ctrl.SetControllerReference(&mc, configmap, r.Scheme); err != nil {
+		r.logger.Error(err, "configmap SetControllerReference error")
 		return err
 	}
 
