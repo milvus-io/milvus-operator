@@ -4,6 +4,32 @@ import (
 	corev1 "k8s.io/api/core/v1"
 )
 
+type ComponentType string
+
+const (
+	RootCoord  ComponentType = "rootCoord"
+	DataCoord  ComponentType = "dataCoord"
+	QueryCoord ComponentType = "queryCoord"
+	IndexCoord ComponentType = "indexCoord"
+	DataNode   ComponentType = "dataNode"
+	QueryNode  ComponentType = "queryNode"
+	IndexNode  ComponentType = "indexNode"
+	Proxy      ComponentType = "proxy"
+)
+
+var (
+	MilvusComponentTypes = []ComponentType{
+		RootCoord, DataCoord, QueryCoord, IndexCoord, DataNode, QueryNode, IndexNode, Proxy,
+	}
+	MilvusCoordTypes = []ComponentType{
+		RootCoord, DataCoord, QueryCoord, IndexCoord,
+	}
+)
+
+func (t ComponentType) String() string {
+	return string(t)
+}
+
 type ComponentSpec struct {
 	// +kubebuilder:validation:Optional
 	Image string `json:"image,omitempty"`
@@ -31,28 +57,28 @@ type MilvusComponents struct {
 	ComponentSpec `json:",inline"`
 
 	// +kubebuilder:validation:Optional
-	Proxy Proxy `json:"proxy,omitempty"`
+	Proxy MilvusProxy `json:"proxy,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	RootCoord RootCoordinator `json:"rootCoord,omitempty"`
+	RootCoord MilvusRootCoord `json:"rootCoord,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	IndexCoord IndexCoordinator `json:"indexCoord,omitempty"`
+	IndexCoord MilvusIndexCoord `json:"indexCoord,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	DataCoord DataCoordinator `json:"dataCoord,omitempty"`
+	DataCoord MilvusDataCoord `json:"dataCoord,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	QueryCoord QueryCoordinator `json:"queryCoord,omitempty"`
+	QueryCoord MilvusQueryCoord `json:"queryCoord,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	IndexNode IndexNode `json:"indexNode,omitempty"`
+	IndexNode MilvusIndexNode `json:"indexNode,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	DataNode DataNode `json:"dataNode,omitempty"`
+	DataNode MilvusDataNode `json:"dataNode,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	QueryNode QueryNode `json:"queryNode,omitempty"`
+	QueryNode MilvusQueryNode `json:"queryNode,omitempty"`
 }
 
 type Component struct {
@@ -69,19 +95,19 @@ type Component struct {
 	Port int32 `json:"port,omitempty"`
 }
 
-type QueryNode struct {
+type MilvusQueryNode struct {
 	Component `json:",inline"`
 }
 
-type DataNode struct {
+type MilvusDataNode struct {
 	Component `json:",inline"`
 }
 
-type IndexNode struct {
+type MilvusIndexNode struct {
 	Component `json:",inline"`
 }
 
-type Proxy struct {
+type MilvusProxy struct {
 	Component `json:",inline"`
 
 	// +kubebuilder:validation:Optional
@@ -90,18 +116,18 @@ type Proxy struct {
 	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
 }
 
-type RootCoordinator struct {
+type MilvusRootCoord struct {
 	Component `json:",inline"`
 }
 
-type DataCoordinator struct {
+type MilvusDataCoord struct {
 	Component `json:",inline"`
 }
 
-type QueryCoordinator struct {
+type MilvusQueryCoord struct {
 	Component `json:",inline"`
 }
 
-type IndexCoordinator struct {
+type MilvusIndexCoord struct {
 	Component `json:",inline"`
 }

@@ -19,7 +19,6 @@ package v1alpha1
 import (
 	"fmt"
 
-	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,6 +27,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"github.com/milvus-io/milvus-operator/pkg/config"
+	"github.com/milvus-io/milvus-operator/pkg/util"
 )
 
 // log is for logging in this package.
@@ -47,7 +49,7 @@ var _ webhook.Defaulter = &MilvusCluster{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *MilvusCluster) Default() {
-	milvusclusterlog.Info("default", "name", r.Name)
+	//milvusclusterlog.Info("default", "name", r.Name)
 
 	if r.Spec.Dep.Storage.Type == "" {
 		r.Spec.Dep.Storage.Type = "Minio"
@@ -55,6 +57,8 @@ func (r *MilvusCluster) Default() {
 
 	if r.Spec.Conf.Data == nil {
 		r.Spec.Conf.Data = map[string]interface{}{}
+	} else {
+		deleteUnsettableConf(r.Spec.Conf.Data)
 	}
 
 	if r.Spec.Com.Image == "" {
@@ -207,4 +211,19 @@ func invalid(mainPath *field.Path, value interface{}, details string) *field.Err
 
 func forbidden(mainPath fmt.Stringer, conflictPath *field.Path) *field.Error {
 	return field.Forbidden(conflictPath, fmt.Sprintf("conflicts: %s should not be configured as %s has been configured already", conflictPath.String(), mainPath.String()))
+}
+
+func deleteUnsettableConf(conf map[string]interface{}) {
+	util.DeleteValue(conf, "minio", "address")
+	util.DeleteValue(conf, "minio", "port")
+	util.DeleteValue(conf, "pulsar", "address")
+	util.DeleteValue(conf, "pulsar", "port")
+	util.DeleteValue(conf, "etcd", "endpoints")
+
+	for _, t := range MilvusComponentTypes {
+		util.DeleteValue(conf, t.String(), "port")
+	}
+	for _, t := range MilvusCoordTypes {
+		util.DeleteValue(conf, t.String(), "address")
+	}
 }

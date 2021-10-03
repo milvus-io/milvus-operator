@@ -21,15 +21,6 @@ const (
 	IndexNodeName  = "indexnode"
 	ProxyName      = "proxy"
 
-	RootCoordConfName  = "rootCoord"
-	DataCoordConfName  = "dataCoord"
-	QueryCoordConfName = "queryCoord"
-	IndexCoordConfName = "indexCoord"
-	DataNodeConfName   = "dataNode"
-	QueryNodeConfName  = "queryNode"
-	IndexNodeConfName  = "indexNode"
-	ProxyConfName      = "proxy"
-
 	RootCoordFieldName  = "RootCoord"
 	DataCoordFieldName  = "DataCoord"
 	QueryCoordFieldName = "QueryCoord"
@@ -52,20 +43,19 @@ const (
 
 type MilvusComponent struct {
 	Name        string
-	ConfName    string
 	FieldName   string
 	DefaultPort int32
 }
 
 var (
-	RootCoord  = MilvusComponent{RootCoordName, RootCoordConfName, RootCoordFieldName, RootCoordPort}
-	DataCoord  = MilvusComponent{DataCoordName, DataCoordConfName, DataCoordFieldName, DataCoordPort}
-	QueryCoord = MilvusComponent{QueryCoordName, QueryCoordConfName, QueryCoordFieldName, QueryCoordPort}
-	IndexCoord = MilvusComponent{IndexCoordName, IndexCoordConfName, IndexCoordFieldName, IndexCoordPort}
-	DataNode   = MilvusComponent{DataNodeName, DataNodeConfName, DataNodeFieldName, DataNodePort}
-	QueryNode  = MilvusComponent{QueryNodeName, QueryNodeConfName, QueryNodeFieldName, QueryNodePort}
-	IndexNode  = MilvusComponent{IndexNodeName, IndexNodeConfName, IndexNodeFieldName, IndexNodePort}
-	Proxy      = MilvusComponent{ProxyName, ProxyConfName, ProxyFieldName, ProxyPort}
+	RootCoord  = MilvusComponent{RootCoordName, RootCoordFieldName, RootCoordPort}
+	DataCoord  = MilvusComponent{DataCoordName, DataCoordFieldName, DataCoordPort}
+	QueryCoord = MilvusComponent{QueryCoordName, QueryCoordFieldName, QueryCoordPort}
+	IndexCoord = MilvusComponent{IndexCoordName, IndexCoordFieldName, IndexCoordPort}
+	DataNode   = MilvusComponent{DataNodeName, DataNodeFieldName, DataNodePort}
+	QueryNode  = MilvusComponent{QueryNodeName, QueryNodeFieldName, QueryNodePort}
+	IndexNode  = MilvusComponent{IndexNodeName, IndexNodeFieldName, IndexNodePort}
+	Proxy      = MilvusComponent{ProxyName, ProxyFieldName, ProxyPort}
 
 	MilvusComponents = []MilvusComponent{
 		RootCoord, DataCoord, QueryCoord, IndexCoord, DataNode, QueryNode, IndexNode, Proxy,
