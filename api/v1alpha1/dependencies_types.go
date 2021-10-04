@@ -1,5 +1,12 @@
 package v1alpha1
 
+type DependencyDeletionPolicy string
+
+const (
+	DeletionPolicyDelete DependencyDeletionPolicy = "Delete"
+	DeletionPolicyRetain DependencyDeletionPolicy = "Retain"
+)
+
 type MilvusDependencies struct {
 	// +kubebuilder:validation:Optional
 	Etcd MilvusEtcd `json:"etcd"`
@@ -20,13 +27,19 @@ type MilvusEtcd struct {
 	External bool `json:"external,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	InCluster *InClusterEtcd `json:"inCluster,omitempty"`
+	InCluster *InClusterConfig `json:"inCluster,omitempty"`
 }
 
-type InClusterEtcd struct {
+type InClusterConfig struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Values Values `json:"values,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:="Retain"
+	DeletionPolicy DependencyDeletionPolicy `json:"deletionPolicy"`
+
+	// +kubebuilder:validation:Enum:={"Delete", "Retain"}
 }
 
 type MilvusStorage struct {
@@ -41,22 +54,16 @@ type MilvusStorage struct {
 	Endpoint string `json:"endpoint"`
 
 	// +kubebuilder:validation:Optional
-	InCluster *InClusterStorage `json:"inCluster,omitempty"`
+	InCluster *InClusterConfig `json:"inCluster,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=false
 	External bool `json:"external,omitempty"`
 }
 
-type InClusterStorage struct {
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:pruning:PreserveUnknownFields
-	Values Values `json:"values,omitempty"`
-}
-
 type MilvusPulsar struct {
 	// +kubebuilder:validation:Optional
-	InCluster *InClusterPulsar `json:"inCluster,omitempty"`
+	InCluster *InClusterConfig `json:"inCluster,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:default:=false
@@ -64,10 +71,4 @@ type MilvusPulsar struct {
 
 	// +kubebuilder:validation:Optional
 	Endpoint string `json:"endpoint"`
-}
-
-type InClusterPulsar struct {
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:pruning:PreserveUnknownFields
-	Values Values `json:"values,omitempty"`
 }

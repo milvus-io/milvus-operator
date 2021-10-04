@@ -120,6 +120,7 @@ func (r *MilvusClusterReconciler) updateDeployment(
 
 	container.ImagePullPolicy = component.GetImagePullPolicy(mc.Spec)
 	container.Image = component.GetImage(mc.Spec)
+	container.Resources = component.GetResources(mc.Spec)
 	deployment.Spec.Template.Spec.ImagePullSecrets = component.GetImagePullSecrets(mc.Spec)
 
 	return nil

@@ -28,6 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -35,6 +36,10 @@ import (
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
 	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
+)
+
+const (
+	MCFinalizerName = "milvuscluster.milvus.io/finalizer"
 )
 
 // MilvusClusterReconciler reconciles a MilvusCluster object
@@ -99,9 +104,25 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, fmt.Errorf("error get milvus cluster: %w", err)
 	}
 
-	// Check if it is being deleted
-	if !milvuscluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		r.logger.Info("milvus cluster is being deleted", "name", req.NamespacedName)
+	if milvuscluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		if !controllerutil.ContainsFinalizer(milvuscluster, MCFinalizerName) {
+			controllerutil.AddFinalizer(milvuscluster, MCFinalizerName)
+			if err := r.Update(ctx, milvuscluster); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
+	} else {
+		if controllerutil.ContainsFinalizer(milvuscluster, MCFinalizerName) {
+			if err := r.doFinalize(ctx, *milvuscluster); err != nil {
+				return ctrl.Result{}, err
+			}
+			controllerutil.RemoveFinalizer(milvuscluster, MCFinalizerName)
+			if err := r.Update(ctx, milvuscluster); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
 	}
 

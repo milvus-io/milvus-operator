@@ -47,3 +47,8 @@ func (r *MilvusClusterReconciler) ReconcileMilvus(ctx context.Context, mc v1alph
 
 	return nil
 }
+
+func (r *MilvusClusterReconciler) doFinalize(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+	r.logger.Info("do Finalize")
+	return nil
+}

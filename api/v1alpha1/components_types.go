@@ -44,10 +44,13 @@ type ComponentSpec struct {
 	Env []corev1.EnvVar `json:"env,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
+	//EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`

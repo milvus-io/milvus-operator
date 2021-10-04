@@ -91,6 +91,37 @@ func (c MilvusComponent) GetImagePullPolicy(spec v1alpha1.MilvusClusterSpec) cor
 	return corev1.PullIfNotPresent
 }
 
+func (c MilvusComponent) GetTolerations(spec v1alpha1.MilvusClusterSpec) []corev1.Toleration {
+	tolerations := c.GetComponentSpec(spec).Tolerations
+	if len(tolerations) > 0 {
+		return tolerations
+	}
+
+	return spec.Com.Tolerations
+}
+
+func (c MilvusComponent) GetNodeSelector(spec v1alpha1.MilvusClusterSpec) map[string]string {
+	nodeSelector := c.GetComponentSpec(spec).NodeSelector
+	if nodeSelector != nil {
+		return nodeSelector
+	}
+
+	return spec.Com.NodeSelector
+}
+
+func (c MilvusComponent) GetResources(spec v1alpha1.MilvusClusterSpec) corev1.ResourceRequirements {
+	resources := c.GetComponentSpec(spec).Resources
+	if c.GetComponentSpec(spec).Resources != nil {
+		return *resources
+	}
+
+	if spec.Com.Resources != nil {
+		return *spec.Com.Resources
+	}
+
+	return corev1.ResourceRequirements{}
+}
+
 func (c MilvusComponent) GetImage(spec v1alpha1.MilvusClusterSpec) string {
 	componentImage := c.GetComponentSpec(spec).Image
 	if len(componentImage) > 0 {
