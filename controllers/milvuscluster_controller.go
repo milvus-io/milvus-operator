@@ -104,6 +104,7 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, fmt.Errorf("error get milvus cluster: %w", err)
 	}
 
+	// Finalize
 	if milvuscluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(milvuscluster, MCFinalizerName) {
 			controllerutil.AddFinalizer(milvuscluster, MCFinalizerName)

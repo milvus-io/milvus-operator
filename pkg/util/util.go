@@ -5,6 +5,7 @@ import (
 	"net"
 	neturl "net/url"
 	"strconv"
+	"strings"
 	"text/template"
 
 	"github.com/Masterminds/sprig"
@@ -118,4 +119,12 @@ func RemoveString(slice []string, s string) (result []string) {
 		result = append(result, item)
 	}
 	return
+}
+
+func JoinErrors(errs []error) string {
+	es := make([]string, 0, len(errs))
+	for _, e := range errs {
+		es = append(es, e.Error())
+	}
+	return strings.Join(es, "; ")
 }

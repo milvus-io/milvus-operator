@@ -1,6 +1,8 @@
 package helm
 
 import (
+	"errors"
+
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/release"
@@ -94,4 +96,20 @@ func Install(cfg *action.Configuration, request ChartRequest) error {
 
 	_, err = client.Run(chartRequested, request.Values)
 	return err
+}
+
+func Uninstall(cfg *action.Configuration, releaseName string) error {
+	_, err := cfg.Releases.History(releaseName)
+	if errors.Is(err, driver.ErrReleaseNotFound) {
+		return nil
+	}
+
+	client := action.NewUninstall(cfg)
+	client.DisableHooks = true
+	_, err = client.Run(releaseName)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

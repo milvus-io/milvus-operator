@@ -5,6 +5,9 @@ import (
 	"fmt"
 
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
+	"github.com/milvus-io/milvus-operator/pkg/helm"
+	"github.com/milvus-io/milvus-operator/pkg/util"
+	"github.com/pkg/errors"
 )
 
 func (r *MilvusClusterReconciler) SetDefault(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
@@ -49,6 +52,35 @@ func (r *MilvusClusterReconciler) ReconcileMilvus(ctx context.Context, mc v1alph
 }
 
 func (r *MilvusClusterReconciler) doFinalize(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	r.logger.Info("do Finalize")
+	releaseNames := []string{}
+
+	if mc.Spec.Dep.Etcd.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
+		releaseNames = append(releaseNames, mc.Name+"-etcd")
+	}
+	if mc.Spec.Dep.Pulsar.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
+		releaseNames = append(releaseNames, mc.Name+"-pulsar")
+	}
+	if mc.Spec.Dep.Storage.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
+		releaseNames = append(releaseNames, mc.Name+"-minio")
+	}
+
+	if len(releaseNames) > 0 {
+		cfg, err := r.NewHelmCfg(mc.Namespace)
+		if err != nil {
+			return err
+		}
+
+		errs := []error{}
+		for _, releaseName := range releaseNames {
+			if err := helm.Uninstall(cfg, releaseName); err != nil {
+				errs = append(errs, err)
+			}
+		}
+
+		if len(errs) > 0 {
+			return errors.Errorf(util.JoinErrors(errs))
+		}
+	}
+
 	return nil
 }

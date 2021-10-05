@@ -94,10 +94,10 @@ func (r *MilvusCluster) Default() {
 	// set in cluster etcd endpoints
 	if !r.Spec.Dep.Etcd.External {
 		if r.Spec.Dep.Etcd.InCluster == nil {
-			r.Spec.Dep.Etcd.InCluster = &InClusterConfig{
-				Values:         Values{Data: map[string]interface{}{}},
-				DeletionPolicy: DeletionPolicyRetain,
-			}
+			r.Spec.Dep.Etcd.InCluster = &InClusterConfig{}
+		}
+		if r.Spec.Dep.Etcd.InCluster.Values.Data == nil {
+			r.Spec.Dep.Etcd.InCluster.Values.Data = map[string]interface{}{}
 		}
 		if r.Spec.Dep.Etcd.InCluster.DeletionPolicy == "" {
 			r.Spec.Dep.Etcd.InCluster.DeletionPolicy = DeletionPolicyRetain
@@ -110,10 +110,10 @@ func (r *MilvusCluster) Default() {
 	// set in cluster pulsar endpoint
 	if !r.Spec.Dep.Pulsar.External {
 		if r.Spec.Dep.Pulsar.InCluster == nil {
-			r.Spec.Dep.Pulsar.InCluster = &InClusterConfig{
-				Values:         Values{Data: map[string]interface{}{}},
-				DeletionPolicy: DeletionPolicyRetain,
-			}
+			r.Spec.Dep.Pulsar.InCluster = &InClusterConfig{}
+		}
+		if r.Spec.Dep.Pulsar.InCluster.Values.Data == nil {
+			r.Spec.Dep.Pulsar.InCluster.Values.Data = map[string]interface{}{}
 		}
 		if r.Spec.Dep.Pulsar.InCluster.DeletionPolicy == "" {
 			r.Spec.Dep.Pulsar.InCluster.DeletionPolicy = DeletionPolicyRetain
@@ -126,11 +126,10 @@ func (r *MilvusCluster) Default() {
 	// set in cluster storage
 	if !r.Spec.Dep.Storage.External {
 		if r.Spec.Dep.Storage.InCluster == nil {
-			r.Spec.Dep.Storage.InCluster = &InClusterConfig{
-				Values:         Values{Data: map[string]interface{}{}},
-				DeletionPolicy: DeletionPolicyRetain,
-			}
-			r.Spec.Dep.Storage.SecretRef = r.Name + "-minio"
+			r.Spec.Dep.Storage.InCluster = &InClusterConfig{}
+		}
+		if r.Spec.Dep.Storage.InCluster.Values.Data == nil {
+			r.Spec.Dep.Storage.InCluster.Values.Data = map[string]interface{}{}
 		}
 		if r.Spec.Dep.Storage.InCluster.DeletionPolicy == "" {
 			r.Spec.Dep.Storage.InCluster.DeletionPolicy = DeletionPolicyRetain
@@ -138,6 +137,7 @@ func (r *MilvusCluster) Default() {
 		if len(r.Spec.Dep.Storage.Endpoint) == 0 {
 			r.Spec.Dep.Storage.Endpoint = fmt.Sprintf("%s-minio.%s:9000", r.Name, r.Namespace)
 		}
+		r.Spec.Dep.Storage.SecretRef = r.Name + "-minio"
 	}
 }
 

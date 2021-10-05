@@ -1,0 +1,20 @@
+apiVersion: milvus.io/v1alpha1
+kind: MilvusCluster
+metadata:
+  name: my-release
+  namespace: default
+  labels:
+    app: milvus
+spec:
+  dependencies: 
+    etcd:
+      inCluster:
+        deletionPolicy: Delete
+    pulsar:
+      inCluster:
+        deletionPolicy: Delete
+  config:
+    etcd:
+      rootPath: test
+    minio:
+      bucketName: new-bucket
