@@ -1,10 +1,12 @@
 package controllers
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
+	"github.com/milvus-io/milvus-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
@@ -219,4 +221,19 @@ func (c MilvusComponent) GetComponentSpec(spec v1alpha1.MilvusClusterSpec) v1alp
 	value := reflect.ValueOf(spec.Com).FieldByName(c.FieldName).FieldByName("ComponentSpec")
 	comSpec, _ := value.Interface().(v1alpha1.ComponentSpec)
 	return comSpec
+}
+
+func (c MilvusComponent) GetConfCheckSum(spec v1alpha1.MilvusClusterSpec) string {
+	conf := map[string]interface{}{}
+	conf["conf"] = spec.Conf.Data
+	conf["etcd-endpoints"] = spec.Dep.Etcd.Endpoints
+	conf["pulsar-endpoint"] = spec.Dep.Pulsar.Endpoint
+	conf["storage-endpoint"] = spec.Dep.Storage.Endpoint
+
+	b, err := json.Marshal(conf)
+	if err != nil {
+		return ""
+	}
+
+	return util.CheckSum(b)
 }

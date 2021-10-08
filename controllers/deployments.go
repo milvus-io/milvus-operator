@@ -19,6 +19,7 @@ const (
 	MilvusConfigMountSubPath = "milvus.yaml"
 	AccessKey                = "access-key"
 	SecretKey                = "secret-key"
+	AnnotationCheckSum       = "checksum/config"
 )
 
 var (
@@ -69,6 +70,11 @@ func (r *MilvusClusterReconciler) updateDeployment(
 		deployment.Spec.Selector.MatchLabels = appLabels
 	}
 	deployment.Spec.Template.Labels = MergeLabels(deployment.Spec.Template.Labels, appLabels)
+
+	if deployment.Spec.Template.Annotations == nil {
+		deployment.Spec.Template.Annotations = map[string]string{}
+	}
+	deployment.Spec.Template.Annotations[AnnotationCheckSum] = component.GetConfCheckSum(mc.Spec)
 
 	// update configmap volume
 	volumeIdx := GetVolumeIndex(deployment.Spec.Template.Spec.Volumes, MilvusConfigVolumeName)

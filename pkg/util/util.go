@@ -2,6 +2,8 @@ package util
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"fmt"
 	"net"
 	neturl "net/url"
 	"strconv"
@@ -127,4 +129,10 @@ func JoinErrors(errs []error) string {
 		es = append(es, e.Error())
 	}
 	return strings.Join(es, "; ")
+}
+
+func CheckSum(s []byte) string {
+	h := sha256.New()
+	h.Write(s)
+	return fmt.Sprintf("%x", h.Sum(nil))
 }

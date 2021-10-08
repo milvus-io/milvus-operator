@@ -115,7 +115,7 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	} else {
 		if controllerutil.ContainsFinalizer(milvuscluster, MCFinalizerName) {
-			if err := r.doFinalize(ctx, *milvuscluster); err != nil {
+			if err := r.Finalize(ctx, *milvuscluster); err != nil {
 				return ctrl.Result{}, err
 			}
 			controllerutil.RemoveFinalizer(milvuscluster, MCFinalizerName)

@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/apache/pulsar-client-go/pulsar"
+	"github.com/minio/madmin-go"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -20,7 +22,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
-	"github.com/minio/madmin-go"
 )
 
 const (
@@ -158,6 +159,28 @@ func (r *MilvusClusterReconciler) GetMilvusClusterCondition(ctx context.Context,
 
 func (r *MilvusClusterReconciler) GetPulsarCondition(
 	ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
+
+	client, err := pulsar.NewClient(pulsar.ClientOptions{
+		URL:               "pulsar://" + mc.Spec.Dep.Pulsar.Endpoint,
+		ConnectionTimeout: 2 * time.Second,
+		OperationTimeout:  3 * time.Second,
+		Logger:            newPulsarLog(r.logger),
+	})
+
+	if err != nil {
+		return newErrPulsarCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
+	}
+	defer client.Close()
+
+	reader, err := client.CreateReader(pulsar.ReaderOptions{
+		Topic:          "milvus-operator-topic",
+		StartMessageID: pulsar.EarliestMessageID(),
+	})
+	if err != nil {
+		return newErrPulsarCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
+	}
+	defer reader.Close()
+
 	return condResult{
 		cond: v1alpha1.MilvusClusterCondition{
 			Type:    v1alpha1.PulsarReady,
@@ -178,17 +201,13 @@ func (r *MilvusClusterReconciler) GetMinioCondition(
 	}
 
 	if errors.IsNotFound(err) {
-		return condResult{
-			cond: newErrStorageCondition(v1alpha1.ReasonSecretNotExist, MessageSecretNotExist),
-		}
+		return newErrStorageCondResult(v1alpha1.ReasonSecretNotExist, MessageSecretNotExist)
 	}
 
 	accesskey, exist1 := secret.Data[AccessKey]
 	secretkey, exist2 := secret.Data[SecretKey]
 	if !exist1 || !exist2 {
-		return condResult{
-			cond: newErrStorageCondition(v1alpha1.ReasonSecretNotExist, MessageKeyNotExist),
-		}
+		return newErrStorageCondResult(v1alpha1.ReasonSecretNotExist, MessageKeyNotExist)
 	}
 
 	mdmClnt, err := madmin.New(
@@ -197,18 +216,14 @@ func (r *MilvusClusterReconciler) GetMinioCondition(
 		GetMinioSecure(mc.Spec.Conf.Data),
 	)
 	if err != nil {
-		return condResult{
-			cond: newErrStorageCondition(v1alpha1.ReasonClientErr, err.Error()),
-		}
+		return newErrStorageCondResult(v1alpha1.ReasonClientErr, err.Error())
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	st, err := mdmClnt.ServerInfo(ctx)
 	if err != nil {
-		return condResult{
-			cond: newErrStorageCondition(v1alpha1.ReasonClientErr, err.Error()),
-		}
+		return newErrStorageCondResult(v1alpha1.ReasonClientErr, err.Error())
 	}
 
 	ready := false
@@ -321,11 +336,24 @@ func GetEndpointsHealth(endpoints []string) map[string]EtcdEndPointHealth {
 	return health
 }
 
-func newErrStorageCondition(reason, message string) v1alpha1.MilvusClusterCondition {
-	return v1alpha1.MilvusClusterCondition{
-		Type:    v1alpha1.StorageReady,
-		Status:  corev1.ConditionFalse,
-		Reason:  reason,
-		Message: message,
+func newErrStorageCondResult(reason, message string) condResult {
+	return condResult{
+		cond: v1alpha1.MilvusClusterCondition{
+			Type:    v1alpha1.StorageReady,
+			Status:  corev1.ConditionFalse,
+			Reason:  reason,
+			Message: message,
+		},
+	}
+}
+
+func newErrPulsarCondResult(reason, message string) condResult {
+	return condResult{
+		cond: v1alpha1.MilvusClusterCondition{
+			Type:    v1alpha1.PulsarReady,
+			Status:  corev1.ConditionFalse,
+			Reason:  reason,
+			Message: message,
+		},
 	}
 }

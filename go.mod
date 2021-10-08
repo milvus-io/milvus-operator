@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible
+	github.com/apache/pulsar-client-go v0.6.0
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/fatih/color v1.12.0 // indirect
 	github.com/go-logr/logr v0.4.0

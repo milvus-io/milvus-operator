@@ -119,7 +119,7 @@ func (r *MilvusCluster) Default() {
 			r.Spec.Dep.Pulsar.InCluster.DeletionPolicy = DeletionPolicyRetain
 		}
 		if len(r.Spec.Dep.Pulsar.Endpoint) == 0 {
-			r.Spec.Dep.Pulsar.Endpoint = fmt.Sprintf("%s-pulsar.%s:6650", r.Name, r.Namespace)
+			r.Spec.Dep.Pulsar.Endpoint = fmt.Sprintf("%s-pulsar-proxy.%s:6650", r.Name, r.Namespace)
 		}
 	}
 

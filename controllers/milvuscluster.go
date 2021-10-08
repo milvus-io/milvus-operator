@@ -51,7 +51,7 @@ func (r *MilvusClusterReconciler) ReconcileMilvus(ctx context.Context, mc v1alph
 	return nil
 }
 
-func (r *MilvusClusterReconciler) doFinalize(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.MilvusCluster) error {
 	releaseNames := []string{}
 
 	if mc.Spec.Dep.Etcd.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
