@@ -1,0 +1,4 @@
+- op: "remove"
+  path: "/metadata/annotations/cert-manager.io~1inject-ca-from"
+- op: "remove"
+  path: "/webhooks/0/clientConfig/service"

@@ -1,0 +1,140 @@
+etcd:
+  {{- range .Spec.Dep.Etcd.Endpoints }}
+  endpoints:
+    - {{ .}}
+  {{- end }}
+  rootPath: {{ .Name }}
+  metaSubPath: meta # metaRootPath = rootPath + '/' + metaSubPath
+  kvSubPath: kv # kvRootPath = rootPath + '/' + kvSubPath
+  segmentBinlogSubPath: datacoord/binlog/segment  # Full Path = rootPath/metaSubPath/segmentBinlogSubPath
+  collectionBinlogSubPath: datacoord/binlog/collection # Full Path = rootPath/metaSubPath/collectionBinglogSubPath
+  flushStreamPosSubPath: datacoord/flushstream # Full path = rootPath/metaSubPath/flushStreamPosSubPath
+  statsStreamPosSubPath: datacoord/statsstream # Full path = rootPath/metaSubPath/statsStreamPosSubPath
+
+minio:
+  address: localhost
+  port: 9000
+  useSSL: false
+  bucketName: {{ .Name }}
+  rootPath: files
+
+pulsar:
+  address: localhost
+  port: 6650
+  maxMessageSize: 5242880 # 5 * 1024 * 1024 Bytes
+
+rootCoord:
+  address: {{ .Name }}-milvus-rootcoord
+  port: {{ .Spec.Com.RootCoord.Port | default 53100 }}
+  grpc:
+    serverMaxRecvSize: 2147483647 # math.MaxInt32
+    serverMaxSendSize: 2147483647 # math.MaxInt32
+    clientMaxRecvSize: 104857600 # 100 MB, 100 * 1024 * 1024
+    clientMaxSendSize: 104857600 # 100 MB, 100 * 1024 * 1024
+
+proxy:
+  port: {{ .Spec.Com.Proxy.Port | default 19530 }}
+  grpc:
+    serverMaxRecvSize: 2147483647 # math.MaxInt32
+    serverMaxSendSize: 2147483647 # math.MaxInt32
+    clientMaxRecvSize: 104857600 # 100 MB, 100 * 1024 * 1024
+    clientMaxSendSize: 104857600 # 100 MB, 100 * 1024 * 1024
+
+queryCoord:
+  address: {{ .Name }}-milvus-querycoord
+  port: {{ .Spec.Com.QueryCoord.Port | default 19531 }}
+  grpc:
+    serverMaxRecvSize: 2147483647 # math.MaxInt32
+    serverMaxSendSize: 2147483647 # math.MaxInt32
+    clientMaxRecvSize: 104857600 # 100 MB, 100 * 1024 * 1024
+    clientMaxSendSize: 104857600 # 100 MB, 100 * 1024 * 1024
+
+queryNode:
+  port: {{ .Spec.Com.QueryNode.Port | default 21123 }}
+  cacheSize: 32 # GB, default 32 GB, `cacheSize` is the memory used for caching data for faster query. The `cacheSize` must be less than system memory size.
+  gracefulTime: 1000 # ms, for search
+  grpc:
+    serverMaxRecvSize: 2147483647 # math.MaxInt32
+    serverMaxSendSize: 2147483647 # math.MaxInt32
+    clientMaxRecvSize: 104857600 # 100 MB, 100 * 1024 * 1024
+    clientMaxSendSize: 104857600 # 100 MB, 100 * 1024 * 1024
+
+indexCoord:
+  address: {{ .Name }}-milvus-indexcoord
+  port: {{ .Spec.Com.IndexCoord.Port | default 31000 }}
+  grpc:
+    serverMaxRecvSize: 2147483647 # math.MaxInt32
+    serverMaxSendSize: 2147483647 # math.MaxInt32
+    clientMaxRecvSize: 104857600 # 100 MB, 100 * 1024 * 1024
+    clientMaxSendSize: 104857600 # 100 MB, 100 * 1024 * 1024
+
+indexNode:
+  port: {{ .Spec.Com.IndexNode.Port | default 21121 }}
+  grpc:
+    serverMaxRecvSize: 2147483647 # math.MaxInt32
+    serverMaxSendSize: 2147483647 # math.MaxInt32
+    clientMaxRecvSize: 104857600 # 100 MB, 100 * 1024 * 1024
+    clientMaxSendSize: 104857600 # 100 MB, 100 * 1024 * 1024
+
+dataCoord:
+  address: {{ .Name }}-milvus-datacoord
+  port: {{ .Spec.Com.DataCoord.Port | default 13333 }}
+  grpc:
+    serverMaxRecvSize: 2147483647 # math.MaxInt32
+    serverMaxSendSize: 2147483647 # math.MaxInt32
+    clientMaxRecvSize: 104857600 # 100 MB, 100 * 1024 * 1024
+    clientMaxSendSize: 104857600 # 100 MB, 100 * 1024 * 1024
+
+dataNode:
+  port: {{ .Spec.Com.DataNode.Port | default 21124 }}
+  grpc:
+    serverMaxRecvSize: 2147483647 # math.MaxInt32
+    serverMaxSendSize: 2147483647 # math.MaxInt32
+    clientMaxRecvSize: 104857600 # 100 MB, 100 * 1024 * 1024
+    clientMaxSendSize: 104857600 # 100 MB, 100 * 1024 * 1024
+
+# Configure whether to store the vector and the local path when querying/searching in Querynode.
+localStorage:
+  path: /var/lib/milvus/data/
+  enabled: true
+
+# Configures the system log output.
+log:
+  level: debug # info, warn, error, panic, fatal
+  file:
+    rootPath: "" # default to stdout, stderr
+    maxSize: 300 # MB
+    maxAge: 10 # day
+    maxBackups: 20
+  format: text # text/json
+
+msgChannel:
+  # channel name generation rule: ${namePrefix}-${ChannelIdx}
+  chanNamePrefix:
+    cluster:           {{ .Name }}
+    rootCoordTimeTick: "rootcoord-timetick"
+    rootCoordStatistics: "rootcoord-statistics"
+    rootCoordDml: "rootcoord-dml"
+    search: "search"
+    searchResult: "searchResult"
+    proxyTimeTick: "proxyTimeTick"
+    queryTimeTick: "queryTimeTick"
+    queryNodeStats: "query-node-stats"
+    # cmd for loadIndex, flush, etc...
+    cmd: "cmd"
+    dataCoordInsertChannel: "insert-channel-"
+    dataCoordStatistic: "datacoord-statistics-channel"
+    dataCoordTimeTick: "datacoord-timetick-channel"
+    dataCoordSegmentInfo: "segment-info-channel"
+
+  # sub name generation rule: ${subNamePrefix}-${NodeID}
+  subNamePrefix:
+    rootCoordSubNamePrefix: "rootCoord"
+    proxySubNamePrefix: "proxy"
+    queryNodeSubNamePrefix: "queryNode"
+    dataNodeSubNamePrefix: "dataNode"
+    dataCoordSubNamePrefix: "dataCoord"
+
+common:
+  defaultPartitionName: "_default"  # default partition name for a collection
+  defaultIndexName: "_default_idx"  # default index name
