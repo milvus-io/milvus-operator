@@ -48,6 +48,8 @@ func (r *MilvusClusterReconciler) updateConfigMap(mc v1alpha1.MilvusCluster, con
 		return err
 	}
 
+	configmap.Labels = MergeLabels(configmap.Labels, NewAppLabels(mc.Name))
+
 	if err := ctrl.SetControllerReference(&mc, configmap, r.Scheme); err != nil {
 		r.logger.Error(err, "configmap SetControllerReference error")
 		return err

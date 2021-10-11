@@ -44,6 +44,7 @@ func (r *MilvusClusterReconciler) ReconcileMilvus(ctx context.Context, mc v1alph
 	g, gtx := NewGroup(ctx)
 	g.Go(WarppedReconcileFunc(r.ReconcileDeployments, gtx, mc))
 	g.Go(WarppedReconcileFunc(r.ReconcileServices, gtx, mc))
+	g.Go(WarppedReconcileFunc(r.ReconcileServiceMonitor, gtx, mc))
 	if err := g.Wait(); err != nil {
 		return fmt.Errorf("reconcile milvus components: %w", err)
 	}

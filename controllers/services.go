@@ -15,7 +15,7 @@ import (
 func (r *MilvusClusterReconciler) updateService(
 	mc v1alpha1.MilvusCluster, service *corev1.Service, component MilvusComponent,
 ) error {
-	appLabels := NewAppLabels(mc.Name, component.String())
+	appLabels := NewComponentAppLabels(mc.Name, component.String())
 	service.Labels = MergeLabels(service.Labels, appLabels)
 	if err := ctrl.SetControllerReference(&mc, service, r.Scheme); err != nil {
 		return err

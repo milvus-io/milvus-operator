@@ -66,9 +66,9 @@ const (
 	MilvusReady MiluvsClusterConditionType = "MilvusReady"
 
 	// ReasonEndpointsHealthy means the endpoint is healthy
-	ReasonEndpointsHealthy string = "EndpointsHealty"
+	ReasonEndpointsHealthy string = "EndpointsHealthy"
 	// ReasonMilvusClusterHealthy means milvus cluster is healthy
-	ReasonMilvusClusterHealthy string = "MilvusClusterHealty"
+	ReasonMilvusClusterHealthy string = "MilvusClusterHealthy"
 	// ReasonMilvusClusterNotHealthy means at least one of milvus component is not healthy
 	ReasonMilvusComponentNotHealthy string = "MilvusComponentNotHealthy"
 
