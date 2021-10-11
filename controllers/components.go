@@ -13,6 +13,7 @@ import (
 
 const (
 	MetricPortName = "metrics"
+	MetricPath     = "/metrics"
 
 	RootCoordName  = "rootcoord"
 	DataCoordName  = "datacoord"

@@ -202,11 +202,18 @@ func GetVersionFromImage(image string) string {
 	return image
 }
 
-func NewAppLabels(instance, component string) map[string]string {
+func NewComponentAppLabels(instance, component string) map[string]string {
 	return map[string]string{
 		AppLabelInstance:  instance,
 		AppLabelComponent: component,
 		AppLabelName:      "milvus",
+	}
+}
+
+func NewAppLabels(instance string) map[string]string {
+	return map[string]string{
+		AppLabelInstance: instance,
+		AppLabelName:     "milvus",
 	}
 }
 

@@ -56,7 +56,7 @@ func GetStorageSecretRefEnv(secretRef string) []corev1.EnvVar {
 func (r *MilvusClusterReconciler) updateDeployment(
 	mc v1alpha1.MilvusCluster, deployment *appsv1.Deployment, component MilvusComponent,
 ) error {
-	appLabels := NewAppLabels(mc.Name, component.String())
+	appLabels := NewComponentAppLabels(mc.Name, component.String())
 
 	deployment.Labels = MergeLabels(deployment.Labels, appLabels)
 	if err := ctrl.SetControllerReference(&mc, deployment, r.Scheme); err != nil {
