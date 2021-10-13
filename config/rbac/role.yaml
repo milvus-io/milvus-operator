@@ -10,6 +10,21 @@ rules:
   - ""
   resources:
   - configmaps
+  - secrets
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - deployments
+  - statefulsets
   verbs:
   - create
   - delete
@@ -45,31 +60,7 @@ rules:
 - apiGroups:
   - ""
   resources:
-  - secrets
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
   - serviceaccounts
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - ""
-  resources:
-  - services
   verbs:
   - create
   - delete
@@ -92,9 +83,39 @@ rules:
   - update
   - watch
 - apiGroups:
+  - apps
+  resources:
+  - pods
+  - secrets
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - batch
   resources:
   - jobs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - extensions
+  resources:
+  - deployments
+  - pods
+  - secrets
+  - services
+  - statefulsets
   verbs:
   - create
   - delete

@@ -99,7 +99,7 @@ affinity:
   # Set the anti affinity type. Valid values:
   # requiredDuringSchedulingIgnoredDuringExecution - rules must be met for pod to be scheduled (hard) requires at least one node per replica
   # preferredDuringSchedulingIgnoredDuringExecution - scheduler will try to enforce but not guranentee
-  type: requiredDuringSchedulingIgnoredDuringExecution
+  type: preferredDuringSchedulingIgnoredDuringExecution
 
 ## Components
 ##
@@ -110,7 +110,7 @@ components:
   # bookkeeper
   bookkeeper: true
   # bookkeeper - autorecovery
-  autorecovery: false
+  autorecovery: true
   # broker
   broker: true
   # functions
@@ -157,28 +157,28 @@ extra:
 ## Control what images to use for each component
 images:
   zookeeper:
-    repository: apachepulsar/pulsar-all
-    tag: 2.7.2
+    repository: apachepulsar/pulsar
+    tag: 2.7.3
     pullPolicy: IfNotPresent
   bookie:
-    repository: apachepulsar/pulsar-all
-    tag: 2.7.2
+    repository: apachepulsar/pulsar
+    tag: 2.7.3
     pullPolicy: IfNotPresent
   autorecovery:
-    repository: apachepulsar/pulsar-all
-    tag: 2.7.2
+    repository: apachepulsar/pulsar
+    tag: 2.7.3
     pullPolicy: IfNotPresent
   broker:
-    repository: apachepulsar/pulsar-all
-    tag: 2.7.2
+    repository: apachepulsar/pulsar
+    tag: 2.7.3
     pullPolicy: IfNotPresent
   proxy:
-    repository: apachepulsar/pulsar-all
-    tag: 2.7.2
+    repository: apachepulsar/pulsar
+    tag: 2.7.3
     pullPolicy: IfNotPresent
   functions:
-    repository: apachepulsar/pulsar-all
-    tag: 2.7.2
+    repository: apachepulsar/pulsar
+    tag: 2.7.3
   prometheus:
     repository: prom/prometheus
     tag: v2.17.2
@@ -289,7 +289,7 @@ zookeeper:
   # so the metrics are correctly rendered in grafana dashboard
   component: zookeeper
   # the number of zookeeper servers to run. it should be an odd number larger than or equal to 3.
-  replicaCount: 1
+  replicaCount: 3
   updateStrategy:
     type: RollingUpdate
   podManagementPolicy: OrderedReady
@@ -326,11 +326,11 @@ zookeeper:
       initialDelaySeconds: 10
       periodSeconds: 30
   affinity:
-    anti_affinity: false
+    anti_affinity: true
     # Set the anti affinity type. Valid values:
     # requiredDuringSchedulingIgnoredDuringExecution - rules must be met for pod to be scheduled (hard) requires at least one node per replica
     # preferredDuringSchedulingIgnoredDuringExecution - scheduler will try to enforce but not guranentee
-    type: requiredDuringSchedulingIgnoredDuringExecution
+    type: preferredDuringSchedulingIgnoredDuringExecution
   annotations:
     prometheus.io/scrape: "true"
     prometheus.io/port: "8000"
@@ -375,8 +375,20 @@ zookeeper:
   ## templates/zookeeper-configmap.yaml
   ##
   configData:
+    #PULSAR_MEM: >
+    #  -Xms64m -Xmx128m
     PULSAR_MEM: >
-      -Xms64m -Xmx128m
+      -Xms512m 
+      -Xmx512m 
+      -Dcom.sun.management.jmxremote 
+      -Djute.maxbuffer=10485760 
+      -XX:+ParallelRefProcEnabled 
+      -XX:+UnlockExperimentalVMOptions 
+      -XX:+AggressiveOpts 
+      -XX:+DoEscapeAnalysis 
+      -XX:+DisableExplicitGC 
+      -XX:+PerfDisableSharedMem 
+      -Dzookeeper.forceSync=no
     PULSAR_GC: >
       -XX:+UseG1GC
       -XX:MaxGCPauseMillis=10
@@ -416,7 +428,7 @@ bookkeeper:
       # requests:
         # memory: 4Gi
         # cpu: 2
-  replicaCount: 1
+  replicaCount: 2
   updateStrategy:
     type: RollingUpdate
   podManagementPolicy: Parallel
@@ -454,7 +466,7 @@ bookkeeper:
     # Set the anti affinity type. Valid values:
     # requiredDuringSchedulingIgnoredDuringExecution - rules must be met for pod to be scheduled (hard) requires at least one node per replica
     # preferredDuringSchedulingIgnoredDuringExecution - scheduler will try to enforce but not guranentee
-    type: requiredDuringSchedulingIgnoredDuringExecution
+    type: preferredDuringSchedulingIgnoredDuringExecution
   annotations: {}
   tolerations: []
   gracePeriod: 30
@@ -516,10 +528,13 @@ bookkeeper:
   ##
   configData:
     # we use `bin/pulsar` for starting bookie daemons
+    #PULSAR_MEM: >
+    #  -Xms128m
+    #  -Xmx256m
+    #  -XX:MaxDirectMemorySize=256m
     PULSAR_MEM: >
-      -Xms128m
-      -Xmx256m
-      -XX:MaxDirectMemorySize=256m
+      -Xms2048m -Xmx2048m -XX:MaxDirectMemorySize=2048m -Dio.netty.leakDetectionLevel=disabled -Dio.netty.recycler.linkCapacity=1024 -XX:+UseG1GC -XX:MaxGCPauseMillis=10 -XX:+ParallelRefProcEnabled -XX:+UnlockExperimentalVMOptions -XX:+AggressiveOpts -XX:+DoEscapeAnalysis -XX:ParallelGCThreads=32 -XX:ConcGCThreads=32 -XX:G1NewSizePercent=50 -XX:+DisableExplicitGC -XX:-ResizePLAB -XX:+ExitOnOutOfMemoryError -XX:+PerfDisableSharedMem -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCApplicationStoppedTime -XX:+PrintHeapAtGC -verbosegc -XX:G1LogLevel=finest
+
     PULSAR_GC: >
       -XX:+UseG1GC
       -XX:MaxGCPauseMillis=10
@@ -583,7 +598,7 @@ autorecovery:
     # Set the anti affinity type. Valid values:
     # requiredDuringSchedulingIgnoredDuringExecution - rules must be met for pod to be scheduled (hard) requires at least one node per replica
     # preferredDuringSchedulingIgnoredDuringExecution - scheduler will try to enforce but not guranentee
-    type: requiredDuringSchedulingIgnoredDuringExecution
+    type: preferredDuringSchedulingIgnoredDuringExecution
   annotations: {}
   # tolerations: []
   gracePeriod: 30
@@ -609,7 +624,7 @@ pulsar_metadata:
   image:
     # the image used for running `pulsar-cluster-initialize` job
     repository: apachepulsar/pulsar-all
-    tag: 2.7.2
+    tag: 2.7.3
     pullPolicy: IfNotPresent
   ## set an existing configuration store
   # configurationStore:
@@ -628,7 +643,7 @@ broker:
   # use a component name that matches your grafana configuration
   # so the metrics are correctly rendered in grafana dashboard
   component: broker
-  replicaCount: 1
+  replicaCount: 2
   # If using Prometheus-Operator enable this PodMonitor to discover broker scrape targets
   # Prometheus-Operator does not add scrape targets based on k8s annotations
   podMonitor:
@@ -690,8 +705,10 @@ broker:
   ## templates/broker-configmap.yaml
   ##
   configData:
+    #PULSAR_MEM: >
+    #  -Xms128m -Xmx256m -XX:MaxDirectMemorySize=256m
     PULSAR_MEM: >
-      -Xms128m -Xmx256m -XX:MaxDirectMemorySize=256m
+      -Xms4096m -Xmx4096m -XX:MaxDirectMemorySize=4096m -Dio.netty.leakDetectionLevel=disabled -Dio.netty.recycler.linkCapacity=1024 -XX:+ParallelRefProcEnabled -XX:+UnlockExperimentalVMOptions -XX:+AggressiveOpts -XX:+DoEscapeAnalysis -XX:ParallelGCThreads=32 -XX:ConcGCThreads=32 -XX:G1NewSizePercent=50 -XX:+DisableExplicitGC -XX:-ResizePLAB -XX:+ExitOnOutOfMemoryError -XX:+PerfDisableSharedMem
     PULSAR_GC: >
       -XX:+UseG1GC
       -XX:MaxGCPauseMillis=10
@@ -707,9 +724,9 @@ broker:
       -XX:-ResizePLAB
       -XX:+ExitOnOutOfMemoryError
       -XX:+PerfDisableSharedMem
-    managedLedgerDefaultEnsembleSize: "1"
-    managedLedgerDefaultWriteQuorum: "1"
-    managedLedgerDefaultAckQuorum: "1"
+    managedLedgerDefaultEnsembleSize: "2"
+    managedLedgerDefaultWriteQuorum: "2"
+    managedLedgerDefaultAckQuorum: "2"
   ## Broker service
   ## templates/broker-service.yaml
   ##
@@ -739,7 +756,7 @@ proxy:
   # use a component name that matches your grafana configuration
   # so the metrics are correctly rendered in grafana dashboard
   component: proxy
-  replicaCount: 1
+  replicaCount: 2
   # If using Prometheus-Operator enable this PodMonitor to discover proxy scrape targets
   # Prometheus-Operator does not add scrape targets based on k8s annotations
   podMonitor:
@@ -771,7 +788,7 @@ proxy:
     # Set the anti affinity type. Valid values:
     # requiredDuringSchedulingIgnoredDuringExecution - rules must be met for pod to be scheduled (hard) requires at least one node per replica
     # preferredDuringSchedulingIgnoredDuringExecution - scheduler will try to enforce but not guranentee
-    type: requiredDuringSchedulingIgnoredDuringExecution
+    type: preferredDuringSchedulingIgnoredDuringExecution
   annotations: {}
   tolerations: []
   gracePeriod: 30
@@ -796,8 +813,10 @@ proxy:
   ## templates/proxy-configmap.yaml
   ##
   configData:
+    #PULSAR_MEM: >
+    #  -Xms64m -Xmx64m -XX:MaxDirectMemorySize=64m
     PULSAR_MEM: >
-      -Xms64m -Xmx64m -XX:MaxDirectMemorySize=64m
+      -Xms2048m -Xmx2048m -XX:MaxDirectMemorySize=2048m
     PULSAR_GC: >
       -XX:+UseG1GC
       -XX:MaxGCPauseMillis=10
@@ -823,7 +842,7 @@ proxy:
     pulsarssl: 6651
   service:
     annotations: {}
-    type: ClusterIP
+    type: LoadBalancer
   ## Proxy ingress
   ## templates/proxy-ingress.yaml
   ##
@@ -941,7 +960,7 @@ prometheus_rbac: false
 prometheus:
   component: prometheus
   rbac:
-    enabled: false
+    enabled: true
   replicaCount: 1
   # True includes annotation for statefulset that contains hash of corresponding configmap, which will cause pods to restart on configmap change
   restartPodsOnConfigMapChange: false

@@ -69,7 +69,7 @@ diagnosticMode:
 image:
   registry: docker.io
   repository: bitnami/etcd
-  tag: 3.5.0-debian-10-r64
+  tag: 3.5.0-debian-10-r24
   ## Specify a imagePullPolicy
   ## Defaults to 'Always' if image tag is 'latest', else set to 'IfNotPresent'
   ## ref: http://kubernetes.io/docs/user-guide/images/#pre-pulling-images
@@ -164,10 +164,10 @@ auth:
 ## - 'periodic' for duration based retention, defaulting to hours if no time unit is provided (e.g. ‘5m’).
 ## - 'revision' for revision number based retention.
 ##
-autoCompactionMode: ""
+autoCompactionMode: "revision"
 ## @param autoCompactionRetention Auto compaction retention for mvcc key value store in hour, by default 0, means disabled
 ##
-autoCompactionRetention: ""
+autoCompactionRetention: "1000"
 ## @param initialClusterState Initial cluster state. Allowed values: 'new' or 'existing'
 ## If this values is not set, the default values below are set:
 ## - 'new': when installing the chart ('helm install ...')
@@ -201,7 +201,10 @@ existingConfigmap: ""
 ##   - name: FOO
 ##     value: "bar"
 ##
-extraEnvVars: []
+
+extraEnvVars:
+- name: ETCD_QUOTA_BACKEND_BYTES
+  value: "4294967296"
 ## @param extraEnvVarsCM Name of existing ConfigMap containing extra env vars
 ##
 extraEnvVarsCM: ""
@@ -498,7 +501,7 @@ persistence:
     - ReadWriteOnce
   ## @param persistence.size PVC Storage Request for etcd data volume
   ##
-  size: 8Gi
+  size: 10Gi
   ## @param persistence.selector [object] Selector to match an existing Persistent Volume
   ## ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#selector
   ##

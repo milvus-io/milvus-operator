@@ -13,8 +13,6 @@ spec:
     pulsar:
       inCluster:
         deletionPolicy: Delete
-  config:
-    etcd:
-      rootPath: test
-    minio:
-      bucketName: new-bucket
+    storage:
+      inCluster:
+        deletionPolicy: Delete
