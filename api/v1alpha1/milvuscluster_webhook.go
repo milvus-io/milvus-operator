@@ -52,7 +52,7 @@ func (r *MilvusCluster) Default() {
 	//milvusclusterlog.Info("default", "name", r.Name)
 
 	if r.Spec.Dep.Storage.Type == "" {
-		r.Spec.Dep.Storage.Type = "Minio"
+		r.Spec.Dep.Storage.Type = "MinIO"
 	}
 
 	if r.Spec.Conf.Data == nil {

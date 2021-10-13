@@ -2032,13 +2032,11 @@ spec:
                       secretRef:
                         type: string
                       type:
-                        default: Minio
+                        default: MinIO
                         enum:
-                        - Minio
+                        - MinIO
                         - S3
                         type: string
-                    required:
-                    - type
                     type: object
                 type: object
             type: object
@@ -2076,6 +2074,9 @@ spec:
                   - type
                   type: object
                 type: array
+              endpoint:
+                description: Endpoint of milvus cluster
+                type: string
               status:
                 default: Creating
                 description: Status indicates the overall status of the Milvus Status

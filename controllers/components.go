@@ -8,6 +8,7 @@ import (
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
@@ -71,6 +72,16 @@ var (
 
 func (c MilvusComponent) GetEnv(spec v1alpha1.MilvusClusterSpec) []corev1.EnvVar {
 	env := c.GetComponentSpec(spec).Env
+	env = append(env, corev1.EnvVar{
+		Name: "CACHE_SIZE",
+		ValueFrom: &corev1.EnvVarSource{
+			ResourceFieldRef: &corev1.ResourceFieldSelector{
+				Divisor:  resource.MustParse("1Gi"),
+				Resource: "limits.memory",
+			},
+		},
+	})
+
 	return MergeEnvVar(spec.Com.Env, env)
 }
 
@@ -237,4 +248,36 @@ func (c MilvusComponent) GetConfCheckSum(spec v1alpha1.MilvusClusterSpec) string
 	}
 
 	return util.CheckSum(b)
+}
+
+func (c MilvusComponent) GetLivenessProbe() *corev1.Probe {
+	return &corev1.Probe{
+		Handler: corev1.Handler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path:   "/healthz",
+				Port:   intstr.FromInt(9091),
+				Scheme: corev1.URISchemeHTTP,
+			},
+		},
+		InitialDelaySeconds: 90,
+		TimeoutSeconds:      3,
+		PeriodSeconds:       30,
+		FailureThreshold:    2,
+	}
+}
+
+func (c MilvusComponent) GetReadinessProbe() *corev1.Probe {
+	return &corev1.Probe{
+		Handler: corev1.Handler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path:   "/healthz",
+				Port:   intstr.FromInt(9091),
+				Scheme: corev1.URISchemeHTTP,
+			},
+		},
+		InitialDelaySeconds: 90,
+		TimeoutSeconds:      3,
+		PeriodSeconds:       30,
+		FailureThreshold:    2,
+	}
 }

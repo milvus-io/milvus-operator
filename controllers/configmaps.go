@@ -6,6 +6,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/yaml"
 
@@ -19,7 +20,19 @@ const (
 	MilvusConfigYaml = "milvus.yaml"
 )
 
-func (r *MilvusClusterReconciler) updateConfigMap(mc v1alpha1.MilvusCluster, configmap *corev1.ConfigMap) error {
+func (r *MilvusClusterReconciler) getMinioAccessInfo(ctx context.Context, mc v1alpha1.MilvusCluster) (string, string) {
+	secret := &corev1.Secret{}
+	key := types.NamespacedName{Namespace: mc.Namespace, Name: mc.Spec.Dep.Storage.SecretRef}
+	if err := r.Get(ctx, key, secret); err != nil {
+		r.logger.Error(err, "get minio secret error")
+		return "", ""
+	}
+
+	return string(secret.Data[AccessKey]), string(secret.Data[SecretKey])
+
+}
+
+func (r *MilvusClusterReconciler) updateConfigMap(ctx context.Context, mc v1alpha1.MilvusCluster, configmap *corev1.ConfigMap) error {
 	confYaml, err := util.GetTemplatedValues(config.GetMilvusConfigTemplate(), mc)
 	if err != nil {
 		return err
@@ -30,6 +43,10 @@ func (r *MilvusClusterReconciler) updateConfigMap(mc v1alpha1.MilvusCluster, con
 		r.logger.Error(err, "yaml Unmarshal conf error")
 		return err
 	}
+
+	key, secret := r.getMinioAccessInfo(ctx, mc)
+	util.SetValue(conf, key, "minio", "accessKeyID")
+	util.SetValue(conf, secret, "minio", "secretAccessKey")
 
 	util.MergeValues(conf, mc.Spec.Conf.Data)
 	util.SetStringSlice(conf, mc.Spec.Dep.Etcd.Endpoints, "etcd", "endpoints")
@@ -75,7 +92,7 @@ func (r *MilvusClusterReconciler) ReconcileConfigMaps(ctx context.Context, mc v1
 				Namespace: mc.Namespace,
 			},
 		}
-		if err = r.updateConfigMap(mc, new); err != nil {
+		if err = r.updateConfigMap(ctx, mc, new); err != nil {
 			return err
 		}
 
@@ -86,7 +103,7 @@ func (r *MilvusClusterReconciler) ReconcileConfigMaps(ctx context.Context, mc v1
 	}
 
 	cur := old.DeepCopy()
-	if err := r.updateConfigMap(mc, cur); err != nil {
+	if err := r.updateConfigMap(ctx, mc, cur); err != nil {
 		return err
 	}
 

@@ -50,22 +50,12 @@ rules:
   resources:
   - configmaps
   verbs: ["get", "list", "watch"]
-- apiGroups: [""]
+- apiGroups: ["", "extensions", "apps"]
   resources:
     - pods
     - services
-    - secrets
-  verbs:
-    - list
-    - watch
-    - get
-    - update
-    - create
-    - delete
-    - patch
-- apiGroups: ["apps"]
-  resources:
     - deployments
+    - secrets
     - statefulsets
   verbs:
     - list

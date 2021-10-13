@@ -98,6 +98,9 @@ type MilvusClusterStatus struct {
 	// Conditions of each components
 	Conditions []MilvusClusterCondition `json:"conditions,omitempty"`
 
+	// Endpoint of milvus cluster
+	Endpoint string `json:"endpoint,omitempty"`
+
 	// Status of each etcd endpoint
 	//EtcdStatus []MilvusEtcdStatus `json:"etcdStatus,omitempty"`
 
