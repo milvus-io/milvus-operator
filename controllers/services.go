@@ -57,9 +57,15 @@ func (r *MilvusClusterReconciler) ReconcileComponentService(
 	}
 
 	if IsEqual(old, cur) {
-		//r.logger.Info("Equal", "cur", cur.Name)
 		return nil
 	}
+
+	/* if config.IsDebug() {
+		diff, err := diffObject(old, cur)
+		if err == nil {
+			r.logger.Info("Service diff", "name", cur.Name, "namespace", cur.Namespace, "diff", string(diff))
+		}
+	} */
 
 	r.logger.Info("Update Service", "name", cur.Name, "namespace", cur.Namespace)
 	return r.Update(ctx, cur)

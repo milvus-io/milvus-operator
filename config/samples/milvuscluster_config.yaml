@@ -7,20 +7,9 @@ metadata:
     app: milvus
 spec:
   dependencies: {}
-  components: 
-    env:
-      - name: test
-        value: ssss
-      - name: other
-        value: other
-    rootCoord:
-      env:
-        - name: test
-          value: root
-        - name: vv
-          value: ccc
+  components: {}
   config:
     etcd:
-      rootPath: test
+      rootPath: my-release
     minio:
-      bucketName: new-bucket
+      bucketName: my-bucket

@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	kstatus "sigs.k8s.io/kustomize/kstatus/status"
 	"sigs.k8s.io/yaml"
 )
@@ -28,17 +29,17 @@ const (
 	AppLabelName      = AppLabel + "name"
 )
 
-func IsServicePortDuplicate(srcPorts []corev1.ServicePort, dst corev1.ServicePort) bool {
-	for _, src := range srcPorts {
+func getServicePortIdx(srcPorts []corev1.ServicePort, dst corev1.ServicePort) int {
+	for i, src := range srcPorts {
 		if src.Name == dst.Name {
-			return true
+			return i
 		}
 
 		// Check for duplicate Ports, considering (protocol,port) pairs
 		srcKey := corev1.ServicePort{Protocol: src.Protocol, Port: src.Port}
 		dstKey := corev1.ServicePort{Protocol: dst.Protocol, Port: dst.Port}
 		if srcKey == dstKey {
-			return true
+			return i
 		}
 
 		// Check for duplicate NodePorts, considering (protocol,port) pairs
@@ -46,12 +47,12 @@ func IsServicePortDuplicate(srcPorts []corev1.ServicePort, dst corev1.ServicePor
 			srcKey = corev1.ServicePort{Protocol: src.Protocol, NodePort: src.NodePort}
 			dstKey = corev1.ServicePort{Protocol: dst.Protocol, NodePort: dst.NodePort}
 			if srcKey == dstKey {
-				return true
+				return i
 			}
 		}
 	}
 
-	return false
+	return -1
 }
 
 func MergeServicePort(src, dst []corev1.ServicePort) []corev1.ServicePort {
@@ -63,15 +64,24 @@ func MergeServicePort(src, dst []corev1.ServicePort) []corev1.ServicePort {
 		return src
 	}
 
-	merged := []corev1.ServicePort{}
-	merged = append(merged, dst...)
+	merged := src
+	for _, dstPort := range dst {
+		idx := getServicePortIdx(src, dstPort)
+		if idx < 0 {
+			merged = append(merged, dstPort)
+			continue
+		}
 
-	for _, srcPort := range src {
-		if !IsServicePortDuplicate(dst, srcPort) {
-			if srcPort.Name == "" {
-				srcPort.Name = strings.ToLower(fmt.Sprintf("%s-%d", srcPort.Protocol, srcPort.Port))
-			}
-			merged = append(merged, srcPort)
+		merged[idx].Name = dstPort.Name
+		merged[idx].Protocol = dstPort.Protocol
+		merged[idx].Port = dstPort.Port
+		merged[idx].TargetPort = dstPort.TargetPort
+		if dstPort.NodePort != 0 {
+			merged[idx].NodePort = dstPort.NodePort
+		}
+
+		if merged[idx].Name == "" {
+			merged[idx].Name = strings.ToLower(fmt.Sprintf("%s-%d", merged[idx].Protocol, merged[idx].Port))
 		}
 	}
 
@@ -374,4 +384,8 @@ func GetMinioSecure(conf map[string]interface{}) bool {
 	}
 
 	return false
+}
+
+func diffObject(old, new client.Object) ([]byte, error) {
+	return client.MergeFrom(old).Data(new)
 }
