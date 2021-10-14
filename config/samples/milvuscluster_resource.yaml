@@ -1,0 +1,43 @@
+apiVersion: milvus.io/v1alpha1
+kind: MilvusCluster
+metadata:
+  name: my-release
+  namespace: default
+  labels:
+    app: milvus
+spec:
+  components:
+    image: milvusdb/milvus:v2.0.0-rc7-20211011-d567b21
+    resources:
+      limits:
+        cpu: '4'
+        memory: 8Gi
+      requests:
+        cpu: 200m
+        memory: 512Mi
+    dataCoord:
+      replicas: 1
+    dataNode:
+      replicas: 1
+    indexCoord:
+      replicas: 1
+    indexNode:
+      replicas: 1
+    proxy:
+      replicas: 1
+      serviceType: LoadBalancer
+      resources:
+        limits:
+          cpu: '2'
+          memory: 4Gi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+    queryCoord:
+      replicas: 1
+    queryNode:
+      replicas: 1
+    rootCoord:
+      replicas: 1
+  config: {}
+  dependencies: {}

@@ -167,6 +167,13 @@ func (r *MilvusClusterReconciler) ReconcileComponentDeployment(
 		return nil
 	}
 
+	/* if config.IsDebug() {
+		diff, err := diffObject(old, cur)
+		if err == nil {
+			r.logger.Info("Deployment diff", "name", cur.Name, "namespace", cur.Namespace, "diff", string(diff))
+		}
+	} */
+
 	r.logger.Info("Update Deployment", "name", cur.Name, "namespace", cur.Namespace)
 	return r.Update(ctx, cur)
 }

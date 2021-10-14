@@ -37,6 +37,7 @@ import (
 	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/controllers"
 	"github.com/milvus-io/milvus-operator/pkg/config"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -49,6 +50,7 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(milvusiov1alpha1.AddToScheme(scheme))
+	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	//+kubebuilder:scaffold:scheme
 }
 

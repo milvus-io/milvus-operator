@@ -259,10 +259,11 @@ func (c MilvusComponent) GetLivenessProbe() *corev1.Probe {
 				Scheme: corev1.URISchemeHTTP,
 			},
 		},
-		InitialDelaySeconds: 90,
+		InitialDelaySeconds: 120,
 		TimeoutSeconds:      3,
 		PeriodSeconds:       30,
 		FailureThreshold:    2,
+		SuccessThreshold:    1,
 	}
 }
 
@@ -275,9 +276,10 @@ func (c MilvusComponent) GetReadinessProbe() *corev1.Probe {
 				Scheme: corev1.URISchemeHTTP,
 			},
 		},
-		InitialDelaySeconds: 90,
+		InitialDelaySeconds: 120,
 		TimeoutSeconds:      3,
 		PeriodSeconds:       30,
 		FailureThreshold:    2,
+		SuccessThreshold:    1,
 	}
 }

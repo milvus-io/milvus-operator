@@ -79,6 +79,7 @@ func NewMilvusClusterReconciler(client client.Client, scheme *runtime.Scheme, se
 //+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="networking.k8s.io",resources=ingresses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups="extensions",resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="monitoring.coreos.com",resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
@@ -152,12 +153,12 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
-	/* 	if config.IsDebug() {
+	if config.IsDebug() {
 		diff, err := client.MergeFrom(old).Data(milvuscluster)
 		if err != nil {
 			r.logger.Info("Update diff", "diff", string(diff))
 		}
-	} */
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -172,9 +173,9 @@ func (r *MilvusClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		//WithEventFilter(&MilvusClusterPredicate{}).
 		WithOptions(controller.Options{MaxConcurrentReconciles: 1})
 
-	if config.IsDebug() {
+	/* if config.IsDebug() {
 		builder.WithEventFilter(DebugPredicate())
-	}
+	} */
 
 	return builder.Complete(r)
 }
