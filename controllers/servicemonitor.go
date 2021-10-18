@@ -5,8 +5,8 @@ import (
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
@@ -45,10 +45,11 @@ func (r *MilvusClusterReconciler) ReconcileServiceMonitor(ctx context.Context, m
 	namespacedName := NamespacedName(mc.Namespace, mc.Name)
 	old := &monitoringv1.ServiceMonitor{}
 	err := r.Get(ctx, namespacedName, old)
-	if runtime.IsNotRegisteredError(err) {
-		r.logger.Info("servicemonitor type is not registered.")
+	if meta.IsNoMatchError(err) {
+		r.logger.Info("servicemonitor kind no matchs, maybe is not installed")
 		return nil
 	}
+
 	if errors.IsNotFound(err) {
 		new := &monitoringv1.ServiceMonitor{
 			ObjectMeta: metav1.ObjectMeta{

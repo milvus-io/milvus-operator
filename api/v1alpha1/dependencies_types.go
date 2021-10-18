@@ -36,10 +36,13 @@ type InClusterConfig struct {
 	Values Values `json:"values,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum:={"Delete", "Retain"}
 	// +kubebuilder:default:="Retain"
 	DeletionPolicy DependencyDeletionPolicy `json:"deletionPolicy"`
 
-	// +kubebuilder:validation:Enum:={"Delete", "Retain"}
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=true
+	PersistenceKeep bool `json:"persistenceKeep"`
 }
 
 type MilvusStorage struct {
