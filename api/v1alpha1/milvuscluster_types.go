@@ -143,7 +143,7 @@ type MilvusClusterCondition struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-
+//+kubebuilder:resource:shortName=mc;mic
 // MilvusCluster is the Schema for the milvusclusters API
 type MilvusCluster struct {
 	metav1.TypeMeta   `json:",inline"`

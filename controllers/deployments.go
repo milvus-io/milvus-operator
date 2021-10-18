@@ -64,6 +64,7 @@ func (r *MilvusClusterReconciler) updateDeployment(
 	}
 
 	deployment.Spec.Replicas = component.GetReplicas(mc.Spec)
+	deployment.Spec.Strategy = component.GetDeploymentStrategy()
 
 	if deployment.Spec.Selector == nil {
 		deployment.Spec.Selector = new(metav1.LabelSelector)

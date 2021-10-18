@@ -61,19 +61,19 @@ Create chart name and version as used by the chart label.
 Create the common labels.
 */}}
 {{- define "pulsar.standardLabels" -}}
-app: {{ template "pulsar.name" . }}
 chart: {{ template "pulsar.chart" . }}
-release: {{ .Release.Name }}
 heritage: {{ .Release.Service }}
 cluster: {{ template "pulsar.cluster.name" . }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/name: {{ template "pulsar.name" . }}
 {{- end }}
 
 {{/*
 Create the template labels.
 */}}
 {{- define "pulsar.template.labels" -}}
-app: {{ template "pulsar.name" . }}
-release: {{ .Release.Name }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/name: {{ template "pulsar.name" . }}
 cluster: {{ template "pulsar.cluster.name" . }}
 {{- end }}
 
@@ -81,8 +81,8 @@ cluster: {{ template "pulsar.cluster.name" . }}
 Create the match labels.
 */}}
 {{- define "pulsar.matchLabels" -}}
-app: {{ template "pulsar.name" . }}
-release: {{ .Release.Name }}
+app.kubernetes.io/instance: {{ .Release.Name }}
+app.kubernetes.io/name: {{ template "pulsar.name" . }}
 {{- end }}
 
 {{/*

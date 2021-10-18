@@ -146,6 +146,7 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	if err := r.UpdateStatus(ctx, milvuscluster); err != nil {
+		r.logger.Error(err, "update status error")
 		return ctrl.Result{}, err
 	}
 

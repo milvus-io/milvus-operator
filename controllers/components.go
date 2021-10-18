@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 
-	"github.com/milvus-io/milvus-operator/api/v1alpha1"
-	"github.com/milvus-io/milvus-operator/pkg/util"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
+
+	"github.com/milvus-io/milvus-operator/api/v1alpha1"
+	"github.com/milvus-io/milvus-operator/pkg/util"
 )
 
 const (
@@ -69,6 +72,14 @@ var (
 		RootCoord, DataCoord, QueryCoord, IndexCoord,
 	}
 )
+
+func (c MilvusComponent) IsCoord() bool {
+	return strings.HasSuffix(c.Name, "coord")
+}
+
+func (c MilvusComponent) IsNode() bool {
+	return strings.HasSuffix(c.Name, "node")
+}
 
 func (c MilvusComponent) GetEnv(spec v1alpha1.MilvusClusterSpec) []corev1.EnvVar {
 	env := c.GetComponentSpec(spec).Env
@@ -281,5 +292,21 @@ func (c MilvusComponent) GetReadinessProbe() *corev1.Probe {
 		PeriodSeconds:       30,
 		FailureThreshold:    2,
 		SuccessThreshold:    1,
+	}
+}
+
+func (c MilvusComponent) GetDeploymentStrategy() appsv1.DeploymentStrategy {
+	if c.IsCoord() {
+		return appsv1.DeploymentStrategy{
+			Type: appsv1.RecreateDeploymentStrategyType,
+		}
+	}
+
+	return appsv1.DeploymentStrategy{
+		Type: appsv1.RollingUpdateDeploymentStrategyType,
+		RollingUpdate: &appsv1.RollingUpdateDeployment{
+			MaxUnavailable: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
+			MaxSurge:       &intstr.IntOrString{Type: intstr.Int, IntVal: 1},
+		},
 	}
 }

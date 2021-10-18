@@ -2,7 +2,6 @@ apiVersion: milvus.io/v1alpha1
 kind: MilvusCluster
 metadata:
   name: my-release
-  namespace: default
   labels:
     app: milvus
 spec:

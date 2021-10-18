@@ -13,6 +13,9 @@ spec:
     kind: MilvusCluster
     listKind: MilvusClusterList
     plural: milvusclusters
+    shortNames:
+    - mc
+    - mic
     singular: milvuscluster
   scope: Namespaced
   versions:
@@ -1990,7 +1993,13 @@ spec:
                         properties:
                           deletionPolicy:
                             default: Retain
+                            enum:
+                            - Delete
+                            - Retain
                             type: string
+                          persistenceKeep:
+                            default: true
+                            type: boolean
                           values:
                             type: object
                             x-kubernetes-preserve-unknown-fields: true
@@ -2007,7 +2016,13 @@ spec:
                         properties:
                           deletionPolicy:
                             default: Retain
+                            enum:
+                            - Delete
+                            - Retain
                             type: string
+                          persistenceKeep:
+                            default: true
+                            type: boolean
                           values:
                             type: object
                             x-kubernetes-preserve-unknown-fields: true
@@ -2024,7 +2039,13 @@ spec:
                         properties:
                           deletionPolicy:
                             default: Retain
+                            enum:
+                            - Delete
+                            - Retain
                             type: string
+                          persistenceKeep:
+                            default: true
+                            type: boolean
                           values:
                             type: object
                             x-kubernetes-preserve-unknown-fields: true
