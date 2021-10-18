@@ -96,7 +96,7 @@ deploy-cert-manager:
 	kubectl apply -f config/certmanager/cert-manager.yaml
 
 gen-manifests: manifests kustomize
-	$(KUSTOMIZE) build config/default > config/manifests/default.yaml
+	$(KUSTOMIZE) build config/default > deploy/manifests/default.yaml
 
 kind-dev: kind
 	sudo $(KIND) create cluster --config config/kind/kind-dev.yaml --name kind-dev
