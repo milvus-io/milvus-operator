@@ -41,8 +41,7 @@ type InClusterConfig struct {
 	DeletionPolicy DependencyDeletionPolicy `json:"deletionPolicy"`
 
 	// +kubebuilder:validation:Optional
-	// +kubebuilder:default:=true
-	PersistenceKeep bool `json:"persistenceKeep"`
+	PVCDeletion bool `json:"pvcDeletion,omitempty"`
 }
 
 type MilvusStorage struct {

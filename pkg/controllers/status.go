@@ -103,7 +103,26 @@ func (r *MilvusClusterReconciler) UpdateStatus(ctx context.Context, mc *v1alpha1
 		mc.Status.Status = v1alpha1.StatusHealthy
 	}
 
+	mc.Status.Endpoint = r.GetMilvusEndpoint(ctx, *mc)
+
 	return r.Status().Update(ctx, mc)
+}
+
+func (r *MilvusClusterReconciler) GetMilvusEndpoint(ctx context.Context, mc v1alpha1.MilvusCluster) string {
+	if mc.Spec.Com.Proxy.ServiceType == corev1.ServiceTypeLoadBalancer {
+		proxy := &corev1.Service{}
+		key := NamespacedName(mc.Namespace, Proxy.GetServiceInstanceName(mc.Name))
+		if err := r.Get(ctx, key, proxy); err != nil {
+			r.logger.Error(err, "Get Milvus endpoint error")
+			return ""
+		}
+
+		if len(proxy.Status.LoadBalancer.Ingress) > 0 {
+			return fmt.Sprintf("%s:%d", proxy.Status.LoadBalancer.Ingress[0].IP, Proxy.GetComponentPort(mc.Spec))
+		}
+	}
+
+	return ""
 }
 
 func (r *MilvusClusterReconciler) GetMilvusClusterCondition(ctx context.Context, mc v1alpha1.MilvusCluster) condResult {

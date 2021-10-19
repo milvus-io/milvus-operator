@@ -1997,8 +1997,7 @@ spec:
                             - Delete
                             - Retain
                             type: string
-                          persistenceKeep:
-                            default: true
+                          pvcDeletion:
                             type: boolean
                           values:
                             type: object
@@ -2020,8 +2019,7 @@ spec:
                             - Delete
                             - Retain
                             type: string
-                          persistenceKeep:
-                            default: true
+                          pvcDeletion:
                             type: boolean
                           values:
                             type: object
@@ -2043,8 +2041,7 @@ spec:
                             - Delete
                             - Retain
                             type: string
-                          persistenceKeep:
-                            default: true
+                          pvcDeletion:
                             type: boolean
                           values:
                             type: object
