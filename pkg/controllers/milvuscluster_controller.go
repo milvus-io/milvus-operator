@@ -138,6 +138,8 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	if !IsEqual(old.Spec, milvuscluster.Spec) {
+		diff, _ := diffObject(old, milvuscluster)
+		r.logger.Info("SetDefault: "+string(diff), "name", old.Name, "namespace", old.Namespace)
 		return ctrl.Result{}, r.Update(ctx, milvuscluster)
 	}
 

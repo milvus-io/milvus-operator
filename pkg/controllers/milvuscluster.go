@@ -19,6 +19,16 @@ func (r *MilvusClusterReconciler) SetDefault(ctx context.Context, mc *v1alpha1.M
 		mc.Status.Status = v1alpha1.StatusCreating
 	}
 
+	if !mc.Spec.Dep.Etcd.External && len(mc.Spec.Dep.Etcd.Endpoints) == 0 {
+		mc.Spec.Dep.Etcd.Endpoints = []string{fmt.Sprintf("%s-etcd.%s:2379", mc.Name, mc.Namespace)}
+	}
+	if !mc.Spec.Dep.Pulsar.External && len(mc.Spec.Dep.Pulsar.Endpoint) == 0 {
+		mc.Spec.Dep.Pulsar.Endpoint = fmt.Sprintf("%s-pulsar-proxy.%s:6650", mc.Name, mc.Namespace)
+	}
+	if !mc.Spec.Dep.Storage.External && len(mc.Spec.Dep.Storage.Endpoint) == 0 {
+		mc.Spec.Dep.Storage.Endpoint = fmt.Sprintf("%s-minio.%s:9000", mc.Name, mc.Namespace)
+	}
+
 	return nil
 }
 
@@ -85,6 +95,7 @@ func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.Milv
 			if !keepPVC {
 				pvcList := &corev1.PersistentVolumeClaimList{}
 				if err := r.List(ctx, pvcList, &client.ListOptions{
+					Namespace: mc.Namespace,
 					LabelSelector: labels.SelectorFromSet(map[string]string{
 						AppLabelInstance: releaseName,
 					}),
@@ -95,6 +106,8 @@ func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.Milv
 				for _, pvc := range pvcList.Items {
 					if err := r.Delete(ctx, &pvc); err != nil {
 						errs = append(errs, err)
+					} else {
+						r.logger.Info("pvc deleted", "name", pvc.Name, "namespace", pvc.Namespace)
 					}
 				}
 			}

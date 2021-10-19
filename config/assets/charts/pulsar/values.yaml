@@ -118,7 +118,7 @@ components:
   # proxy
   proxy: true
   # toolset
-  toolset: false
+  toolset: true
   # pulsar manager
   pulsar_manager: false
 

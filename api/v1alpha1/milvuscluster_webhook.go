@@ -102,8 +102,8 @@ func (r *MilvusCluster) Default() {
 		if r.Spec.Dep.Etcd.InCluster.DeletionPolicy == "" {
 			r.Spec.Dep.Etcd.InCluster.DeletionPolicy = DeletionPolicyRetain
 		}
-		if len(r.Spec.Dep.Etcd.Endpoints) == 0 {
-			r.Spec.Dep.Etcd.Endpoints = []string{fmt.Sprintf("%s-etcd.%s:2379", r.Name, r.Namespace)}
+		if r.Spec.Dep.Etcd.Endpoints == nil {
+			r.Spec.Dep.Etcd.Endpoints = []string{}
 		}
 	}
 
@@ -118,9 +118,6 @@ func (r *MilvusCluster) Default() {
 		if r.Spec.Dep.Pulsar.InCluster.DeletionPolicy == "" {
 			r.Spec.Dep.Pulsar.InCluster.DeletionPolicy = DeletionPolicyRetain
 		}
-		if len(r.Spec.Dep.Pulsar.Endpoint) == 0 {
-			r.Spec.Dep.Pulsar.Endpoint = fmt.Sprintf("%s-pulsar-proxy.%s:6650", r.Name, r.Namespace)
-		}
 	}
 
 	// set in cluster storage
@@ -133,9 +130,6 @@ func (r *MilvusCluster) Default() {
 		}
 		if r.Spec.Dep.Storage.InCluster.DeletionPolicy == "" {
 			r.Spec.Dep.Storage.InCluster.DeletionPolicy = DeletionPolicyRetain
-		}
-		if len(r.Spec.Dep.Storage.Endpoint) == 0 {
-			r.Spec.Dep.Storage.Endpoint = fmt.Sprintf("%s-minio.%s:9000", r.Name, r.Namespace)
 		}
 		r.Spec.Dep.Storage.SecretRef = r.Name + "-minio"
 	}
