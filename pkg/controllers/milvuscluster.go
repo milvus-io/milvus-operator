@@ -70,13 +70,13 @@ func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.Milv
 	deletingReleases := map[string]bool{}
 
 	if mc.Spec.Dep.Etcd.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
-		deletingReleases[mc.Name+"-etcd"] = mc.Spec.Dep.Etcd.InCluster.PersistenceKeep
+		deletingReleases[mc.Name+"-etcd"] = mc.Spec.Dep.Etcd.InCluster.PVCDeletion
 	}
 	if mc.Spec.Dep.Pulsar.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
-		deletingReleases[mc.Name+"-pulsar"] = mc.Spec.Dep.Pulsar.InCluster.PersistenceKeep
+		deletingReleases[mc.Name+"-pulsar"] = mc.Spec.Dep.Pulsar.InCluster.PVCDeletion
 	}
 	if mc.Spec.Dep.Storage.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
-		deletingReleases[mc.Name+"-minio"] = mc.Spec.Dep.Storage.InCluster.PersistenceKeep
+		deletingReleases[mc.Name+"-minio"] = mc.Spec.Dep.Storage.InCluster.PVCDeletion
 	}
 
 	if len(deletingReleases) > 0 {
@@ -86,13 +86,13 @@ func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.Milv
 		}
 
 		errs := []error{}
-		for releaseName, keepPVC := range deletingReleases {
+		for releaseName, deletePVC := range deletingReleases {
 			if err := helm.Uninstall(cfg, releaseName); err != nil {
 				errs = append(errs, err)
 				continue
 			}
 
-			if !keepPVC {
+			if deletePVC {
 				pvcList := &corev1.PersistentVolumeClaimList{}
 				if err := r.List(ctx, pvcList, &client.ListOptions{
 					Namespace: mc.Namespace,
