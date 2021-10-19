@@ -1,0 +1,36 @@
+apiVersion: milvus.io/v1alpha1
+kind: MilvusCluster
+metadata:
+  name: my-release
+  labels:
+    app: milvus
+spec:
+  dependencies:
+    etcd:
+      inCluster:
+        values:
+          replicaCount: 1
+    pulsar:
+      inCluster:
+        values:
+          components:
+            autorecovery: false
+          zookeeper:
+            replicaCount: 1
+          bookkeeper:
+            replicaCount: 1
+          broker:
+            replicaCount: 1
+            configData:
+              ## Enable `autoSkipNonRecoverableData` since bookkeeper is running
+              ## without persistence
+              autoSkipNonRecoverableData: "true"
+              managedLedgerDefaultEnsembleSize: "1"
+              managedLedgerDefaultWriteQuorum: "1"
+              managedLedgerDefaultAckQuorum: "1"
+          proxy:
+            replicaCount: 1
+    storage:
+      inCluster:
+        values:
+          mode: standalone
