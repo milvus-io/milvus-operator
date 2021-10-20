@@ -122,6 +122,10 @@ func (r *MilvusClusterReconciler) GetMilvusEndpoint(ctx context.Context, mc v1al
 		}
 	}
 
+	if mc.Spec.Com.Proxy.ServiceType == corev1.ServiceTypeClusterIP {
+		return fmt.Sprintf("%s-milvus.%s:%d", mc.Name, mc.Namespace, Proxy.GetComponentPort(mc.Spec))
+	}
+
 	return ""
 }
 
