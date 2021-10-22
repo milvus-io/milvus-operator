@@ -25,16 +25,17 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	"github.com/milvus-io/milvus-operator/api/v1alpha1"
-	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
+	milvusv1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 )
 
@@ -50,13 +51,39 @@ type MilvusClusterReconciler struct {
 	helmSettings *cli.EnvSettings
 }
 
-func NewMilvusClusterReconciler(client client.Client, scheme *runtime.Scheme, settings *cli.EnvSettings) *MilvusClusterReconciler {
-	return &MilvusClusterReconciler{
-		Client:       client,
-		Scheme:       scheme,
-		logger:       ctrl.Log.WithName("controller").WithName("milvus"),
+func SetupControllers(mgr manager.Manager, enableHook bool) error {
+	logger := ctrl.Log.WithName("controller").WithName("milvus")
+
+	conf := mgr.GetConfig()
+	settings := cli.New()
+	settings.KubeAPIServer = conf.Host
+	settings.MaxHistory = 2
+	settings.KubeToken = conf.BearerToken
+	getter := settings.RESTClientGetter()
+	config := getter.(*genericclioptions.ConfigFlags)
+	insecure := true
+	config.Insecure = &insecure
+
+	conroller := &MilvusClusterReconciler{
+		Client:       mgr.GetClient(),
+		Scheme:       mgr.GetScheme(),
+		logger:       logger,
 		helmSettings: settings,
 	}
+
+	if err := conroller.SetupWithManager(mgr); err != nil {
+		logger.Error(err, "unable to setup controller with manager", "controller", "MilvusCluster")
+		return err
+	}
+
+	if enableHook {
+		if err := (&milvusv1alpha1.MilvusCluster{}).SetupWebhookWithManager(mgr); err != nil {
+			logger.Error(err, "unable to create webhook", "webhook", "MilvusCluster")
+			return err
+		}
+	}
+
+	return nil
 }
 
 //+kubebuilder:rbac:groups=milvus.io,resources=milvusclusters,verbs=get;list;watch;create;update;patch;delete
@@ -95,7 +122,7 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}()
 	}
 
-	milvuscluster := &milvusiov1alpha1.MilvusCluster{}
+	milvuscluster := &milvusv1alpha1.MilvusCluster{}
 	if err := r.Get(ctx, req.NamespacedName, milvuscluster); err != nil {
 		if errors.IsNotFound(err) {
 			// The resource may have be deleted after reconcile request coming in
@@ -152,7 +179,7 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	if milvuscluster.Status.Status == v1alpha1.StatusUnHealthy {
+	if milvuscluster.Status.Status == milvusv1alpha1.StatusUnHealthy {
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
@@ -169,7 +196,7 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 // SetupWithManager sets up the controller with the Manager.
 func (r *MilvusClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	builder := ctrl.NewControllerManagedBy(mgr).
-		For(&milvusiov1alpha1.MilvusCluster{}).
+		For(&milvusv1alpha1.MilvusCluster{}).
 		//Owns(&appsv1.Deployment{}).
 		//Owns(&corev1.ConfigMap{}).
 		//Owns(&corev1.Service{}).
@@ -190,7 +217,7 @@ type MilvusClusterPredicate struct {
 }
 
 func (*MilvusClusterPredicate) Create(e event.CreateEvent) bool {
-	if _, ok := e.Object.(*milvusiov1alpha1.MilvusCluster); !ok {
+	if _, ok := e.Object.(*milvusv1alpha1.MilvusCluster); !ok {
 		return false
 	}
 
