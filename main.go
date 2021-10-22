@@ -19,40 +19,20 @@ package main
 import (
 	"flag"
 	"os"
-	"time"
 
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	"helm.sh/helm/v3/pkg/cli"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
-	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/milvus-io/milvus-operator/pkg/controllers"
-	//+kubebuilder:scaffold:imports
+	"github.com/milvus-io/milvus-operator/pkg/manager"
 )
 
 var (
-	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 )
-
-func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
-	utilruntime.Must(milvusiov1alpha1.AddToScheme(scheme))
-	utilruntime.Must(monitoringv1.AddToScheme(scheme))
-	//+kubebuilder:scaffold:scheme
-}
 
 func main() {
 	var metricsAddr string
@@ -63,6 +43,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+
 	opts := zap.Options{
 		Development: true,
 	}
@@ -75,55 +56,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	syncPeriod := 1 * time.Minute
-	ctrlOptions := ctrl.Options{
-		Scheme:                 scheme,
-		MetricsBindAddress:     metricsAddr,
-		Port:                   9443,
-		HealthProbeBindAddress: probeAddr,
-		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "71808ec5.milvus.io",
-		SyncPeriod:             &syncPeriod,
-	}
-
-	conf := ctrl.GetConfigOrDie()
-	mgr, err := ctrl.NewManager(conf, ctrlOptions)
+	mgr, err := manager.NewManager(metricsAddr, probeAddr, enableLeaderElection)
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.Error(err, "new manager")
 		os.Exit(1)
 	}
 
-	settings := cli.New()
-	settings.KubeAPIServer = conf.Host
-	settings.MaxHistory = 2
-	settings.KubeToken = conf.BearerToken
-	getter := settings.RESTClientGetter()
-	config := getter.(*genericclioptions.ConfigFlags)
-	insecure := true
-	config.Insecure = &insecure
-	conroller := controllers.NewMilvusClusterReconciler(mgr.GetClient(), mgr.GetScheme(), settings)
-	if err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "MilvusCluster")
-		os.Exit(1)
-	}
-
-	if err = conroller.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to setup controller with manager", "controller", "MilvusCluster")
-		os.Exit(1)
-	}
-
-	if err = (&milvusiov1alpha1.MilvusCluster{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "MilvusCluster")
-		os.Exit(1)
-	}
-	//+kubebuilder:scaffold:builder
-
-	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up health check")
-		os.Exit(1)
-	}
-	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-		setupLog.Error(err, "unable to set up ready check")
+	if err := controllers.SetupControllers(mgr, true); err != nil {
+		setupLog.Error(err, "unable to setup controller with manager")
 		os.Exit(1)
 	}
 

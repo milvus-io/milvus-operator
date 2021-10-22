@@ -238,6 +238,7 @@ func (r *MilvusClusterReconciler) GetMinioCondition(
 		string(accesskey), string(secretkey),
 		GetMinioSecure(mc.Spec.Conf.Data),
 	)
+
 	if err != nil {
 		return newErrStorageCondResult(v1alpha1.ReasonClientErr, err.Error())
 	}
@@ -308,6 +309,8 @@ func GetEndpointsHealth(endpoints []string) map[string]EtcdEndPointHealth {
 				Endpoints:   []string{ep},
 				DialTimeout: 5 * time.Second,
 			})
+			defer cli.Close()
+
 			if err != nil {
 				hch <- EtcdEndPointHealth{Ep: ep, Health: false, Error: err.Error()}
 				return
