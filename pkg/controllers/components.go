@@ -211,20 +211,23 @@ func (c MilvusComponent) GetServiceType(spec v1alpha1.MilvusClusterSpec) corev1.
 }
 
 func (c MilvusComponent) GetServicePorts(spec v1alpha1.MilvusClusterSpec) []corev1.ServicePort {
-	return []corev1.ServicePort{
-		{
+	servicePorts := []corev1.ServicePort{}
+	if !c.IsNode() {
+		servicePorts = append(servicePorts, corev1.ServicePort{
 			Name:       c.String(),
 			Protocol:   corev1.ProtocolTCP,
 			Port:       c.GetComponentPort(spec),
 			TargetPort: intstr.FromString(c.String()),
-		},
-		{
-			Name:       MetricPortName,
-			Protocol:   corev1.ProtocolTCP,
-			Port:       MetricPort,
-			TargetPort: intstr.FromString(MetricPortName),
-		},
+		})
 	}
+	servicePorts = append(servicePorts, corev1.ServicePort{
+		Name:       MetricPortName,
+		Protocol:   corev1.ProtocolTCP,
+		Port:       MetricPort,
+		TargetPort: intstr.FromString(MetricPortName),
+	})
+
+	return servicePorts
 }
 
 func (c MilvusComponent) GetComponentPort(spec v1alpha1.MilvusClusterSpec) int32 {
