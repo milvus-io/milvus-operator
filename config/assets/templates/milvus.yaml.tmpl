@@ -44,6 +44,7 @@ queryCoord:
   address: {{ .Name }}-milvus-querycoord
   port: {{ .Spec.Com.QueryCoord.Port | default 19531 }}
   autoHandoff: true
+  autoBalance: off
   grpc:
     serverMaxRecvSize: 2147483647 # math.MaxInt32
     serverMaxSendSize: 2147483647 # math.MaxInt32

@@ -842,7 +842,7 @@ proxy:
     pulsarssl: 6651
   service:
     annotations: {}
-    type: LoadBalancer
+    type: ClusterIP
   ## Proxy ingress
   ## templates/proxy-ingress.yaml
   ##

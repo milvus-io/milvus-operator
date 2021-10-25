@@ -31,6 +31,10 @@ func (r *MilvusClusterReconciler) updateService(
 func (r *MilvusClusterReconciler) ReconcileComponentService(
 	ctx context.Context, mc v1alpha1.MilvusCluster, component MilvusComponent,
 ) error {
+	if component.IsNode() {
+		return nil
+	}
+
 	namespacedName := NamespacedName(mc.Namespace, component.GetServiceInstanceName(mc.Name))
 	old := &corev1.Service{}
 	err := r.Get(ctx, namespacedName, old)
