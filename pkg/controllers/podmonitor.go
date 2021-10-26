@@ -18,7 +18,7 @@ func (r *MilvusClusterReconciler) updatePodMonitor(
 	appLabels := NewAppLabels(mc.Name)
 	podmonitor.Labels = MergeLabels(podmonitor.Labels, appLabels)
 	if err := ctrl.SetControllerReference(&mc, podmonitor, r.Scheme); err != nil {
-		r.logger.Error(err, "PodMonitor SetControllerReference error")
+		r.logger.Error(err, "PodMonitor SetControllerReference error", "name", mc.Name, "namespace", mc.Namespace)
 		return err
 	}
 
