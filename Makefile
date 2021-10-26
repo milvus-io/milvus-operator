@@ -3,6 +3,8 @@
 IMG ?= milvusdb/milvus-operator:dev-latest
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
+# cert-manager 
+CERT_MANAGER_MANIFEST ?= "https://github.com/jetstack/cert-manager/releases/download/v1.5.3/cert-manager.yaml"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
 ifeq (,$(shell go env GOBIN))
@@ -81,22 +83,28 @@ install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
-deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default | kubectl apply -f -
+deploy: deploy-cert-manager ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+#	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+#	$(KUSTOMIZE) build config/default | kubectl apply -f -
+	kubectl apply -f deploy/manifests/deployment.yaml
 
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
-	$(KUSTOMIZE) build config/default | kubectl delete -f -
+undeploy: undeploy-cert-manager ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
+#	$(KUSTOMIZE) build config/default | kubectl delete -f -
+	kubectl delete -f deploy/manifests/deployment.yaml
 
 deploy-dev: deploy-cert-manager manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/dev | kubectl apply -f -
 
 deploy-cert-manager:
-	kubectl apply -f config/certmanager/cert-manager.yaml
+	kubectl apply -f ${CERT_MANAGER_MANIFEST}
+	kubectl wait --for=condition=Ready pods -l app.kubernetes.io/instance=cert-manager -n cert-manager
 
-gen-manifests: manifests kustomize
-	$(KUSTOMIZE) build config/default > deploy/manifests/default.yaml
+undeploy-cert-manager:
+    kubectl delete -f ${CERT_MANAGER_MANIFEST}
+
+deploy-manifests: manifests kustomize
+	$(KUSTOMIZE) build config/default > deploy/manifests/deployment.yaml
 
 kind-dev: kind
 	sudo $(KIND) create cluster --config config/kind/kind-dev.yaml --name kind-dev

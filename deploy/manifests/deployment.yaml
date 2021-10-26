@@ -2000,7 +2000,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: milvusdb/milvus-operator:dev-latest
+        image: milvusdb/milvus-operator:latest
         livenessProbe:
           httpGet:
             path: /healthz
