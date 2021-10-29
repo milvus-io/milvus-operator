@@ -54,7 +54,7 @@ queryCoord:
 queryNode:
   port: {{ .Spec.Com.QueryNode.Port | default 21123 }}
   cacheSize: 32 # GB, default 32 GB, `cacheSize` is the memory used for caching data for faster query. The `cacheSize` must be less than system memory size.
-  gracefulTime: 1000 # ms, for search
+  gracefulTime: 0 # ms, for search
   grpc:
     serverMaxRecvSize: 2147483647 # math.MaxInt32
     serverMaxSendSize: 2147483647 # math.MaxInt32

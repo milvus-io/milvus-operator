@@ -11,7 +11,7 @@ The Milvus Operator provides an easy and solid solution to deploy and manage a f
 ## Deploy milvus operator
 See [instructions on how to install/uninstall milvus operator](docs/installation/installation.md)
 
-## Create an milvus cluster
+## Create milvus cluster
 ```shell
 kubectl apply -f config/sameples/milvuscluster_default.yaml
 ```

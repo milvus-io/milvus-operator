@@ -25,7 +25,7 @@ func (r *MilvusClusterReconciler) updatePodMonitor(
 	podmonitor.Spec.PodMetricsEndpoints = []monitoringv1.PodMetricsEndpoint{
 		{
 			HonorLabels: true,
-			Interval:    "60s",
+			Interval:    "30s",
 			Path:        MetricPath,
 			Port:        MetricPortName,
 		},
