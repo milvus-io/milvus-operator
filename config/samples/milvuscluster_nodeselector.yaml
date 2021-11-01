@@ -1,0 +1,27 @@
+apiVersion: milvus.io/v1alpha1
+kind: MilvusCluster
+metadata:
+  name: my-release
+  labels:
+    app: milvus
+spec:
+  dependencies: 
+    etcd:
+      inCluster:
+        values:
+          nodeSelector:
+            node-role.kubernetes.io/etcd: etcd
+    pulsar:
+      inCluster:
+        values:
+          bookkeeper:
+            nodeSelector:
+              node-role.kubernetes.io/pulsar: pulsar
+          zookeeper:
+            nodeSelector:
+              node-role.kubernetes.io/pulsar: pulsar
+    storage:
+      inCluster:
+        values:
+          nodeSelector:
+            node-role.kubernetes.io/storage: storage
