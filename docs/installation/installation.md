@@ -14,10 +14,18 @@ For local development purpose, check [Kind installation](./kind-installation.md)
 ### cert-manager
 Milvus Operator using cert manager for provisioning the certificates for the webhook server. It can be installed as follows:
 ```shell
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.3/cert-manager.yaml
+$ kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.3/cert-manager.yaml
+```
+Make sure the cert-manager is successfully deployed in the Kubenetes cluster.
+```shell
+$ kubectl get pods -n cert-manager
+NAME                                      READY   STATUS    RESTARTS   AGE
+cert-manager-848f547974-gccz8             1/1     Running   0          70s
+cert-manager-cainjector-54f4cc6b5-dpj84   1/1     Running   0          70s
+cert-manager-webhook-7c9588c76-tqncn      1/1     Running   0          70s
 ```
 
-## One-click installation
+## Installation
 Directly apply the deployment manifest to your Kubernetes cluster:
 ```shell
 kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/deploy/manifests/deployment.yaml
