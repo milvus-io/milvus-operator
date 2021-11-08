@@ -13,7 +13,9 @@ metadata:
   name: milvuscluster-sample
   namespace: sample-ns
 spec:
-  # ... Skipped fields
+  components: {} # Optional
+  dependencies: {} # Optional
+  config: {} # Optional
 ```
 
 ### Components
@@ -194,7 +196,8 @@ spec:
         deletionPolicy: Retain # Optional ("Delete", "Retain") default="Retain"
         # When deletionPolicy="Delete" whether the PersistantVolumeClaim shoud be deleted when the etcd is deleted
         pvcDeletion: false # Optional default=false
-
+        # etcd helm configurable values see https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/etcd/values.yaml
+        values: {} # Optional
     # ... Skipped fields
 ```
 
@@ -217,7 +220,8 @@ spec:
         deletionPolicy: Retain # Optional ("Delete", "Retain") default="Retain"
         # When deletionPolicy="Delete" whether the PersistantVolumeClaim shoud be deleted when the pulsar is deleted
         pvcDeletion: false # Optional default=false
-
+        # pulsar helm configurable values see https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/pulsar/values.yaml
+        values: {} # Optional
     # ... Skipped fields
 ```
 
@@ -242,11 +246,17 @@ spec:
         deletionPolicy: Retain # Optional ("Delete", "Retain") default="Retain"
         # When deletionPolicy="Delete" whether the PersistantVolumeClaim shoud be deleted when the storage is deleted
         pvcDeletion: false # Optional default=false
-  
+        # minio helm configurable values see https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/minio/values.yaml
+        values: {}
     # ... Skipped fields
 ```
 
-# Status spec
+### Config
+Config overrides the fields of Milvus Cluster's config file template. See https://github.com/milvus-io/milvus-operator/blob/main/config/assets/templates/milvus.yaml.tmpl. 
+
+NOTE! The fields of dependencies' address and port cannot be set in the Milvus Cluster CR.
+
+## Status spec
 The status spec of the CR HarborCluster is described as below:
 ``` yaml
 status:
