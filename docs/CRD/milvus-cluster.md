@@ -196,10 +196,26 @@ spec:
         deletionPolicy: Retain # Optional ("Delete", "Retain") default="Retain"
         # When deletionPolicy="Delete" whether the PersistantVolumeClaim shoud be deleted when the etcd is deleted
         pvcDeletion: false # Optional default=false
-        # etcd helm configurable values see https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/etcd/values.yaml
-        values: {} # Optional
+        # ... Skipped fields
     # ... Skipped fields
 ```
+
+The `inCluster.values` field contains etcd's configurable helm values. For example if you want to deploy etcd in its minimun mode:
+
+``` yaml
+spec:
+  # ... Skipped fields
+  dependencies: # Optional
+    etcd: # Optional
+      # ... Skipped fields
+      inCluster:
+        # ... Skipped fields
+        values: # Optional
+          replicaCount: 1
+```
+
+A complete fields doc can be found at https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/etcd/values.yaml.
+
 
 #### Dependency Pulsar
 The dependency pulsar may be specified as external or in-cluster:
@@ -220,10 +236,41 @@ spec:
         deletionPolicy: Retain # Optional ("Delete", "Retain") default="Retain"
         # When deletionPolicy="Delete" whether the PersistantVolumeClaim shoud be deleted when the pulsar is deleted
         pvcDeletion: false # Optional default=false
-        # pulsar helm configurable values see https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/pulsar/values.yaml
-        values: {} # Optional
+        # ... Skipped fields
     # ... Skipped fields
 ```
+
+The `inCluster.values` field contains pulsar's configurable helm values. For example if you want to deploy pulsar in its minimun mode:
+
+``` yaml
+spec:
+  # ... Skipped fields
+  dependencies: # Optional
+    etcd: # Optional
+      # ... Skipped fields
+      inCluster:
+        # ... Skipped fields
+        values:
+          components:
+            autorecovery: false
+          zookeeper:
+            replicaCount: 1
+          bookkeeper:
+            replicaCount: 1
+          broker:
+            replicaCount: 1
+            configData:
+              ## Enable `autoSkipNonRecoverableData` since bookkeeper is running
+              ## without persistence
+              autoSkipNonRecoverableData: "true"
+              managedLedgerDefaultEnsembleSize: "1"
+              managedLedgerDefaultWriteQuorum: "1"
+              managedLedgerDefaultAckQuorum: "1"
+          proxy:
+            replicaCount: 1
+```
+
+A complete fields doc can be found at https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/pulsar/values.yaml.
 
 #### Dependency Storage
 The dependency storage may be specified as external or in-cluster. When use in-cluster storage, only `MinIO` storage type is supported.
@@ -246,13 +293,43 @@ spec:
         deletionPolicy: Retain # Optional ("Delete", "Retain") default="Retain"
         # When deletionPolicy="Delete" whether the PersistantVolumeClaim shoud be deleted when the storage is deleted
         pvcDeletion: false # Optional default=false
-        # minio helm configurable values see https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/minio/values.yaml
-        values: {}
+        # ... Skipped fields
     # ... Skipped fields
 ```
 
+The `inCluster.values` field contains minIO's configurable helm values. For example if you want to deploy minIO in its minimun mode:
+
+``` yaml
+spec:
+  # ... Skipped fields
+  dependencies: # Optional
+    storage: # Optional
+      # ... Skipped fields
+      inCluster:
+        # ... Skipped fields
+        values: # Optional
+          mode: standalone
+```
+
+A complete fields doc can be found at https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/minio/values.yaml.
+
 ### Config
-Config overrides the fields of Milvus Cluster's config file template. See https://github.com/milvus-io/milvus-operator/blob/main/config/assets/templates/milvus.yaml.tmpl. 
+Config overrides the fields of Milvus Cluster's config file template. 
+
+For example, if you want to change etcd's rootPath and minIO's bucketname:
+
+``` yaml
+spec:
+  dependencies: {}
+  components: {}
+  config: # Optional
+    etcd:
+      rootPath: my-release
+    minio:
+      bucketName: my-bucket
+```
+
+A complete set of config fields can be found at https://github.com/milvus-io/milvus-operator/blob/main/config/assets/templates/milvus.yaml.tmpl. 
 
 NOTE! The fields of dependencies' address and port cannot be set in the Milvus Cluster CR.
 
