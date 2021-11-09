@@ -6,7 +6,7 @@ metadata:
     app: milvus
 spec:
   components:
-    image: milvusdb/milvus:v2.0.0-rc7-20211011-d567b21
+    image: milvusdb/milvus:v2.0.0-rc8-20211104-d1f4106
     resources:
       limits:
         cpu: '4'
