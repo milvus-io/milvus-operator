@@ -8,8 +8,7 @@ spec:
   dependencies: {}
   components: {}
   config:
-    milvus:
-      etcd:
-        rootPath: my-release
-      minio:
-        bucketName: my-bucket
+    etcd:
+      rootPath: my-release
+    minio:
+      bucketName: my-bucket
