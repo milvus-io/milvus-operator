@@ -76,6 +76,9 @@ func Update(cfg *action.Configuration, request ChartRequest) error {
 	if err != nil {
 		return err
 	}
+	if len(request.Values) == 0 {
+		client.ResetValues = true
+	}
 
 	_, err = client.Run(request.ReleaseName, chartRequested, request.Values)
 	return err
