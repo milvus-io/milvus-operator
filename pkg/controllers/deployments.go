@@ -17,12 +17,9 @@ const (
 	MilvusConfigVolumeName   = "milvus-config"
 	MilvusConfigMountPath    = "/milvus/configs/milvus.yaml"
 	MilvusConfigMountSubPath = "milvus.yaml"
-	// component config use same volume as milvus config
-	ComponentConfigMountPath    = "/milvus/configs/advanced/component.yaml"
-	ComponentConfigMountSubPath = "component.yaml"
-	AccessKey                   = "access-key"
-	SecretKey                   = "secret-key"
-	AnnotationCheckSum          = "checksum/config"
+	AccessKey                = "access-key"
+	SecretKey                = "secret-key"
+	AnnotationCheckSum       = "checksum/config"
 )
 
 var (
@@ -121,15 +118,12 @@ func (r *MilvusClusterReconciler) updateDeployment(
 		MountPath: MilvusConfigMountPath,
 		SubPath:   MilvusConfigMountSubPath,
 	}
-	addOrUpdateVolumeMount(container, milvusVolumeMount)
-
-	componentVolumeMount := corev1.VolumeMount{
-		Name:      MilvusConfigVolumeName,
-		ReadOnly:  true,
-		MountPath: ComponentConfigMountPath,
-		SubPath:   ComponentConfigMountSubPath,
+	mountIdx := GetVolumeMountIndex(container.VolumeMounts, milvusVolumeMount.MountPath)
+	if mountIdx < 0 {
+		container.VolumeMounts = append(container.VolumeMounts, milvusVolumeMount)
+	} else {
+		container.VolumeMounts[mountIdx] = milvusVolumeMount
 	}
-	addOrUpdateVolumeMount(container, componentVolumeMount)
 
 	container.ImagePullPolicy = component.GetImagePullPolicy(mc.Spec)
 	container.Image = component.GetImage(mc.Spec)
@@ -139,15 +133,6 @@ func (r *MilvusClusterReconciler) updateDeployment(
 	deployment.Spec.Template.Spec.ImagePullSecrets = component.GetImagePullSecrets(mc.Spec)
 
 	return nil
-}
-
-func addOrUpdateVolumeMount(container *corev1.Container, volumeMount corev1.VolumeMount) {
-	mountIdx := GetVolumeMountIndex(container.VolumeMounts, volumeMount.MountPath)
-	if mountIdx < 0 {
-		container.VolumeMounts = append(container.VolumeMounts, volumeMount)
-	} else {
-		container.VolumeMounts[mountIdx] = volumeMount
-	}
 }
 
 func (r *MilvusClusterReconciler) ReconcileComponentDeployment(

@@ -314,52 +314,24 @@ spec:
 A complete fields doc can be found at https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/minio/values.yaml.
 
 ### Config
-Config overrides the default config fields of Milvus Cluster's config files for `milvus` and for milvus `component`.
-
-``` yaml
-spec:
-  dependencies: {}
-  components: {}
-  config: # Optional
-    milvus: {} # Optional
-    component: {} # Optional
-```
-
-The `config.milvus` field overrides the default values for milvus.yaml config file. A complete set of config fields and default value can be found at https://github.com/milvus-io/milvus-operator/blob/main/config/assets/templates/milvus.yaml.tmpl. NOTE! The changing the dependencies' address and port `config.milvus` will not work, their values are determined by `dependencies` field.
+Config overrides the fields of Milvus Cluster's config file template. 
 
 For example, if you want to change etcd's rootPath and minIO's bucketname:
+
 ``` yaml
 spec:
   dependencies: {}
   components: {}
   config: # Optional
-    milvus: # Optional
-      etcd:
-        rootPath: my-release
-      minio:
-        bucketName: my-bucket
+    etcd:
+      rootPath: my-release
+    minio:
+      bucketName: my-bucket
 ```
 
-The `config.component` field overrides the default values for component.yaml config file. A complete set of config fields and default value can be found at https://github.com/milvus-io/milvus-operator/blob/main/config/assets/templates/component.yaml.tmpl. 
+A complete set of config fields can be found at https://github.com/milvus-io/milvus-operator/blob/main/config/assets/templates/milvus.yaml.tmpl. 
 
-The fields in `config.component` are quite advanced. These values enables you to do performance tuning if you have good knowledge of how milvus cluster works.
-
-For example, if you want to change the max task queue length in flowgraph of query & data nodes(which is default to 1024) to 2048:
-``` yaml
-spec:
-  dependencies: {}
-  components: {}
-  config: # Optional
-    component: # Optional
-      queryNode:
-        dataSync:
-          flowGraph:
-            maxQueueLength: 2048
-      dataNode:
-        dataSync:
-          flowGraph:
-            maxQueueLength: 2048
-```
+NOTE! The fields of dependencies' address and port cannot be set in the Milvus Cluster CR.
 
 ## Status spec
 The status spec of the CR HarborCluster is described as below:

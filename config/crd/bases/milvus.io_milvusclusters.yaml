@@ -1976,15 +1976,8 @@ spec:
                     type: array
                 type: object
               config:
-                description: Config contains config files for milvus
-                properties:
-                  component:
-                    type: object
-                    x-kubernetes-preserve-unknown-fields: true
-                  milvus:
-                    type: object
-                    x-kubernetes-preserve-unknown-fields: true
                 type: object
+                x-kubernetes-preserve-unknown-fields: true
               dependencies:
                 properties:
                   etcd:
