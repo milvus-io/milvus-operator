@@ -38,7 +38,8 @@ type MilvusClusterSpec struct {
 	Dep MilvusDependencies `json:"dependencies,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	Conf Config `json:"config,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Conf Values `json:"config,omitempty"`
 }
 
 // MiluvsClusterConditionType is a valid value for MiluvsClusterConditionType.Type.

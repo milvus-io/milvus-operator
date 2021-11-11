@@ -236,7 +236,7 @@ func (r *MilvusClusterReconciler) GetMinioCondition(
 	mdmClnt, err := madmin.New(
 		mc.Spec.Dep.Storage.Endpoint,
 		string(accesskey), string(secretkey),
-		GetMinioSecure(mc.Spec.Conf.Milvus.Data),
+		GetMinioSecure(mc.Spec.Conf.Data),
 	)
 
 	if err != nil {

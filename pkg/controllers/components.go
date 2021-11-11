@@ -251,8 +251,7 @@ func (c MilvusComponent) GetComponentSpec(spec v1alpha1.MilvusClusterSpec) v1alp
 
 func (c MilvusComponent) GetConfCheckSum(spec v1alpha1.MilvusClusterSpec) string {
 	conf := map[string]interface{}{}
-	conf["milvus-conf"] = spec.Conf.Milvus.Data
-	conf["component-conf"] = spec.Conf.Component.Data
+	conf["conf"] = spec.Conf.Data
 	conf["etcd-endpoints"] = spec.Dep.Etcd.Endpoints
 	conf["pulsar-endpoint"] = spec.Dep.Pulsar.Endpoint
 	conf["storage-endpoint"] = spec.Dep.Storage.Endpoint
