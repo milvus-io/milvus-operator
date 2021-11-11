@@ -18,6 +18,9 @@ import (
 const (
 	TemplateMilvus   = "milvus.yaml.tmpl"
 	MilvusConfigYaml = "milvus.yaml"
+
+	TemplateComponent   = "component.yaml.tmpl"
+	ComponentConfigYaml = "component.yaml"
 )
 
 func (r *MilvusClusterReconciler) getMinioAccessInfo(ctx context.Context, mc v1alpha1.MilvusCluster) (string, string) {
@@ -33,35 +36,12 @@ func (r *MilvusClusterReconciler) getMinioAccessInfo(ctx context.Context, mc v1a
 }
 
 func (r *MilvusClusterReconciler) updateConfigMap(ctx context.Context, mc v1alpha1.MilvusCluster, configmap *corev1.ConfigMap) error {
-	confYaml, err := util.GetTemplatedValues(config.GetMilvusConfigTemplate(), mc)
+	milvusYaml, err := r.generateMilvusConfig(ctx, mc)
 	if err != nil {
 		return err
 	}
-
-	conf := map[string]interface{}{}
-	if err := yaml.Unmarshal(confYaml, &conf); err != nil {
-		r.logger.Error(err, "yaml Unmarshal conf error")
-		return err
-	}
-
-	key, secret := r.getMinioAccessInfo(ctx, mc)
-	util.SetValue(conf, key, "minio", "accessKeyID")
-	util.SetValue(conf, secret, "minio", "secretAccessKey")
-
-	util.MergeValues(conf, mc.Spec.Conf.Data)
-	util.SetStringSlice(conf, mc.Spec.Dep.Etcd.Endpoints, "etcd", "endpoints")
-
-	host, port := util.GetHostPort(mc.Spec.Dep.Storage.Endpoint)
-	util.SetValue(conf, host, "minio", "address")
-	util.SetValue(conf, int64(port), "minio", "port")
-
-	host, port = util.GetHostPort(mc.Spec.Dep.Pulsar.Endpoint)
-	util.SetValue(conf, host, "pulsar", "address")
-	util.SetValue(conf, int64(port), "pulsar", "port")
-
-	milvusYaml, err := yaml.Marshal(conf)
+	componentsYaml, err := r.generateComponentsConfig(ctx, mc)
 	if err != nil {
-		r.logger.Error(err, "yaml Marshal conf error")
 		return err
 	}
 
@@ -76,6 +56,7 @@ func (r *MilvusClusterReconciler) updateConfigMap(ctx context.Context, mc v1alph
 		configmap.Data = make(map[string]string)
 	}
 	configmap.Data[MilvusConfigYaml] = string(milvusYaml)
+	configmap.Data[ComponentConfigYaml] = string(componentsYaml)
 
 	return nil
 }
@@ -113,4 +94,60 @@ func (r *MilvusClusterReconciler) ReconcileConfigMaps(ctx context.Context, mc v1
 
 	r.logger.Info("Update Configmap", "name", cur.Name, "namespace", cur.Namespace)
 	return r.Update(ctx, cur)
+}
+
+func (r *MilvusClusterReconciler) generateMilvusConfig(ctx context.Context, mc v1alpha1.MilvusCluster) ([]byte, error) {
+	confYaml, err := util.GetTemplatedValues(config.GetMilvusConfigTemplate(), mc)
+	if err != nil {
+		return nil, err
+	}
+
+	conf := map[string]interface{}{}
+	if err := yaml.Unmarshal(confYaml, &conf); err != nil {
+		r.logger.Error(err, "yaml Unmarshal conf error")
+		return nil, err
+	}
+
+	key, secret := r.getMinioAccessInfo(ctx, mc)
+	util.SetValue(conf, key, "minio", "accessKeyID")
+	util.SetValue(conf, secret, "minio", "secretAccessKey")
+
+	util.MergeValues(conf, mc.Spec.Conf.Milvus.Data)
+	util.SetStringSlice(conf, mc.Spec.Dep.Etcd.Endpoints, "etcd", "endpoints")
+
+	host, port := util.GetHostPort(mc.Spec.Dep.Storage.Endpoint)
+	util.SetValue(conf, host, "minio", "address")
+	util.SetValue(conf, int64(port), "minio", "port")
+
+	host, port = util.GetHostPort(mc.Spec.Dep.Pulsar.Endpoint)
+	util.SetValue(conf, host, "pulsar", "address")
+	util.SetValue(conf, int64(port), "pulsar", "port")
+
+	milvusYaml, err := yaml.Marshal(conf)
+	if err != nil {
+		r.logger.Error(err, "yaml Marshal conf error")
+		return nil, err
+	}
+	return milvusYaml, nil
+}
+
+func (r *MilvusClusterReconciler) generateComponentsConfig(ctx context.Context, mc v1alpha1.MilvusCluster) ([]byte, error) {
+	confYaml, err := util.GetTemplatedValues(config.GetComonentConfigTemplate(), mc)
+	if err != nil {
+		return nil, err
+	}
+
+	conf := map[string]interface{}{}
+	if err := yaml.Unmarshal(confYaml, &conf); err != nil {
+		r.logger.Error(err, "yaml Unmarshal conf error")
+		return nil, err
+	}
+
+	util.MergeValues(conf, mc.Spec.Conf.Component.Data)
+	componentYaml, err := yaml.Marshal(conf)
+	if err != nil {
+		r.logger.Error(err, "yaml Marshal conf error")
+		return nil, err
+	}
+	return componentYaml, nil
 }

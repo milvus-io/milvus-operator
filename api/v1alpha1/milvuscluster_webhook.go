@@ -55,10 +55,14 @@ func (r *MilvusCluster) Default() {
 		r.Spec.Dep.Storage.Type = "MinIO"
 	}
 
-	if r.Spec.Conf.Data == nil {
-		r.Spec.Conf.Data = map[string]interface{}{}
+	if r.Spec.Conf.Milvus.Data == nil {
+		r.Spec.Conf.Milvus.Data = map[string]interface{}{}
 	} else {
-		deleteUnsettableConf(r.Spec.Conf.Data)
+		deleteUnsettableConf(r.Spec.Conf.Milvus.Data)
+	}
+
+	if r.Spec.Conf.Component.Data == nil {
+		r.Spec.Conf.Component.Data = map[string]interface{}{}
 	}
 
 	if r.Spec.Com.Image == "" {
