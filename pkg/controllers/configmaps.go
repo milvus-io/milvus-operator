@@ -132,7 +132,6 @@ func (r *MilvusClusterReconciler) generateMilvusConfig(ctx context.Context, mc v
 }
 
 func (r *MilvusClusterReconciler) generateComponentsConfig(ctx context.Context, mc v1alpha1.MilvusCluster) ([]byte, error) {
-	// TODO:
 	confYaml, err := util.GetTemplatedValues(config.GetComonentConfigTemplate(), mc)
 	if err != nil {
 		return nil, err
