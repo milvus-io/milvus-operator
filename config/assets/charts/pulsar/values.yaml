@@ -832,6 +832,9 @@ proxy:
       -XX:-ResizePLAB
       -XX:+ExitOnOutOfMemoryError
       -XX:+PerfDisableSharedMem
+    maxMessageSize: "104857600"
+    defaultRetentionTimeInMinutes: "10080"
+    defaultRetentionSizeInMB: "8192"
   ## Proxy service
   ## templates/proxy-service.yaml
   ##
