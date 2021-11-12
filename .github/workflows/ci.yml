@@ -1,0 +1,53 @@
+name: Test and Build
+
+# This workflow is triggered on any golang code, makefile, workflow changes to repository.
+on:
+  push:
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "Makefile"
+      - ".github/workflows/**"
+  pull_request:
+    paths:
+      - "**.go"
+      - "go.mod"
+      - "Makefile"
+      - ".github/workflows/**"
+
+jobs:
+  build-test:
+    name: Publish Builder
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu18.04]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      - name: Cache Go Mod Pkg
+        uses: actions/cache@v1
+        with:
+          path: /go/pkg/mod
+          key: ubuntu${{ matrix.ubuntu }}-go-mod-${{ hashFiles('**/go.sum') }}
+          restore-keys: ubuntu${{ matrix.ubuntu }}-go-mod-
+      - name: Cache TestBin
+        uses: actions/cache@v1
+        with:
+          path: testbin
+          key: ubuntu${{ matrix.ubuntu }}-testbin
+          restore-keys: ubuntu${{ matrix.ubuntu }}-testbin
+      - name: Kubernetes KinD Cluster
+        uses: container-tools/kind-action@v1
+      - name: Test
+        run: |
+          make test
+      - name: Build
+        run: |
+          make build
