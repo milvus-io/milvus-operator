@@ -3,17 +3,11 @@ name: Test and Build
 # This workflow is triggered on any golang code, makefile, workflow changes to repository.
 on:
   push:
-    paths:
-      - "**.go"
-      - "go.mod"
-      - "Makefile"
-      - ".github/workflows/**"
+    paths-ignore:
+      - 'docs/**'
   pull_request:
-    paths:
-      - "**.go"
-      - "go.mod"
-      - "Makefile"
-      - ".github/workflows/**"
+    paths-ignore:
+      - 'docs/**'
 
 jobs:
   build-test:
