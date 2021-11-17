@@ -14,11 +14,24 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (r *MilvusClusterReconciler) SetDefault(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
+func IsSetDefaultDone(mc *v1alpha1.MilvusCluster) bool {
+	return mc.Status.Status != ""
+}
+
+// SetDefaultStatus update status if default not set; return true if updated, return false if not, return err if update failed
+func (r *MilvusClusterReconciler) SetDefaultStatus(ctx context.Context, mc *v1alpha1.MilvusCluster) (bool, error) {
 	if mc.Status.Status == "" {
 		mc.Status.Status = v1alpha1.StatusCreating
+		err := r.Client.Status().Update(ctx, mc)
+		if err != nil {
+			return false, errors.Wrapf(err, "set mc default status[%s/%s] failed", mc.Namespace, mc.Name)
+		}
+		return true, nil
 	}
+	return false, nil
+}
 
+func (r *MilvusClusterReconciler) SetDefault(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
 	if !mc.Spec.Dep.Etcd.External && len(mc.Spec.Dep.Etcd.Endpoints) == 0 {
 		mc.Spec.Dep.Etcd.Endpoints = []string{fmt.Sprintf("%s-etcd.%s:2379", mc.Name, mc.Namespace)}
 	}

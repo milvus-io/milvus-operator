@@ -49,9 +49,10 @@ type MilvusClusterReconciler struct {
 	Scheme       *runtime.Scheme
 	logger       logr.Logger
 	helmSettings *cli.EnvSettings
+	statusSyncer *MilvusStatusSyncer
 }
 
-func SetupControllers(mgr manager.Manager, enableHook bool) error {
+func SetupControllers(ctx context.Context, mgr manager.Manager, enableHook bool) error {
 	logger := ctrl.Log.WithName("controller").WithName("milvus")
 
 	conf := mgr.GetConfig()
@@ -64,11 +65,15 @@ func SetupControllers(mgr manager.Manager, enableHook bool) error {
 	insecure := true
 	config.Insecure = &insecure
 
+	// should be run after mgr started to make sure the client is ready
+	statusSyncer := NewMilvusStatusSyncer(ctx, mgr.GetClient(), logger.WithName("status-syncer"))
+
 	conroller := &MilvusClusterReconciler{
 		Client:       mgr.GetClient(),
 		Scheme:       mgr.GetScheme(),
 		logger:       logger,
 		helmSettings: settings,
+		statusSyncer: statusSyncer,
 	}
 
 	if err := conroller.SetupWithManager(mgr); err != nil {
@@ -114,6 +119,7 @@ func SetupControllers(mgr manager.Manager, enableHook bool) error {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	r.statusSyncer.RunIfNot()
 	if !config.IsDebug() {
 		defer func() {
 			if err := recover(); err != nil {
@@ -170,14 +176,16 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, r.Update(ctx, milvuscluster)
 	}
 
+	updated, err := r.SetDefaultStatus(ctx, milvuscluster)
+	if updated || err != nil {
+		return ctrl.Result{}, err
+	}
+
 	if err := r.ReconcileAll(ctx, *milvuscluster); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	if err := r.UpdateStatus(ctx, milvuscluster); err != nil {
-		r.logger.Error(err, "update status error")
-		return ctrl.Result{}, err
-	}
+	// status will be updated by syncer
 
 	if milvuscluster.Status.Status == milvusv1alpha1.StatusUnHealthy {
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil

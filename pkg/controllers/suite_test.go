@@ -78,7 +78,9 @@ var _ = BeforeSuite(func() {
 
 	k8sManager, err := manager.NewManager(":8080", ":8081", false)
 	Expect(err).ToNot(HaveOccurred())
-	err = SetupControllers(k8sManager, false)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	err = SetupControllers(ctx, k8sManager, false)
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {
