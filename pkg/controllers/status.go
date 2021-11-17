@@ -9,13 +9,15 @@ import (
 	"time"
 
 	"github.com/apache/pulsar-client-go/pulsar"
+	"github.com/go-logr/logr"
 	"github.com/minio/madmin-go"
+	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
@@ -54,9 +56,74 @@ type condResult struct {
 	err  error
 }
 
-func (r *MilvusClusterReconciler) UpdateStatus(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
+type MilvusStatusSyncer struct {
+	ctx context.Context
+	client.Client
+	logger logr.Logger
+
+	sync.Once
+}
+
+func NewMilvusStatusSyncer(ctx context.Context, client client.Client, logger logr.Logger) *MilvusStatusSyncer {
+	return &MilvusStatusSyncer{
+		ctx:    ctx,
+		Client: client,
+		logger: logger,
+	}
+}
+
+func (r *MilvusStatusSyncer) RunIfNot() {
+	go r.Once.Do(func() {
+		const runInterval = time.Minute
+		ticker := time.NewTicker(runInterval)
+		for {
+			err := r.syncOneRound(r.ctx)
+			if err != nil {
+				r.logger.Error(err, "sync one round")
+			}
+			select {
+			case <-r.ctx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+	})
+}
+
+func WrappedUpdateStatus(
+	f func(ctx context.Context, mc *v1alpha1.MilvusCluster) error,
+	ctx context.Context, mc *v1alpha1.MilvusCluster) func() error {
+	return func() error {
+		return f(ctx, mc)
+	}
+}
+
+func (r *MilvusStatusSyncer) syncOneRound(ctx context.Context) error {
+	r.logger.Info("sync one round")
+	defer r.logger.Info("sync one round end")
+	milvusClusterList := &v1alpha1.MilvusClusterList{}
+	err := r.List(ctx, milvusClusterList)
+	if err != nil {
+		return errors.Wrap(err, "list milvuscluster failed")
+	}
+	g, gtx := NewGroup(ctx)
+	for _, mc := range milvusClusterList.Items {
+		g.Go(WrappedUpdateStatus(r.UpdateStatus, gtx, &mc))
+	}
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("UpdateStatus: %w", err)
+	}
+	return nil
+}
+
+func (r *MilvusStatusSyncer) UpdateStatus(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
 	condChan := make(chan condResult, 3)
 	var wait sync.WaitGroup
+
+	// ignore if default status not set
+	if !IsSetDefaultDone(mc) {
+		return nil
+	}
 
 	wait.Add(1)
 	go func(ch chan<- condResult, w *sync.WaitGroup) {
@@ -104,11 +171,10 @@ func (r *MilvusClusterReconciler) UpdateStatus(ctx context.Context, mc *v1alpha1
 	}
 
 	mc.Status.Endpoint = r.GetMilvusEndpoint(ctx, *mc)
-
 	return r.Status().Update(ctx, mc)
 }
 
-func (r *MilvusClusterReconciler) GetMilvusEndpoint(ctx context.Context, mc v1alpha1.MilvusCluster) string {
+func (r *MilvusStatusSyncer) GetMilvusEndpoint(ctx context.Context, mc v1alpha1.MilvusCluster) string {
 	if mc.Spec.Com.Proxy.ServiceType == corev1.ServiceTypeLoadBalancer {
 		proxy := &corev1.Service{}
 		key := NamespacedName(mc.Namespace, Proxy.GetServiceInstanceName(mc.Name))
@@ -129,7 +195,7 @@ func (r *MilvusClusterReconciler) GetMilvusEndpoint(ctx context.Context, mc v1al
 	return ""
 }
 
-func (r *MilvusClusterReconciler) GetMilvusClusterCondition(ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
+func (r *MilvusStatusSyncer) GetMilvusClusterCondition(ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
 	if !IsDependencyReady(mc.Status) {
 		return condResult{
 			cond: v1alpha1.MilvusClusterCondition{
@@ -180,7 +246,7 @@ func (r *MilvusClusterReconciler) GetMilvusClusterCondition(ctx context.Context,
 	return condResult{cond: cond}
 }
 
-func (r *MilvusClusterReconciler) GetPulsarCondition(
+func (r *MilvusStatusSyncer) GetPulsarCondition(
 	ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
 
 	client, err := pulsar.NewClient(pulsar.ClientOptions{
@@ -214,16 +280,16 @@ func (r *MilvusClusterReconciler) GetPulsarCondition(
 	}
 }
 
-func (r *MilvusClusterReconciler) GetMinioCondition(
+func (r *MilvusStatusSyncer) GetMinioCondition(
 	ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: mc.Namespace, Name: mc.Spec.Dep.Storage.SecretRef}
 	err := r.Get(ctx, key, secret)
-	if err != nil && !errors.IsNotFound(err) {
+	if err != nil && !k8sErrors.IsNotFound(err) {
 		return condResult{err: err}
 	}
 
-	if errors.IsNotFound(err) {
+	if k8sErrors.IsNotFound(err) {
 		return newErrStorageCondResult(v1alpha1.ReasonSecretNotExist, MessageSecretNotExist)
 	}
 
@@ -272,7 +338,7 @@ func (r *MilvusClusterReconciler) GetMinioCondition(
 	return condResult{cond: cond}
 }
 
-func (r *MilvusClusterReconciler) GetEtcdCondition(ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
+func (r *MilvusStatusSyncer) GetEtcdCondition(ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
 	endpoints := mc.Spec.Dep.Etcd.Endpoints
 	health := GetEndpointsHealth(endpoints)
 	etcdReady := false
