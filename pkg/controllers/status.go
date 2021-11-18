@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
+	milvusv1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
 )
 
 const (
@@ -74,13 +75,26 @@ func NewMilvusStatusSyncer(ctx context.Context, client client.Client, logger log
 
 func (r *MilvusStatusSyncer) RunIfNot() {
 	go r.Once.Do(func() {
-		const runInterval = time.Minute
-		ticker := time.NewTicker(runInterval)
+		const runInterval = time.Minute * 1
+		var quickInterval = runInterval / 2
+		ticker := time.NewTicker(quickInterval)
 		for {
 			err := r.syncOneRound(r.ctx)
 			if err != nil {
 				r.logger.Error(err, "sync one round")
 			}
+
+			select {
+			case <-r.ctx.Done():
+				return
+			case <-ticker.C:
+			}
+
+			err = r.syncUnhealthy(r.ctx)
+			if err != nil {
+				r.logger.Error(err, "sync unhealthy")
+			}
+
 			select {
 			case <-r.ctx.Done():
 				return
@@ -96,6 +110,26 @@ func WrappedUpdateStatus(
 	return func() error {
 		return f(ctx, mc)
 	}
+}
+
+func (r *MilvusStatusSyncer) syncUnhealthy(ctx context.Context) error {
+	r.logger.Info("sync unhealthy")
+	defer r.logger.Info("sync unhealthy end")
+	milvusClusterList := &v1alpha1.MilvusClusterList{}
+	err := r.List(ctx, milvusClusterList)
+	if err != nil {
+		return errors.Wrap(err, "list milvuscluster failed")
+	}
+	g, gtx := NewGroup(ctx)
+	for i := range milvusClusterList.Items {
+		if milvusClusterList.Items[i].Status.Status == milvusv1alpha1.StatusUnHealthy {
+			g.Go(WrappedUpdateStatus(r.UpdateStatus, gtx, &milvusClusterList.Items[i]))
+		}
+	}
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("UpdateStatus: %w", err)
+	}
+	return nil
 }
 
 func (r *MilvusStatusSyncer) syncOneRound(ctx context.Context) error {
