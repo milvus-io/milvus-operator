@@ -1,0 +1,10 @@
+filters:
+  ".*":
+    approvers:
+      - zwd1208
+      - haorenfsa
+      - loveeachday
+    reviewers:
+      - zwd1208
+      - haorenfsa
+      - loveeachday
