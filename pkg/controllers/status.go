@@ -107,8 +107,8 @@ func (r *MilvusStatusSyncer) syncOneRound(ctx context.Context) error {
 		return errors.Wrap(err, "list milvuscluster failed")
 	}
 	g, gtx := NewGroup(ctx)
-	for _, mc := range milvusClusterList.Items {
-		g.Go(WrappedUpdateStatus(r.UpdateStatus, gtx, &mc))
+	for i := range milvusClusterList.Items {
+		g.Go(WrappedUpdateStatus(r.UpdateStatus, gtx, &milvusClusterList.Items[i]))
 	}
 	if err := g.Wait(); err != nil {
 		return fmt.Errorf("UpdateStatus: %w", err)
