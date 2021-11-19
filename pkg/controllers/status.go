@@ -3,6 +3,8 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -74,34 +76,38 @@ func NewMilvusStatusSyncer(ctx context.Context, client client.Client, logger log
 }
 
 func (r *MilvusStatusSyncer) RunIfNot() {
-	go r.Once.Do(func() {
-		const runInterval = time.Minute * 1
-		var quickInterval = runInterval / 2
-		ticker := time.NewTicker(quickInterval)
-		for {
-			err := r.syncOneRound(r.ctx)
-			if err != nil {
-				r.logger.Error(err, "sync one round")
-			}
-
-			select {
-			case <-r.ctx.Done():
-				return
-			case <-ticker.C:
-			}
-
-			err = r.syncUnhealthy(r.ctx)
-			if err != nil {
-				r.logger.Error(err, "sync unhealthy")
-			}
-
-			select {
-			case <-r.ctx.Done():
-				return
-			case <-ticker.C:
-			}
-		}
+	r.Once.Do(func() {
+		go r.loopWithInterval(r.syncUnhealthy, 30*time.Second)
+		go r.loopWithInterval(r.syncHealthy, 1*time.Minute)
 	})
+}
+
+func (r *MilvusStatusSyncer) loopWithInterval(loopFunc func() error, interval time.Duration) {
+	funcName := getFuncName(loopFunc)
+	r.logger.Info("setup loop", "func", funcName, "interval", interval.String())
+	ticker := time.NewTicker(interval)
+	for {
+		r.logger.Info("loopfunc run", "func", funcName)
+		err := loopFunc()
+		if err != nil {
+			r.logger.Error(err, "loopFunc err", "func", funcName)
+		}
+		r.logger.Info("loopfunc end", "func", funcName)
+		select {
+		case <-r.ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
+}
+
+func getFuncName(i interface{}) string {
+	splited := strings.Split(runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name(), ".")
+	length := len(splited)
+	if length > 0 {
+		return splited[length-1]
+	}
+	return splited[0]
 }
 
 func WrappedUpdateStatus(
@@ -112,19 +118,22 @@ func WrappedUpdateStatus(
 	}
 }
 
-func (r *MilvusStatusSyncer) syncUnhealthy(ctx context.Context) error {
-	r.logger.Info("sync unhealthy")
-	defer r.logger.Info("sync unhealthy end")
+func (r *MilvusStatusSyncer) syncUnhealthy() error {
 	milvusClusterList := &v1alpha1.MilvusClusterList{}
-	err := r.List(ctx, milvusClusterList)
+	err := r.List(r.ctx, milvusClusterList)
 	if err != nil {
 		return errors.Wrap(err, "list milvuscluster failed")
 	}
-	g, gtx := NewGroup(ctx)
+	g, gtx := NewGroup(r.ctx)
 	for i := range milvusClusterList.Items {
-		if milvusClusterList.Items[i].Status.Status == milvusv1alpha1.StatusUnHealthy {
-			g.Go(WrappedUpdateStatus(r.UpdateStatus, gtx, &milvusClusterList.Items[i]))
+		mc := &milvusClusterList.Items[i]
+		r.logger.Info("syncUnhealthy mc status", "status", mc.Status.Status)
+		if mc.Status.Status == "" ||
+			mc.Status.Status == milvusv1alpha1.StatusHealthy {
+			continue
 		}
+		g.Go(WrappedUpdateStatus(r.UpdateStatus, gtx, mc))
+
 	}
 	if err := g.Wait(); err != nil {
 		return fmt.Errorf("UpdateStatus: %w", err)
@@ -132,17 +141,18 @@ func (r *MilvusStatusSyncer) syncUnhealthy(ctx context.Context) error {
 	return nil
 }
 
-func (r *MilvusStatusSyncer) syncOneRound(ctx context.Context) error {
-	r.logger.Info("sync one round")
-	defer r.logger.Info("sync one round end")
+func (r *MilvusStatusSyncer) syncHealthy() error {
 	milvusClusterList := &v1alpha1.MilvusClusterList{}
-	err := r.List(ctx, milvusClusterList)
+	err := r.List(r.ctx, milvusClusterList)
 	if err != nil {
 		return errors.Wrap(err, "list milvuscluster failed")
 	}
-	g, gtx := NewGroup(ctx)
+	g, gtx := NewGroup(r.ctx)
 	for i := range milvusClusterList.Items {
-		g.Go(WrappedUpdateStatus(r.UpdateStatus, gtx, &milvusClusterList.Items[i]))
+		mc := &milvusClusterList.Items[i]
+		if mc.Status.Status == milvusv1alpha1.StatusHealthy {
+			g.Go(WrappedUpdateStatus(r.UpdateStatus, gtx, mc))
+		}
 	}
 	if err := g.Wait(); err != nil {
 		return fmt.Errorf("UpdateStatus: %w", err)
