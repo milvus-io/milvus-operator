@@ -33,3 +33,6 @@ __debug_bin
 ## goreleaser
 dist/
 vendor/
+
+## generated
+test/*_gen.yaml
