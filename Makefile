@@ -1,6 +1,9 @@
 
 # Image URL to use all building/pushing image targets
 IMG ?= milvusdb/milvus-operator:dev-latest
+RELEASE_IMG ?= milvusdb/milvus-operator:latest
+SIT_IMG ?= milvus-operator:sit
+
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
 # cert-manager 
@@ -61,9 +64,19 @@ test: manifests generate fmt vet ## Run tests.
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
 	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
 
+code-check: fmt vet
+
+test-only:
+	mkdir -p ${ENVTEST_ASSETS_DIR}
+	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile cover.out
+
 ##@ Build
 
 build: generate fmt vet ## Build manager binary.
+	go build -o bin/manager main.go
+
+build-only:
 	go build -o bin/manager main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
@@ -98,7 +111,7 @@ deploy-dev: deploy-cert-manager manifests kustomize ## Deploy controller to the 
 
 deploy-cert-manager:
 	kubectl apply -f ${CERT_MANAGER_MANIFEST}
-	kubectl wait --for=condition=Ready pods -l app.kubernetes.io/instance=cert-manager -n cert-manager
+	kubectl wait --timeout=3m --for=condition=Ready pods -l app.kubernetes.io/instance=cert-manager -n cert-manager
 
 undeploy-cert-manager:
     kubectl delete -f ${CERT_MANAGER_MANIFEST}
@@ -143,6 +156,43 @@ kustomize: ## Download kustomize locally if necessary.
 KIND = $(shell pwd)/bin/kind
 kind: ## Download kind locally if necessary.
 	$(call go-get-tool,$(KIND),sigs.k8s.io/kind@v0.11.1)
+
+##@ system integration test
+sit-prepare-images:
+	docker build -t ${SIT_IMG} .
+	docker pull -q milvusdb/milvus:v2.0.0-rc8-20211104-d1f4106
+	docker pull -q apachepulsar/pulsar:2.7.3
+	docker pull -q bitnami/etcd:3.5.0-debian-10-r24
+	docker pull -q bitnami/minio:2021.10.6-debian-10-r0
+	docker pull -q bitnami/minio-client:2021.9.23-debian-10-r13
+	docker pull -q quay.io/jetstack/cert-manager-controller:v1.5.3
+	docker pull -q quay.io/jetstack/cert-manager-webhook:v1.5.3
+	docker pull -q quay.io/jetstack/cert-manager-cainjector:v1.5.3
+
+sit-load-images:
+	kind load docker-image milvusdb/milvus:v2.0.0-rc8-20211104-d1f4106
+	kind load docker-image apachepulsar/pulsar:2.7.3
+	kind load docker-image bitnami/etcd:3.5.0-debian-10-r24
+	kind load docker-image bitnami/minio:2021.10.6-debian-10-r0
+	kind load docker-image bitnami/minio-client:2021.9.23-debian-10-r13
+	kind load docker-image ${SIT_IMG}
+	kind load docker-image quay.io/jetstack/cert-manager-controller:v1.5.3
+	kind load docker-image quay.io/jetstack/cert-manager-webhook:v1.5.3
+	kind load docker-image quay.io/jetstack/cert-manager-cainjector:v1.5.3
+
+sit-generate:
+	cat deploy/manifests/deployment.yaml | sed  "s#${RELEASE_IMG}#${SIT_IMG}#g" > test/test_gen.yaml
+
+sit-deploy: sit-load-images deploy-cert-manager sit-generate
+	kubectl apply -f test/test_gen.yaml
+	kubectl wait --timeout=3m --for=condition=available deployments/milvus-operator-controller-manager -n milvus-operator
+
+sit-test: 
+	./test/sit.sh
+
+cleanup-sit:
+	kubectl delete -f test/test_gen.yaml
+
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
