@@ -70,6 +70,12 @@ jobs:
       - name: Unit Test
         run: |
           make test-only
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v2
+        with:
+          # token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./cover.out
+          name: ubuntu-${{ matrix.ubuntu }}-unittests
 
   sit:
     name: System Integration Test

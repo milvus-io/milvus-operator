@@ -177,7 +177,7 @@ func (r *MilvusCluster) ValidateUpdate(old runtime.Object) error {
 		return nil
 	}
 
-	return nil
+	return apierrors.NewInvalid(schema.GroupKind{Group: GroupVersion.Group, Kind: "MilvusCluster"}, r.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type

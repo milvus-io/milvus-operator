@@ -18,6 +18,7 @@ require (
 	github.com/onsi/gomega v1.14.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.51.2
+	github.com/stretchr/testify v1.7.0
 	go.etcd.io/etcd/api/v3 v3.5.0
 	go.etcd.io/etcd/client/v3 v3.5.0
 	helm.sh/helm/v3 v3.6.3
