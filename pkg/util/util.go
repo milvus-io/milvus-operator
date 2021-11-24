@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"net"
-	neturl "net/url"
 	"strconv"
 	"strings"
 	"text/template"
@@ -59,20 +58,6 @@ func MergeValues(origin, patch map[string]interface{}) {
 	}
 }
 
-func GetHostPortFromURL(url string) (string, int32) {
-	u, err := neturl.ParseRequestURI(url)
-	if err != nil {
-		return url, 80
-	}
-
-	portInt, err := strconv.Atoi(u.Port())
-	if err != nil {
-		return u.Hostname(), 80
-	}
-
-	return u.Hostname(), int32(portInt)
-}
-
 func GetHostPort(endpoint string) (string, int32) {
 	host, port, err := net.SplitHostPort(endpoint)
 	if err != nil {
@@ -101,26 +86,6 @@ func GetTemplatedValues(templateConfig string, values interface{}) ([]byte, erro
 	}
 
 	return buf.Bytes(), nil
-}
-
-// Helper functions to check and remove string from a slice of strings.
-func ContainsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
-}
-
-func RemoveString(slice []string, s string) (result []string) {
-	for _, item := range slice {
-		if item == s {
-			continue
-		}
-		result = append(result, item)
-	}
-	return
 }
 
 func JoinErrors(errs []error) string {

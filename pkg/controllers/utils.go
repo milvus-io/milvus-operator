@@ -1,14 +1,10 @@
 package controllers
 
 import (
-	"bytes"
 	_ "crypto/sha256"
 	"fmt"
 	"strings"
-	"text/template"
 
-	"github.com/Masterminds/sprig"
-	dockerref "github.com/docker/distribution/reference"
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -17,8 +13,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	kstatus "sigs.k8s.io/kustomize/kstatus/status"
-	"sigs.k8s.io/yaml"
 )
 
 const (
@@ -172,6 +166,7 @@ func MergeEnvVar(src, dst []corev1.EnvVar) []corev1.EnvVar {
 	return merged
 }
 
+// GetContainerIndex returns index of container @name in @containers, -1 if not found
 func GetContainerIndex(containers []corev1.Container, name string) int {
 	for i, c := range containers {
 		if c.Name == name {
@@ -181,6 +176,7 @@ func GetContainerIndex(containers []corev1.Container, name string) int {
 	return -1
 }
 
+// GetVolumeIndex returns index of volume @name in @volumes, -1 if not found
 func GetVolumeIndex(volumes []corev1.Volume, name string) int {
 	for i, v := range volumes {
 		if v.Name == name {
@@ -190,6 +186,7 @@ func GetVolumeIndex(volumes []corev1.Volume, name string) int {
 	return -1
 }
 
+// GetVolumeMountIndex returns index of volumeMount with @mountPath in @volumeMounts, -1 if not found
 func GetVolumeMountIndex(volumeMounts []corev1.VolumeMount, mountPath string) int {
 	for i, vm := range volumeMounts {
 		if vm.MountPath == mountPath {
@@ -197,19 +194,6 @@ func GetVolumeMountIndex(volumeMounts []corev1.VolumeMount, mountPath string) in
 		}
 	}
 	return -1
-}
-
-func GetVersionFromImage(image string) string {
-	if named, err := dockerref.ParseNormalizedNamed(image); err == nil {
-		if tag, isTagged := named.(dockerref.Tagged); isTagged {
-			return tag.Tag()
-		}
-		if digestset, isDigested := named.(dockerref.Digested); isDigested {
-			return digestset.Digest().Encoded()
-		}
-	}
-
-	return image
 }
 
 func NewComponentAppLabels(instance, component string) map[string]string {
@@ -245,40 +229,28 @@ func IsEqual(obj1, obj2 interface{}) bool {
 	return equality.Semantic.DeepEqual(obj1, obj2)
 }
 
+// DeploymentReady returns if deployment is available &
 func DeploymentReady(deployment appsv1.Deployment) bool {
 	ready := true
 	errored := false
 	inProgress := false
-	//ignoredConditions := []string{}
 
 	for _, cond := range deployment.Status.Conditions {
-		switch string(cond.Type) {
-		case string(appsv1.DeploymentProgressing):
+		switch cond.Type {
+		case appsv1.DeploymentProgressing:
 			if cond.Status == corev1.ConditionTrue &&
-				cond.Reason != "" &&
 				cond.Reason == "NewReplicaSetAvailable" {
 				continue
 			}
 			inProgress = inProgress || cond.Status != corev1.ConditionFalse
 
-		case kstatus.ConditionInProgress.String():
-			inProgress = inProgress || cond.Status != corev1.ConditionFalse
-
-		case kstatus.ConditionFailed.String(), string(appsv1.DeploymentReplicaFailure):
+		case appsv1.DeploymentReplicaFailure:
 			errored = errored || cond.Status == corev1.ConditionTrue
 
-		case "Ready", string(appsv1.DeploymentAvailable):
+		case appsv1.DeploymentAvailable:
 			ready = ready && cond.Status == corev1.ConditionTrue
-
-			/* default:
-			ignoredConditions = append(ignoredConditions, string(cond.Type)) */
 		}
 	}
-
-	/* if len(ignoredConditions) > 0 {
-		logger.Get(ctx).V(1).
-			Info("unexpected conditions", "conditions", ignoredConditions)
-	} */
 
 	return ready && !inProgress && !errored
 }
@@ -346,27 +318,6 @@ func UpdateCondition(status *v1alpha1.MilvusClusterStatus, c v1alpha1.MilvusClus
 	now := metav1.Now()
 	c.LastTransitionTime = &now
 	status.Conditions = append(status.Conditions, c)
-}
-
-func RenderTemplate(templateText string, data interface{}) ([]byte, error) {
-	t, err := template.New("template").
-		Funcs(sprig.TxtFuncMap()).Parse(templateText)
-	if err != nil {
-		return nil, err
-	}
-
-	var buf bytes.Buffer
-	err = t.Execute(&buf, data)
-	if err != nil {
-		return nil, err
-	}
-
-	objJSON, err := yaml.YAMLToJSON(buf.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	return objJSON, nil
 }
 
 func NamespacedName(namespace, name string) types.NamespacedName {
