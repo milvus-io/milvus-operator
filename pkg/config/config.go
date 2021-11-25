@@ -16,17 +16,18 @@ const (
 )
 
 const (
-	TemplateDir  = "config/assets/templates"
-	ChartDir     = "config/assets/charts"
-	ProviderName = "milvus-operator"
+	TemplateRelativeDir = "config/assets/templates"
+	ChartDir            = "config/assets/charts"
+	ProviderName        = "milvus-operator"
 )
 
 var (
+	workDir       = ""
 	defaultConfig *Config
 )
 
 func Init() error {
-	c, err := NewConfig()
+	c, err := NewConfig(workDir)
 	if err != nil {
 		return err
 	}
@@ -42,10 +43,6 @@ func IsDebug() bool {
 	return defaultConfig.debugMode
 }
 
-func GetTemplate(name string) string {
-	return defaultConfig.templates[name]
-}
-
 func GetMilvusConfigTemplate() string {
 	return defaultConfig.GetTemplate(MilvusConfigTpl)
 }
@@ -55,17 +52,19 @@ type Config struct {
 	templates map[string]string
 }
 
-func NewConfig() (*Config, error) {
+func NewConfig(workDir string) (*Config, error) {
 	config := &Config{
 		templates: make(map[string]string),
 	}
 
-	tmpls, err := ioutil.ReadDir(TemplateDir)
+	templateDir := workDir + TemplateRelativeDir
+
+	tmpls, err := ioutil.ReadDir(templateDir)
 	if err != nil {
 		return nil, err
 	}
 	for _, tmpl := range tmpls {
-		data, err := ioutil.ReadFile(TemplateDir + "/" + tmpl.Name())
+		data, err := ioutil.ReadFile(templateDir + "/" + tmpl.Name())
 		if err != nil {
 			return nil, err
 		}
