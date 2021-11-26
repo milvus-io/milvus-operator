@@ -31,7 +31,7 @@ func (r *MilvusClusterReconciler) updateService(
 func (r *MilvusClusterReconciler) ReconcileComponentService(
 	ctx context.Context, mc v1alpha1.MilvusCluster, component MilvusComponent,
 ) error {
-	if component.IsNode() {
+	if component.IsNode() || component.IsCoord() {
 		return nil
 	}
 
