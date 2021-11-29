@@ -38,12 +38,13 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var probeAddr string
+	var workDir string
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-
+	flag.StringVar(&workDir, "work-dir", "", "The work directory where the config assets locate")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -51,7 +52,7 @@ func main() {
 	flag.Parse()
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
-	if err := config.Init(); err != nil {
+	if err := config.Init(workDir); err != nil {
 		setupLog.Error(err, "unable to init config")
 		os.Exit(1)
 	}

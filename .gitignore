@@ -36,3 +36,4 @@ vendor/
 
 ## generated
 test/*_gen.yaml
+*_mock.go
