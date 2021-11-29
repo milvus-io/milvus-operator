@@ -69,6 +69,7 @@ jobs:
         uses: container-tools/kind-action@v1
       - name: Unit Test
         run: |
+          make go-generate
           make test-only
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2

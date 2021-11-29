@@ -22,11 +22,10 @@ const (
 )
 
 var (
-	workDir       = ""
 	defaultConfig *Config
 )
 
-func Init() error {
+func Init(workDir string) error {
 	c, err := NewConfig(workDir)
 	if err != nil {
 		return err

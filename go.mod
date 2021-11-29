@@ -6,9 +6,10 @@ require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/apache/pulsar-client-go v0.6.0
-	github.com/docker/distribution v2.7.1+incompatible
+	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/fatih/color v1.12.0 // indirect
 	github.com/go-logr/logr v0.4.0
+	github.com/golang/mock v1.6.0
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/huandu/xstrings v1.3.2 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
@@ -28,6 +29,6 @@ require (
 	k8s.io/client-go v0.21.3
 	rsc.io/letsencrypt v0.0.3 // indirect
 	sigs.k8s.io/controller-runtime v0.9.6
-	sigs.k8s.io/kustomize/kstatus v0.0.2
+	sigs.k8s.io/kustomize/kstatus v0.0.2 // indirect
 	sigs.k8s.io/yaml v1.2.0
 )

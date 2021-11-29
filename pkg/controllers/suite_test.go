@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest/printer"
@@ -44,6 +45,7 @@ var k8sClient client.Client
 var testEnv *envtest.Environment
 var testCtx context.Context
 var testCancel context.CancelFunc
+var k8sManager ctrl.Manager
 
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -76,7 +78,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-	k8sManager, err := manager.NewManager(":8080", ":8081", false)
+	k8sManager, err = manager.NewManager(":8080", ":8081", false)
 	Expect(err).ToNot(HaveOccurred())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

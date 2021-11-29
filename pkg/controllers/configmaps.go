@@ -24,6 +24,7 @@ func (r *MilvusClusterReconciler) getMinioAccessInfo(ctx context.Context, mc v1a
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: mc.Namespace, Name: mc.Spec.Dep.Storage.SecretRef}
 	if err := r.Get(ctx, key, secret); err != nil {
+		// TODO @shaoyue: handle error, or not get if no secret set
 		r.logger.Error(err, "get minio secret error")
 		return "", ""
 	}
