@@ -45,16 +45,16 @@ type MilvusClusterSpec struct {
 // MiluvsClusterConditionType is a valid value for MiluvsClusterConditionType.Type.
 type MiluvsClusterConditionType string
 
-// MilvusStatus is a type for milvus status.
-type MilvusStatus string
+// MilvusHealthStatus is a type for milvus status.
+type MilvusHealthStatus string
 
 const (
 	// StatusCreating is the status of creating.
-	StatusCreating MilvusStatus = "Creating"
+	StatusCreating MilvusHealthStatus = "Creating"
 	// StatusHealthy is the status of healthy.
-	StatusHealthy MilvusStatus = "Healthy"
+	StatusHealthy MilvusHealthStatus = "Healthy"
 	// StatusUnHealthy is the status of unhealthy.
-	StatusUnHealthy MilvusStatus = "Unhealthy"
+	StatusUnHealthy MilvusHealthStatus = "Unhealthy"
 
 	// EtcdReady means the Etcd is ready.
 	EtcdReady MiluvsClusterConditionType = "EtcdReady"
@@ -93,7 +93,7 @@ type MilvusClusterStatus struct {
 	// Status indicates the overall status of the Milvus
 	// Status can be "Creating", "Healthy" and "Unhealthy"
 	// +kubebuilder:default:="Creating"
-	Status MilvusStatus `json:"status"`
+	Status MilvusHealthStatus `json:"status"`
 
 	// Conditions of each components
 	Conditions []MilvusClusterCondition `json:"conditions,omitempty"`
