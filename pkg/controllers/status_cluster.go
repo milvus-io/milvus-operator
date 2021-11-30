@@ -3,8 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -55,11 +53,11 @@ type EtcdEndPointHealth struct {
 }
 
 type condResult struct {
-	cond v1alpha1.MilvusClusterCondition
+	cond v1alpha1.MilvusCondition
 	err  error
 }
 
-type MilvusStatusSyncer struct {
+type MilvusClusterStatusSyncer struct {
 	ctx context.Context
 	client.Client
 	logger logr.Logger
@@ -67,22 +65,22 @@ type MilvusStatusSyncer struct {
 	sync.Once
 }
 
-func NewMilvusStatusSyncer(ctx context.Context, client client.Client, logger logr.Logger) *MilvusStatusSyncer {
-	return &MilvusStatusSyncer{
+func NewMilvusClusterStatusSyncer(ctx context.Context, client client.Client, logger logr.Logger) *MilvusClusterStatusSyncer {
+	return &MilvusClusterStatusSyncer{
 		ctx:    ctx,
 		Client: client,
 		logger: logger,
 	}
 }
 
-func (r *MilvusStatusSyncer) RunIfNot() {
+func (r *MilvusClusterStatusSyncer) RunIfNot() {
 	r.Once.Do(func() {
 		go r.loopWithInterval(r.syncUnhealthy, 30*time.Second)
 		go r.loopWithInterval(r.syncHealthy, 1*time.Minute)
 	})
 }
 
-func (r *MilvusStatusSyncer) loopWithInterval(loopFunc func() error, interval time.Duration) {
+func (r *MilvusClusterStatusSyncer) loopWithInterval(loopFunc func() error, interval time.Duration) {
 	funcName := getFuncName(loopFunc)
 	r.logger.Info("setup loop", "func", funcName, "interval", interval.String())
 	ticker := time.NewTicker(interval)
@@ -101,16 +99,7 @@ func (r *MilvusStatusSyncer) loopWithInterval(loopFunc func() error, interval ti
 	}
 }
 
-func getFuncName(i interface{}) string {
-	splited := strings.Split(runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name(), ".")
-	length := len(splited)
-	if length > 0 {
-		return splited[length-1]
-	}
-	return splited[0]
-}
-
-func WrappedUpdateStatus(
+func WrappedUpdateClusterStatus(
 	f func(ctx context.Context, mc *v1alpha1.MilvusCluster) error,
 	ctx context.Context, mc *v1alpha1.MilvusCluster) func() error {
 	return func() error {
@@ -118,7 +107,7 @@ func WrappedUpdateStatus(
 	}
 }
 
-func (r *MilvusStatusSyncer) syncUnhealthy() error {
+func (r *MilvusClusterStatusSyncer) syncUnhealthy() error {
 	milvusClusterList := &v1alpha1.MilvusClusterList{}
 	err := r.List(r.ctx, milvusClusterList)
 	if err != nil {
@@ -132,7 +121,7 @@ func (r *MilvusStatusSyncer) syncUnhealthy() error {
 			mc.Status.Status == milvusv1alpha1.StatusHealthy {
 			continue
 		}
-		g.Go(WrappedUpdateStatus(r.UpdateStatus, gtx, mc))
+		g.Go(WrappedUpdateClusterStatus(r.UpdateStatus, gtx, mc))
 
 	}
 	if err := g.Wait(); err != nil {
@@ -141,7 +130,7 @@ func (r *MilvusStatusSyncer) syncUnhealthy() error {
 	return nil
 }
 
-func (r *MilvusStatusSyncer) syncHealthy() error {
+func (r *MilvusClusterStatusSyncer) syncHealthy() error {
 	milvusClusterList := &v1alpha1.MilvusClusterList{}
 	err := r.List(r.ctx, milvusClusterList)
 	if err != nil {
@@ -151,7 +140,7 @@ func (r *MilvusStatusSyncer) syncHealthy() error {
 	for i := range milvusClusterList.Items {
 		mc := &milvusClusterList.Items[i]
 		if mc.Status.Status == milvusv1alpha1.StatusHealthy {
-			g.Go(WrappedUpdateStatus(r.UpdateStatus, gtx, mc))
+			g.Go(WrappedUpdateClusterStatus(r.UpdateStatus, gtx, mc))
 		}
 	}
 	if err := g.Wait(); err != nil {
@@ -160,12 +149,12 @@ func (r *MilvusStatusSyncer) syncHealthy() error {
 	return nil
 }
 
-func (r *MilvusStatusSyncer) UpdateStatus(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
+func (r *MilvusClusterStatusSyncer) UpdateStatus(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
 	condChan := make(chan condResult, 3)
 	var wait sync.WaitGroup
 
 	// ignore if default status not set
-	if !IsSetDefaultDone(mc) {
+	if !IsClusterSetDefaultDone(mc) {
 		return nil
 	}
 
@@ -192,7 +181,7 @@ func (r *MilvusStatusSyncer) UpdateStatus(ctx context.Context, mc *v1alpha1.Milv
 	errTexts := []string{}
 	for cond := range condChan {
 		if cond.err == nil {
-			UpdateCondition(&mc.Status, cond.cond)
+			UpdateClusterCondition(&mc.Status, cond.cond)
 		} else {
 			errTexts = append(errTexts, cond.err.Error())
 		}
@@ -206,7 +195,7 @@ func (r *MilvusStatusSyncer) UpdateStatus(ctx context.Context, mc *v1alpha1.Milv
 	if milvusCond.err != nil {
 		return milvusCond.err
 	}
-	UpdateCondition(&mc.Status, milvusCond.cond)
+	UpdateClusterCondition(&mc.Status, milvusCond.cond)
 
 	if milvusCond.cond.Status != corev1.ConditionTrue {
 		mc.Status.Status = v1alpha1.StatusUnHealthy
@@ -218,7 +207,7 @@ func (r *MilvusStatusSyncer) UpdateStatus(ctx context.Context, mc *v1alpha1.Milv
 	return r.Status().Update(ctx, mc)
 }
 
-func (r *MilvusStatusSyncer) GetMilvusEndpoint(ctx context.Context, mc v1alpha1.MilvusCluster) string {
+func (r *MilvusClusterStatusSyncer) GetMilvusEndpoint(ctx context.Context, mc v1alpha1.MilvusCluster) string {
 	if mc.Spec.Com.Proxy.ServiceType == corev1.ServiceTypeLoadBalancer {
 		proxy := &corev1.Service{}
 		key := NamespacedName(mc.Namespace, Proxy.GetServiceInstanceName(mc.Name))
@@ -239,10 +228,10 @@ func (r *MilvusStatusSyncer) GetMilvusEndpoint(ctx context.Context, mc v1alpha1.
 	return ""
 }
 
-func (r *MilvusStatusSyncer) GetMilvusClusterCondition(ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
-	if !IsDependencyReady(mc.Status) {
+func (r *MilvusClusterStatusSyncer) GetMilvusClusterCondition(ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
+	if !IsClusterDependencyReady(mc.Status) {
 		return condResult{
-			cond: v1alpha1.MilvusClusterCondition{
+			cond: v1alpha1.MilvusCondition{
 				Type:    v1alpha1.MilvusReady,
 				Status:  corev1.ConditionFalse,
 				Reason:  v1alpha1.ReasonDependencyNotReady,
@@ -273,7 +262,7 @@ func (r *MilvusStatusSyncer) GetMilvusClusterCondition(ctx context.Context, mc v
 		}
 	}
 
-	cond := v1alpha1.MilvusClusterCondition{
+	cond := v1alpha1.MilvusCondition{
 		Type: v1alpha1.MilvusReady,
 	}
 	if ready == len(MilvusComponents) {
@@ -290,7 +279,7 @@ func (r *MilvusStatusSyncer) GetMilvusClusterCondition(ctx context.Context, mc v
 	return condResult{cond: cond}
 }
 
-func (r *MilvusStatusSyncer) GetPulsarCondition(
+func (r *MilvusClusterStatusSyncer) GetPulsarCondition(
 	ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
 
 	client, err := pulsar.NewClient(pulsar.ClientOptions{
@@ -315,7 +304,7 @@ func (r *MilvusStatusSyncer) GetPulsarCondition(
 	defer reader.Close()
 
 	return condResult{
-		cond: v1alpha1.MilvusClusterCondition{
+		cond: v1alpha1.MilvusCondition{
 			Type:    v1alpha1.PulsarReady,
 			Status:  GetConditionStatus(true),
 			Reason:  v1alpha1.ReasonPulsarReady,
@@ -324,7 +313,7 @@ func (r *MilvusStatusSyncer) GetPulsarCondition(
 	}
 }
 
-func (r *MilvusStatusSyncer) GetMinioCondition(
+func (r *MilvusClusterStatusSyncer) GetMinioCondition(
 	ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: mc.Namespace, Name: mc.Spec.Dep.Storage.SecretRef}
@@ -368,7 +357,7 @@ func (r *MilvusStatusSyncer) GetMinioCondition(
 		}
 	}
 
-	cond := v1alpha1.MilvusClusterCondition{
+	cond := v1alpha1.MilvusCondition{
 		Type:   v1alpha1.StorageReady,
 		Status: GetConditionStatus(ready),
 		Reason: v1alpha1.ReasonStorageReady,
@@ -382,7 +371,7 @@ func (r *MilvusStatusSyncer) GetMinioCondition(
 	return condResult{cond: cond}
 }
 
-func (r *MilvusStatusSyncer) GetEtcdCondition(ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
+func (r *MilvusClusterStatusSyncer) GetEtcdCondition(ctx context.Context, mc v1alpha1.MilvusCluster) condResult {
 	endpoints := mc.Spec.Dep.Etcd.Endpoints
 	health := GetEndpointsHealth(endpoints)
 	etcdReady := false
@@ -393,7 +382,7 @@ func (r *MilvusStatusSyncer) GetEtcdCondition(ctx context.Context, mc v1alpha1.M
 		}
 	}
 
-	cond := v1alpha1.MilvusClusterCondition{
+	cond := v1alpha1.MilvusCondition{
 		Type:    v1alpha1.EtcdReady,
 		Status:  GetConditionStatus(etcdReady),
 		Reason:  v1alpha1.ReasonEtcdReady,
@@ -474,7 +463,7 @@ func GetEndpointsHealth(endpoints []string) map[string]EtcdEndPointHealth {
 
 func newErrStorageCondResult(reason, message string) condResult {
 	return condResult{
-		cond: v1alpha1.MilvusClusterCondition{
+		cond: v1alpha1.MilvusCondition{
 			Type:    v1alpha1.StorageReady,
 			Status:  corev1.ConditionFalse,
 			Reason:  reason,
@@ -485,7 +474,7 @@ func newErrStorageCondResult(reason, message string) condResult {
 
 func newErrPulsarCondResult(reason, message string) condResult {
 	return condResult{
-		cond: v1alpha1.MilvusClusterCondition{
+		cond: v1alpha1.MilvusCondition{
 			Type:    v1alpha1.PulsarReady,
 			Status:  corev1.ConditionFalse,
 			Reason:  reason,

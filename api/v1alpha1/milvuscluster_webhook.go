@@ -162,7 +162,6 @@ func (r *MilvusCluster) ValidateCreate() error {
 func (r *MilvusCluster) ValidateUpdate(old runtime.Object) error {
 	milvusclusterlog.Info("validate update", "name", r.Name)
 
-	// TODO(user): fill in your validation logic upon object update.
 	_, ok := old.(*MilvusCluster)
 	if !ok {
 		return errors.Errorf("failed type assertion on kind: %s", old.GetObjectKind().GroupVersionKind().String())
@@ -182,6 +181,8 @@ func (r *MilvusCluster) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *MilvusCluster) ValidateDelete() error {
+	milvusclusterlog.Info("validate delete", "name", r.Name)
+
 	// TODO(user): fill in your validation logic upon object deletion.
 	return nil
 }

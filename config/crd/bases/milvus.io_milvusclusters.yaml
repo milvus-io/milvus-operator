@@ -2064,8 +2064,8 @@ spec:
               conditions:
                 description: Conditions of each components
                 items:
-                  description: MilvusClusterCondition contains details for the current
-                    condition of this pod.
+                  description: MilvusCondition contains details for the current condition
+                    of this milvus/milvus cluster instance
                   properties:
                     lastTransitionTime:
                       description: Last time the condition transitioned from one status

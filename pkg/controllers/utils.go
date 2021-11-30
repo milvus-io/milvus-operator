@@ -3,6 +3,8 @@ package controllers
 import (
 	_ "crypto/sha256"
 	"fmt"
+	"reflect"
+	"runtime"
 	"strings"
 
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
@@ -280,7 +282,7 @@ func GetConditionStatus(b bool) corev1.ConditionStatus {
 	return corev1.ConditionFalse
 }
 
-func IsDependencyReady(status v1alpha1.MilvusClusterStatus) bool {
+func IsClusterDependencyReady(status v1alpha1.MilvusClusterStatus) bool {
 	ready := 0
 	for _, c := range status.Conditions {
 		if c.Type == v1alpha1.EtcdReady ||
@@ -295,7 +297,46 @@ func IsDependencyReady(status v1alpha1.MilvusClusterStatus) bool {
 	return ready == 3
 }
 
-func UpdateCondition(status *v1alpha1.MilvusClusterStatus, c v1alpha1.MilvusClusterCondition) {
+func IsDependencyReady(status v1alpha1.MilvusStatus) bool {
+	ready := 0
+	for _, c := range status.Conditions {
+		if c.Type == v1alpha1.EtcdReady ||
+			c.Type == v1alpha1.StorageReady {
+			if c.Status == corev1.ConditionTrue {
+				ready++
+			}
+		}
+	}
+
+	return ready == 2
+}
+
+func UpdateClusterCondition(status *v1alpha1.MilvusClusterStatus, c v1alpha1.MilvusCondition) {
+	for i := range status.Conditions {
+		cp := &status.Conditions[i]
+		if cp.Type == c.Type {
+			if cp.Status != c.Status ||
+				cp.Reason != c.Reason ||
+				cp.Message != c.Message {
+				// Override
+				cp.Status = c.Status
+				cp.Message = c.Message
+				cp.Reason = c.Reason
+				// Update timestamp
+				now := metav1.Now()
+				cp.LastTransitionTime = &now
+			}
+			return
+		}
+	}
+
+	// Append if not existing yet
+	now := metav1.Now()
+	c.LastTransitionTime = &now
+	status.Conditions = append(status.Conditions, c)
+}
+
+func UpdateCondition(status *v1alpha1.MilvusStatus, c v1alpha1.MilvusCondition) {
 	for i := range status.Conditions {
 		cp := &status.Conditions[i]
 		if cp.Type == c.Type {
@@ -339,4 +380,18 @@ func GetMinioSecure(conf map[string]interface{}) bool {
 
 func diffObject(old, new client.Object) ([]byte, error) {
 	return client.MergeFrom(old).Data(new)
+}
+
+func int32Ptr(i int) *int32 {
+	ret := int32(i)
+	return &ret
+}
+
+func getFuncName(i interface{}) string {
+	splited := strings.Split(runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name(), ".")
+	length := len(splited)
+	if length > 0 {
+		return splited[length-1]
+	}
+	return splited[0]
 }

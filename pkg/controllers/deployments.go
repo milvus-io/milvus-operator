@@ -75,7 +75,7 @@ func (r *MilvusClusterReconciler) updateDeployment(
 	if deployment.Spec.Template.Annotations == nil {
 		deployment.Spec.Template.Annotations = map[string]string{}
 	}
-	deployment.Spec.Template.Annotations[AnnotationCheckSum] = component.GetConfCheckSum(mc.Spec)
+	deployment.Spec.Template.Annotations[AnnotationCheckSum] = GetConfCheckSum(mc.Spec)
 
 	// update configmap volume
 	volumeIdx := GetVolumeIndex(deployment.Spec.Template.Spec.Volumes, MilvusConfigVolumeName)
@@ -128,8 +128,8 @@ func (r *MilvusClusterReconciler) updateDeployment(
 	container.ImagePullPolicy = component.GetImagePullPolicy(mc.Spec)
 	container.Image = component.GetImage(mc.Spec)
 	container.Resources = component.GetResources(mc.Spec)
-	container.LivenessProbe = component.GetLivenessProbe()
-	container.ReadinessProbe = component.GetReadinessProbe()
+	container.LivenessProbe = GetLivenessProbe()
+	container.ReadinessProbe = GetReadinessProbe()
 	deployment.Spec.Template.Spec.ImagePullSecrets = component.GetImagePullSecrets(mc.Spec)
 
 	return nil
@@ -188,6 +188,139 @@ func (r *MilvusClusterReconciler) ReconcileDeployments(ctx context.Context, mc v
 	if err := g.Wait(); err != nil {
 		return fmt.Errorf("reconcile milvus deployments: %w", err)
 	}
+
+	return nil
+}
+
+func (r *MilvusReconciler) ReconcileDeployments(ctx context.Context, mil v1alpha1.Milvus) error {
+	namespacedName := NamespacedName(mil.Namespace, mil.Name)
+	old := &appsv1.Deployment{}
+	err := r.Get(ctx, namespacedName, old)
+	if errors.IsNotFound(err) {
+		new := &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      namespacedName.Name,
+				Namespace: namespacedName.Namespace,
+			},
+		}
+		if err := r.updateDeployment(mil, new); err != nil {
+			return err
+		}
+
+		r.logger.Info("Create Deployment", "name", new.Name, "namespace", new.Namespace)
+		return r.Create(ctx, new)
+	} else if err != nil {
+		return err
+	}
+
+	cur := old.DeepCopy()
+	if err := r.updateDeployment(mil, cur); err != nil {
+		return err
+	}
+
+	if IsEqual(old, cur) {
+		return nil
+	}
+
+	r.logger.Info("Update Deployment", "name", cur.Name, "namespace", cur.Namespace)
+	return r.Update(ctx, cur)
+}
+
+func (r *MilvusReconciler) updateDeployment(
+	mc v1alpha1.Milvus, deployment *appsv1.Deployment,
+) error {
+	appLabels := NewComponentAppLabels(mc.Name, MilvusName)
+
+	deployment.Labels = MergeLabels(deployment.Labels, appLabels)
+	if err := ctrl.SetControllerReference(&mc, deployment, r.Scheme); err != nil {
+		return err
+	}
+
+	deployment.Spec.Replicas = int32Ptr(1)
+	deployment.Spec.Strategy = appsv1.DeploymentStrategy{
+		Type: appsv1.RecreateDeploymentStrategyType,
+	}
+
+	if deployment.Spec.Selector == nil {
+		deployment.Spec.Selector = new(metav1.LabelSelector)
+		deployment.Spec.Selector.MatchLabels = appLabels
+	}
+	deployment.Spec.Template.Labels = MergeLabels(deployment.Spec.Template.Labels, appLabels)
+
+	if deployment.Spec.Template.Annotations == nil {
+		deployment.Spec.Template.Annotations = map[string]string{}
+	}
+	deployment.Spec.Template.Annotations[AnnotationCheckSum] = GetMilvusConfCheckSum(mc.Spec)
+
+	// update configmap volume
+	volumeIdx := GetVolumeIndex(deployment.Spec.Template.Spec.Volumes, MilvusConfigVolumeName)
+	volume := corev1.Volume{
+		Name: MilvusConfigVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: mc.Name,
+				},
+				DefaultMode: &MilvusConfigMapMode,
+			},
+		},
+	}
+	if volumeIdx < 0 {
+		deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, volume)
+	} else {
+		deployment.Spec.Template.Spec.Volumes[volumeIdx] = volume
+	}
+
+	// update component container
+	containerIdx := GetContainerIndex(deployment.Spec.Template.Spec.Containers, MilvusName)
+	if containerIdx < 0 {
+		deployment.Spec.Template.Spec.Containers = append(
+			deployment.Spec.Template.Spec.Containers,
+			corev1.Container{Name: MilvusName},
+		)
+		containerIdx = len(deployment.Spec.Template.Spec.Containers) - 1
+	}
+	container := &deployment.Spec.Template.Spec.Containers[containerIdx]
+	container.Args = []string{"milvus", "run", "standalone"}
+	env := mc.Spec.Env
+	env = append(env, GetStorageSecretRefEnv(mc.Spec.Dep.Storage.SecretRef)...)
+	container.Env = MergeEnvVar(container.Env, env)
+	container.Ports = MergeContainerPort(container.Ports, []corev1.ContainerPort{
+		{
+			Name:          MilvusName,
+			ContainerPort: MilvusPort,
+			Protocol:      corev1.ProtocolTCP,
+		},
+		{
+			Name:          MetricPortName,
+			ContainerPort: MetricPort,
+			Protocol:      corev1.ProtocolTCP,
+		},
+	})
+
+	milvusVolumeMount := corev1.VolumeMount{
+		Name:      MilvusConfigVolumeName,
+		ReadOnly:  true,
+		MountPath: MilvusConfigMountPath,
+		SubPath:   MilvusConfigMountSubPath,
+	}
+	mountIdx := GetVolumeMountIndex(container.VolumeMounts, milvusVolumeMount.MountPath)
+	if mountIdx < 0 {
+		container.VolumeMounts = append(container.VolumeMounts, milvusVolumeMount)
+	} else {
+		container.VolumeMounts[mountIdx] = milvusVolumeMount
+	}
+
+	if mc.Spec.ImagePullPolicy != nil {
+		container.ImagePullPolicy = *mc.Spec.ImagePullPolicy
+	}
+	container.Image = mc.Spec.Image
+	if mc.Spec.Resources != nil {
+		container.Resources = *mc.Spec.Resources
+	}
+	container.LivenessProbe = GetLivenessProbe()
+	container.ReadinessProbe = GetReadinessProbe()
+	deployment.Spec.Template.Spec.ImagePullSecrets = mc.Spec.ImagePullSecrets
 
 	return nil
 }

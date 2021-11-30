@@ -28,6 +28,7 @@ const (
 	QueryNodeName  = "querynode"
 	IndexNodeName  = "indexnode"
 	ProxyName      = "proxy"
+	MilvusName     = "milvus"
 
 	RootCoordFieldName  = "RootCoord"
 	DataCoordFieldName  = "DataCoord"
@@ -47,6 +48,7 @@ const (
 	QueryNodePort  = 21123
 	DataNodePort   = 21124
 	ProxyPort      = 19530
+	MilvusPort     = ProxyPort
 )
 
 // MilvusComponent contains basic info of a milvus cluster component
@@ -66,6 +68,9 @@ var (
 	QueryNode  = MilvusComponent{QueryNodeName, QueryNodeFieldName, QueryNodePort}
 	IndexNode  = MilvusComponent{IndexNodeName, IndexNodeFieldName, IndexNodePort}
 	Proxy      = MilvusComponent{ProxyName, ProxyFieldName, ProxyPort}
+
+	// Milvus standalone
+	MilvusStandalone = MilvusComponent{MilvusName, "", MilvusPort}
 
 	MilvusComponents = []MilvusComponent{
 		RootCoord, DataCoord, QueryCoord, IndexCoord, DataNode, QueryNode, IndexNode, Proxy,
@@ -273,7 +278,7 @@ func (c MilvusComponent) GetComponentSpec(spec v1alpha1.MilvusClusterSpec) v1alp
 }
 
 // GetConfCheckSum returns the checksum of the component configuration
-func (c MilvusComponent) GetConfCheckSum(spec v1alpha1.MilvusClusterSpec) string {
+func GetConfCheckSum(spec v1alpha1.MilvusClusterSpec) string {
 	conf := map[string]interface{}{}
 	conf["conf"] = spec.Conf.Data
 	conf["etcd-endpoints"] = spec.Dep.Etcd.Endpoints
@@ -288,7 +293,22 @@ func (c MilvusComponent) GetConfCheckSum(spec v1alpha1.MilvusClusterSpec) string
 	return util.CheckSum(b)
 }
 
-func (c MilvusComponent) GetLivenessProbe() *corev1.Probe {
+// GetMilvusConfCheckSum returns the checksum of the component configuration
+func GetMilvusConfCheckSum(spec v1alpha1.MilvusSpec) string {
+	conf := map[string]interface{}{}
+	conf["conf"] = spec.Conf.Data
+	conf["etcd-endpoints"] = spec.Dep.Etcd.Endpoints
+	conf["storage-endpoint"] = spec.Dep.Storage.Endpoint
+
+	b, err := json.Marshal(conf)
+	if err != nil {
+		return ""
+	}
+
+	return util.CheckSum(b)
+}
+
+func GetLivenessProbe() *corev1.Probe {
 	return &corev1.Probe{
 		Handler: corev1.Handler{
 			HTTPGet: &corev1.HTTPGetAction{
@@ -305,7 +325,7 @@ func (c MilvusComponent) GetLivenessProbe() *corev1.Probe {
 	}
 }
 
-func (c MilvusComponent) GetReadinessProbe() *corev1.Probe {
+func GetReadinessProbe() *corev1.Probe {
 	return &corev1.Probe{
 		Handler: corev1.Handler{
 			HTTPGet: &corev1.HTTPGetAction{

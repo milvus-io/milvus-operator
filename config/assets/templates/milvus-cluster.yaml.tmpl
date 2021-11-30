@@ -18,14 +18,14 @@ minio:
   bucketName: {{ .Name }}
   rootPath: files
 
-rocksmq:
-  path: /var/lib/milvus/rdb_data
-  rocksmqPageSize: 2147483648 # 2 GB, 2 * 1024 * 1024 * 1024 bytes
-  retentionTimeInMinutes: 10080 # 7 days, 7 * 24 * 60 minutes
-  retentionSizeInMB: 8192 # 8 GB, 8 * 1024 MB
+pulsar:
+  address: localhost
+  port: 6650
+  maxMessageSize: 5242880 # 5 * 1024 * 1024 Bytes
 
 rootCoord:
-  port: 53100
+  address: {{ .Name }}-milvus-rootcoord
+  port: {{ .Spec.Com.RootCoord.Port | default 53100 }}
   grpc:
     serverMaxRecvSize: 2147483647 # math.MaxInt32
     serverMaxSendSize: 2147483647 # math.MaxInt32
@@ -40,7 +40,7 @@ rootCoord:
 
 
 proxy:
-  port: 19530
+  port: {{ .Spec.Com.Proxy.Port | default 19530 }}
   grpc:
     serverMaxRecvSize: 2147483647 # math.MaxInt32
     serverMaxSendSize: 2147483647 # math.MaxInt32
@@ -66,7 +66,8 @@ proxy:
 
 
 queryCoord:
-  port: 19531
+  address: {{ .Name }}-milvus-querycoord
+  port: {{ .Spec.Com.QueryCoord.Port | default 19531 }}
   autoHandoff: true
   autoBalance: false
   overloadedMemoryThresholdPercentage: 90
@@ -81,9 +82,9 @@ queryCoord:
 
 # Related configuration of queryNode, used to run hybrid search between vector and scalar data.
 queryNode:
-  port: 21123
   cacheSize: 32 # GB, default 32 GB, `cacheSize` is the memory used for caching data for faster query. The `cacheSize` must be less than system memory size.
   gracefulTime: 0 # ms, for search
+  port: {{ .Spec.Com.QueryNode.Port | default 21123 }}
 
   grpc:
     serverMaxRecvSize: 2147483647 # math.MaxInt32
@@ -109,7 +110,9 @@ queryNode:
 
 
 indexCoord:
-  port: 31000
+  address: {{ .Name }}-milvus-indexcoord
+  port: {{ .Spec.Com.IndexCoord.Port | default 31000 }}
+
   grpc:
     serverMaxRecvSize: 2147483647 # math.MaxInt32
     serverMaxSendSize: 2147483647 # math.MaxInt32
@@ -117,7 +120,7 @@ indexCoord:
     clientMaxSendSize: 104857600 # 100 MB, 100 * 1024 * 1024
 
 indexNode:
-  port: 21121
+  port: {{ .Spec.Com.IndexNode.Port | default 21121 }}
   grpc:
     serverMaxRecvSize: 2147483647 # math.MaxInt32
     serverMaxSendSize: 2147483647 # math.MaxInt32
@@ -125,7 +128,9 @@ indexNode:
     clientMaxSendSize: 104857600 # 100 MB, 100 * 1024 * 1024
 
 dataCoord:
-  port: 13333
+  address: {{ .Name }}-milvus-datacoord
+  port: {{ .Spec.Com.DataCoord.Port | default 13333 }}
+
   grpc:
     serverMaxRecvSize: 2147483647 # math.MaxInt32
     serverMaxSendSize: 2147483647 # math.MaxInt32
@@ -141,7 +146,7 @@ dataCoord:
 
 
 dataNode:
-  port: 21124
+  port: {{ .Spec.Com.DataNode.Port | default 21124 }}
   grpc:
     serverMaxRecvSize: 2147483647 # math.MaxInt32
     serverMaxSendSize: 2147483647 # math.MaxInt32

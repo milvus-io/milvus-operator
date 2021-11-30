@@ -1,0 +1,20 @@
+# permissions for end users to view milvus.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: milvus-viewer-role
+rules:
+- apiGroups:
+  - milvus.io
+  resources:
+  - milvus
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - milvus.io
+  resources:
+  - milvus/status
+  verbs:
+  - get

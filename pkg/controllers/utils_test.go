@@ -326,10 +326,10 @@ func TestGetConditionStatus(t *testing.T) {
 	assert.Equal(t, corev1.ConditionTrue, GetConditionStatus(true))
 }
 
-func TestIsDependencyReady(t *testing.T) {
+func TestIsClusterDependencyReady(t *testing.T) {
 	// 1 not ready -> not ready
 	status := v1alpha1.MilvusClusterStatus{
-		Conditions: []v1alpha1.MilvusClusterCondition{
+		Conditions: []v1alpha1.MilvusCondition{
 			{
 				Type:   v1alpha1.EtcdReady,
 				Status: corev1.ConditionTrue,
@@ -344,23 +344,77 @@ func TestIsDependencyReady(t *testing.T) {
 			},
 		},
 	}
-	assert.False(t, IsDependencyReady(status))
+	assert.False(t, IsClusterDependencyReady(status))
 	// all ready -> ready
 	status.Conditions[2].Status = corev1.ConditionTrue
-	assert.True(t, IsDependencyReady(status))
+	assert.True(t, IsClusterDependencyReady(status))
 }
 
-func TestUpdateCondition(t *testing.T) {
-	// append if not existed
-	status := v1alpha1.MilvusClusterStatus{
-		Conditions: []v1alpha1.MilvusClusterCondition{
+func TestIsDependencyReady(t *testing.T) {
+	// 1 not ready -> not ready
+	status := v1alpha1.MilvusStatus{
+		Conditions: []v1alpha1.MilvusCondition{
+			{
+				Type:   v1alpha1.EtcdReady,
+				Status: corev1.ConditionTrue,
+			},
 			{
 				Type:   v1alpha1.StorageReady,
 				Status: corev1.ConditionFalse,
 			},
 		},
 	}
-	condition := v1alpha1.MilvusClusterCondition{
+	assert.False(t, IsDependencyReady(status))
+	// all ready -> ready
+	status.Conditions[1].Status = corev1.ConditionTrue
+	assert.True(t, IsDependencyReady(status))
+}
+
+func TestUpdateClusterCondition(t *testing.T) {
+	// append if not existed
+	status := v1alpha1.MilvusClusterStatus{
+		Conditions: []v1alpha1.MilvusCondition{
+			{
+				Type:   v1alpha1.StorageReady,
+				Status: corev1.ConditionFalse,
+			},
+		},
+	}
+	condition := v1alpha1.MilvusCondition{
+		Type:    v1alpha1.PulsarReady,
+		Status:  corev1.ConditionFalse,
+		Reason:  "NotReady",
+		Message: "Pulsar is not ready",
+	}
+	UpdateClusterCondition(&status, condition)
+	assert.Len(t, status.Conditions, 2)
+	assert.Equal(t, status.Conditions[1].Status, condition.Status)
+	assert.Equal(t, status.Conditions[1].Type, condition.Type)
+
+	// update existed
+	condition2 := v1alpha1.MilvusCondition{
+		Type:    v1alpha1.PulsarReady,
+		Status:  corev1.ConditionTrue,
+		Reason:  "Ready",
+		Message: "Pulsar is ready",
+	}
+	UpdateClusterCondition(&status, condition2)
+	assert.Len(t, status.Conditions, 2)
+	assert.Equal(t, status.Conditions[1].Status, condition2.Status)
+	assert.Equal(t, status.Conditions[1].Type, condition2.Type)
+}
+
+func TestUpdateCondition(t *testing.T) {
+	// append if not existed
+	status := v1alpha1.MilvusStatus{
+		Conditions: []v1alpha1.MilvusCondition{
+			{
+				Type:   v1alpha1.StorageReady,
+				Status: corev1.ConditionFalse,
+			},
+		},
+	}
+	condition := v1alpha1.MilvusCondition{
 		Type:    v1alpha1.PulsarReady,
 		Status:  corev1.ConditionFalse,
 		Reason:  "NotReady",
@@ -372,7 +426,7 @@ func TestUpdateCondition(t *testing.T) {
 	assert.Equal(t, status.Conditions[1].Type, condition.Type)
 
 	// update existed
-	condition2 := v1alpha1.MilvusClusterCondition{
+	condition2 := v1alpha1.MilvusCondition{
 		Type:    v1alpha1.PulsarReady,
 		Status:  corev1.ConditionTrue,
 		Reason:  "Ready",
@@ -417,4 +471,13 @@ func TestDiffObject(t *testing.T) {
 	diff, err := diffObject(obj1, obj2)
 	assert.NoError(t, err)
 	assert.Equal(t, `{"metadata":{"name":"obj2"}}`, string(diff))
+}
+
+func TestInt32Ptr(t *testing.T) {
+	assert.Equal(t, int32(1), *int32Ptr(1))
+	assert.Equal(t, int32(0), *int32Ptr(0))
+}
+
+func TestGetFuncName(t *testing.T) {
+	assert.Contains(t, getFuncName(getFuncName), "getFuncName")
 }

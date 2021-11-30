@@ -14,7 +14,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-func IsSetDefaultDone(mc *v1alpha1.MilvusCluster) bool {
+func IsClusterSetDefaultDone(mc *v1alpha1.MilvusCluster) bool {
+	return mc.Status.Status != ""
+}
+
+func IsSetDefaultDone(mc *v1alpha1.Milvus) bool {
 	return mc.Status.Status != ""
 }
 
@@ -60,7 +64,7 @@ func (r *MilvusClusterReconciler) ReconcileAll(ctx context.Context, mc v1alpha1.
 }
 
 func (r *MilvusClusterReconciler) ReconcileMilvus(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	if !IsDependencyReady(mc.Status) {
+	if !IsClusterDependencyReady(mc.Status) {
 		return nil
 	}
 
@@ -93,7 +97,7 @@ func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.Milv
 	}
 
 	if len(deletingReleases) > 0 {
-		cfg, err := r.NewHelmCfg(mc.Namespace)
+		cfg, err := NewHelmCfg(r.helmSettings, r.logger, mc.Namespace)
 		if err != nil {
 			return err
 		}
