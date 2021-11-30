@@ -243,16 +243,15 @@ func TestMilvusComponent_GetComponentSpec(t *testing.T) {
 }
 
 func TestMilvusComponent_GetConfCheckSum(t *testing.T) {
-	com := QueryNode
 	spec := v1alpha1.MilvusClusterSpec{}
-	checksum1 := com.GetConfCheckSum(spec)
+	checksum1 := GetConfCheckSum(spec)
 
 	spec.Conf.Data = map[string]interface{}{
 		"k1": "v1",
 		"k2": "v2",
 		"k3": "v3",
 	}
-	checksum2 := com.GetConfCheckSum(spec)
+	checksum2 := GetConfCheckSum(spec)
 	assert.NotEqual(t, checksum1, checksum2)
 
 	spec.Conf.Data = map[string]interface{}{
@@ -260,17 +259,16 @@ func TestMilvusComponent_GetConfCheckSum(t *testing.T) {
 		"k2": "v2",
 		"k1": "v1",
 	}
-	checksum3 := com.GetConfCheckSum(spec)
+	checksum3 := GetConfCheckSum(spec)
 	assert.Equal(t, checksum2, checksum3)
 }
 
 func TestMilvusComponent_GetLivenessProbe_GetReadinessProbe(t *testing.T) {
-	com := QueryNode
-	lProbe := com.GetLivenessProbe()
+	lProbe := GetLivenessProbe()
 	assert.Equal(t, "/healthz", lProbe.HTTPGet.Path)
 	assert.Equal(t, intstr.FromInt(MetricPort), lProbe.HTTPGet.Port)
 
-	rProbe := com.GetReadinessProbe()
+	rProbe := GetReadinessProbe()
 	assert.Equal(t, lProbe, rProbe)
 }
 

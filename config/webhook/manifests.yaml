@@ -8,6 +8,26 @@ metadata:
 webhooks:
 - admissionReviewVersions:
   - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-milvus-io-v1alpha1-milvus
+  failurePolicy: Fail
+  name: mmilvus.kb.io
+  rules:
+  - apiGroups:
+    - milvus.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - milvus
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
   - v1beta1
   clientConfig:
     service:
@@ -35,6 +55,26 @@ metadata:
   creationTimestamp: null
   name: validating-webhook-configuration
 webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-milvus-io-v1alpha1-milvus
+  failurePolicy: Fail
+  name: vmilvus.kb.io
+  rules:
+  - apiGroups:
+    - milvus.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - milvus
+  sideEffects: None
 - admissionReviewVersions:
   - v1
   - v1beta1

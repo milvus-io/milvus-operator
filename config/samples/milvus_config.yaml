@@ -1,0 +1,14 @@
+apiVersion: milvus.io/v1alpha1
+kind: Milvus
+metadata:
+  name: my-release
+  labels:
+    app: milvus
+spec:
+  dependencies: {}
+  components: {}
+  config:
+    etcd:
+      rootPath: my-release
+    minio:
+      bucketName: my-bucket

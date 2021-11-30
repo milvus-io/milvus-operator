@@ -35,38 +35,40 @@ type MilvusClusterSpec struct {
 	Com MilvusComponents `json:"components,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	Dep MilvusDependencies `json:"dependencies,omitempty"`
+	Dep MilvusClusterDependencies `json:"dependencies,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	Conf Values `json:"config,omitempty"`
 }
 
-// MiluvsClusterConditionType is a valid value for MiluvsClusterConditionType.Type.
-type MiluvsClusterConditionType string
+// MiluvsConditionType is a valid value for MiluvsConditionType.Type.
+type MiluvsConditionType string
 
-// MilvusStatus is a type for milvus status.
-type MilvusStatus string
+// MilvusHealthStatus is a type for milvus status.
+type MilvusHealthStatus string
 
 const (
 	// StatusCreating is the status of creating.
-	StatusCreating MilvusStatus = "Creating"
+	StatusCreating MilvusHealthStatus = "Creating"
 	// StatusHealthy is the status of healthy.
-	StatusHealthy MilvusStatus = "Healthy"
+	StatusHealthy MilvusHealthStatus = "Healthy"
 	// StatusUnHealthy is the status of unhealthy.
-	StatusUnHealthy MilvusStatus = "Unhealthy"
+	StatusUnHealthy MilvusHealthStatus = "Unhealthy"
 
 	// EtcdReady means the Etcd is ready.
-	EtcdReady MiluvsClusterConditionType = "EtcdReady"
+	EtcdReady MiluvsConditionType = "EtcdReady"
 	// StorageReady means the Storage is ready.
-	StorageReady MiluvsClusterConditionType = "StorageReady"
-	// PulsarReady means the Storage is ready.
-	PulsarReady MiluvsClusterConditionType = "PulsarReady"
+	StorageReady MiluvsConditionType = "StorageReady"
+	// PulsarReady means the Pulsar is ready.
+	PulsarReady MiluvsConditionType = "PulsarReady"
 	// MilvusReady means all components of Milvus are ready.
-	MilvusReady MiluvsClusterConditionType = "MilvusReady"
+	MilvusReady MiluvsConditionType = "MilvusReady"
 
 	// ReasonEndpointsHealthy means the endpoint is healthy
 	ReasonEndpointsHealthy string = "EndpointsHealthy"
+	// ReasonMilvusHealthy means milvus cluster is healthy
+	ReasonMilvusHealthy string = "ReasonMilvusHealthy"
 	// ReasonMilvusClusterHealthy means milvus cluster is healthy
 	ReasonMilvusClusterHealthy string = "MilvusClusterHealthy"
 	// ReasonMilvusClusterNotHealthy means at least one of milvus component is not healthy
@@ -93,10 +95,10 @@ type MilvusClusterStatus struct {
 	// Status indicates the overall status of the Milvus
 	// Status can be "Creating", "Healthy" and "Unhealthy"
 	// +kubebuilder:default:="Creating"
-	Status MilvusStatus `json:"status"`
+	Status MilvusHealthStatus `json:"status"`
 
 	// Conditions of each components
-	Conditions []MilvusClusterCondition `json:"conditions,omitempty"`
+	Conditions []MilvusCondition `json:"conditions,omitempty"`
 
 	// Endpoint of milvus cluster
 	Endpoint string `json:"endpoint,omitempty"`
@@ -123,10 +125,10 @@ type MilvusStorageStatus struct {
 	Error    string `json:"error,omitempty"`
 }
 
-// MilvusClusterCondition contains details for the current condition of this pod.
-type MilvusClusterCondition struct {
+// MilvusCondition contains details for the current condition of this milvus/milvus cluster instance
+type MilvusCondition struct {
 	// Type is the type of the condition.
-	Type MiluvsClusterConditionType `json:"type"`
+	Type MiluvsConditionType `json:"type"`
 	// Status is the status of the condition.
 	// Can be True, False, Unknown.
 	Status corev1.ConditionStatus `json:"status"`

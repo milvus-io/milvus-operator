@@ -12,6 +12,14 @@ type MilvusDependencies struct {
 	Etcd MilvusEtcd `json:"etcd"`
 
 	// +kubebuilder:validation:Optional
+	Storage MilvusStorage `json:"storage"`
+}
+
+type MilvusClusterDependencies struct {
+	// +kubebuilder:validation:Optional
+	Etcd MilvusEtcd `json:"etcd"`
+
+	// +kubebuilder:validation:Optional
 	Pulsar MilvusPulsar `json:"pulsar"`
 
 	// +kubebuilder:validation:Optional

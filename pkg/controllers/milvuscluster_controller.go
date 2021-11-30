@@ -25,14 +25,12 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	milvusv1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
@@ -49,46 +47,7 @@ type MilvusClusterReconciler struct {
 	Scheme       *runtime.Scheme
 	logger       logr.Logger
 	helmSettings *cli.EnvSettings
-	statusSyncer *MilvusStatusSyncer
-}
-
-func SetupControllers(ctx context.Context, mgr manager.Manager, enableHook bool) error {
-	logger := ctrl.Log.WithName("controller").WithName("milvus")
-
-	conf := mgr.GetConfig()
-	settings := cli.New()
-	settings.KubeAPIServer = conf.Host
-	settings.MaxHistory = 2
-	settings.KubeToken = conf.BearerToken
-	getter := settings.RESTClientGetter()
-	config := getter.(*genericclioptions.ConfigFlags)
-	insecure := true
-	config.Insecure = &insecure
-
-	// should be run after mgr started to make sure the client is ready
-	statusSyncer := NewMilvusStatusSyncer(ctx, mgr.GetClient(), logger.WithName("status-syncer"))
-
-	conroller := &MilvusClusterReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		logger:       logger,
-		helmSettings: settings,
-		statusSyncer: statusSyncer,
-	}
-
-	if err := conroller.SetupWithManager(mgr); err != nil {
-		logger.Error(err, "unable to setup controller with manager", "controller", "MilvusCluster")
-		return err
-	}
-
-	if enableHook {
-		if err := (&milvusv1alpha1.MilvusCluster{}).SetupWebhookWithManager(mgr); err != nil {
-			logger.Error(err, "unable to create webhook", "webhook", "MilvusCluster")
-			return err
-		}
-	}
-
-	return nil
+	statusSyncer *MilvusClusterStatusSyncer
 }
 
 //+kubebuilder:rbac:groups=milvus.io,resources=milvusclusters,verbs=get;list;watch;create;update;patch;delete

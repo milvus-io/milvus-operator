@@ -24,7 +24,7 @@ func TestMilvusCluster_Default_NotExternalOK(t *testing.T) {
 	var crName = "mc"
 
 	var defaultSpec = MilvusClusterSpec{
-		Dep: MilvusDependencies{
+		Dep: MilvusClusterDependencies{
 			Etcd: MilvusEtcd{
 				Endpoints: []string{},
 				InCluster: defaultInClusterConfig,
@@ -81,7 +81,7 @@ func TestMilvusCluster_Default_ExternalDepOK(t *testing.T) {
 	var crName = "mc"
 
 	var defaultSpec = MilvusClusterSpec{
-		Dep: MilvusDependencies{
+		Dep: MilvusClusterDependencies{
 			Etcd: MilvusEtcd{
 				External: true,
 			},
@@ -98,7 +98,7 @@ func TestMilvusCluster_Default_ExternalDepOK(t *testing.T) {
 	mc := MilvusCluster{
 		ObjectMeta: metav1.ObjectMeta{Name: crName},
 		Spec: MilvusClusterSpec{
-			Dep: MilvusDependencies{
+			Dep: MilvusClusterDependencies{
 				Etcd: MilvusEtcd{
 					External: true,
 				},
@@ -149,7 +149,7 @@ func TestMilvusCluster_ValidateCreate_NoError(t *testing.T) {
 func TestMilvusCluster_ValidateCreate_Invalid1(t *testing.T) {
 	mc := MilvusCluster{
 		Spec: MilvusClusterSpec{
-			Dep: MilvusDependencies{
+			Dep: MilvusClusterDependencies{
 				Etcd: MilvusEtcd{
 					External: true,
 				},
@@ -163,7 +163,7 @@ func TestMilvusCluster_ValidateCreate_Invalid1(t *testing.T) {
 func TestMilvusCluster_ValidateCreate_Invalid3(t *testing.T) {
 	mc := MilvusCluster{
 		Spec: MilvusClusterSpec{
-			Dep: MilvusDependencies{
+			Dep: MilvusClusterDependencies{
 				Etcd: MilvusEtcd{
 					External: true,
 				},
@@ -189,7 +189,7 @@ func TestMilvusCluster_ValidateUpdate_NoError(t *testing.T) {
 func TestMilvusCluster_ValidateUpdate_Invalid(t *testing.T) {
 	new := MilvusCluster{
 		Spec: MilvusClusterSpec{
-			Dep: MilvusDependencies{
+			Dep: MilvusClusterDependencies{
 				Etcd: MilvusEtcd{
 					External: true,
 				},

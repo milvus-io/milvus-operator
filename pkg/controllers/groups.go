@@ -2,13 +2,17 @@ package controllers
 
 import (
 	"context"
+	"runtime/debug"
 	"strings"
 	"sync"
 
 	"github.com/milvus-io/milvus-operator/api/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/pkg/errors"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+var groupLog = logf.Log.WithName("group-panic")
 
 type Group struct {
 	wait   sync.WaitGroup
@@ -38,6 +42,9 @@ func (g *Group) Go(f func() error) {
 		if !config.IsDebug() {
 			defer func() {
 				if err := recover(); err != nil {
+					stack := string(debug.Stack())
+					groupLog.Error(err.(error), "panic captured", "stack", stack)
+
 					g.locker.Lock()
 					g.errors = append(g.errors, err.(error))
 					g.locker.Unlock()
@@ -85,6 +92,14 @@ func WarppedReconcileFunc(
 	ctx context.Context, mc v1alpha1.MilvusCluster) func() error {
 	return func() error {
 		return f(ctx, mc)
+	}
+}
+
+func WrappedReconcileMilvus(
+	f func(context.Context, v1alpha1.Milvus) error,
+	ctx context.Context, mil v1alpha1.Milvus) func() error {
+	return func() error {
+		return f(ctx, mil)
 	}
 }
 

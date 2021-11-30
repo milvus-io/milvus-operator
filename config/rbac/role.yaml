@@ -139,6 +139,32 @@ rules:
 - apiGroups:
   - milvus.io
   resources:
+  - milvus
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - milvus.io
+  resources:
+  - milvus/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - milvus.io
+  resources:
+  - milvus/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - milvus.io
+  resources:
   - milvusclusters
   verbs:
   - create

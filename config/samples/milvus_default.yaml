@@ -1,0 +1,4 @@
+apiVersion: milvus.io/v1alpha1
+kind: Milvus
+metadata:
+  name: my-release

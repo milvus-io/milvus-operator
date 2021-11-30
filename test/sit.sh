@@ -8,9 +8,8 @@ log() {
     echo "$(date +"%Y-%m-%d %H:%M:%S") $1" >> $LOG_PATH
 }
 
-# cases:
-case_create_delete(){
-    set -e
+# milvus cluster cases:
+case_create_delete_cluster(){
     # create MilvusCluster CR
     log "Creating MilvusCluster..."
     kubectl apply -f test/min-mc.yaml
@@ -32,12 +31,44 @@ case_create_delete(){
     if [ "$CR_STATUS" != "Healthy" ]; then
         log "MilvusCluster creation failed"
         log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit mc/mc-sit -o yaml)"
-        exit 1
+        return 1
     fi
 
     # Delete CR
     log "Deleting MilvusCluster ..." >> $LOG_PATH
     kubectl delete -f test/min-mc.yaml
+}
+
+
+# milvus cases:
+case_create_delete_milvus(){
+    # create Milvus CR
+    log "Creating Milvus..."
+    kubectl apply -f test/min-milvus.yaml
+
+    # Check CR status every 10 seconds (max 10 minutes) until complete.
+    ATTEMPTS=0
+    CR_STATUS=""
+    until [ $ATTEMPTS -eq 60 ]; 
+    do
+        CR_STATUS=$(kubectl get -n milvus-sit milvus/milvus-sit -o=jsonpath='{.status.status}')
+        if [ "$CR_STATUS" = "Healthy" ]; then
+            break
+        fi
+        log "$(date +"%Y-%m-%d %H:%M:%S") Milvus status: $CR_STATUS"
+        ATTEMPTS=$((ATTEMPTS + 1))
+        sleep 10
+    done
+
+    if [ "$CR_STATUS" != "Healthy" ]; then
+        log "Milvus creation failed"
+        log "Milvus final yaml: \n $(kubectl get -n milvus-sit milvus/milvus-sit -o yaml)"
+        return 1
+    fi
+
+    # Delete CR
+    log "Deleting Milvus ..." >> $LOG_PATH
+    kubectl delete -f test/min-milvus.yaml
 }
 
 # test case start banner
@@ -51,7 +82,8 @@ success=0
 count=0
 
 cases=(
-    case_create_delete
+    case_create_delete_cluster
+    case_create_delete_milvus
 )
 
 echo "Running total: ${#cases[@]} CASES"

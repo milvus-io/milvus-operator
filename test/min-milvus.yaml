@@ -1,0 +1,30 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: milvus-sit
+---
+apiVersion: milvus.io/v1alpha1
+kind: Milvus
+metadata:
+  name: milvus-sit
+  namespace: milvus-sit
+  labels:
+    app: milvus
+spec:
+  dependencies:
+    etcd:
+      inCluster:
+        deletionPolicy: Delete
+        pvcDeletion: true
+    storage:
+      inCluster:
+        deletionPolicy: Delete
+        pvcDeletion: true
+  config:
+    milvus:
+      log:
+        level: info
+    component:
+      proxy:
+        timeTickInterval: 150
