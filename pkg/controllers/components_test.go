@@ -263,6 +263,29 @@ func TestMilvusComponent_GetConfCheckSum(t *testing.T) {
 	assert.Equal(t, checksum2, checksum3)
 }
 
+func TestMilvusComponent_GetMilvusConfCheckSumt(t *testing.T) {
+	spec := v1alpha1.MilvusSpec{}
+	spec.Conf.Data = map[string]interface{}{
+		"k1": "v1",
+		"k2": "v2",
+		"k3": "v3",
+	}
+	checksum1 := GetMilvusConfCheckSum(spec)
+
+	spec.Dep.Etcd.Endpoints = []string{"ep1"}
+	spec.Dep.Storage.Endpoint = "ep"
+	checksum2 := GetMilvusConfCheckSum(spec)
+	assert.NotEqual(t, checksum1, checksum2)
+
+	spec.Conf.Data = map[string]interface{}{
+		"k3": "v3",
+		"k2": "v2",
+		"k1": "v1",
+	}
+	checksum3 := GetMilvusConfCheckSum(spec)
+	assert.Equal(t, checksum2, checksum3)
+}
+
 func TestMilvusComponent_GetLivenessProbe_GetReadinessProbe(t *testing.T) {
 	lProbe := GetLivenessProbe()
 	assert.Equal(t, "/healthz", lProbe.HTTPGet.Path)
