@@ -39,19 +39,20 @@ func (g *Group) Go(f func() error) {
 	g.wait.Add(1)
 
 	go func() {
+		defer g.wait.Done()
 		if !config.IsDebug() {
 			defer func() {
-				if err := recover(); err != nil {
+				if r := recover(); r != nil {
 					stack := string(debug.Stack())
-					groupLog.Error(err.(error), "panic captured", "stack", stack)
+					err := errors.Errorf("%s", r)
+					groupLog.Error(err, "panic captured", "stack", stack)
 
 					g.locker.Lock()
-					g.errors = append(g.errors, err.(error))
+					g.errors = append(g.errors, err)
 					g.locker.Unlock()
 				}
 			}()
 		}
-		defer g.wait.Done()
 
 		// Run and handle error
 		if err := f(); err != nil {
