@@ -102,9 +102,8 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if milvuscluster.ObjectMeta.DeletionTimestamp.IsZero() {
 		if !controllerutil.ContainsFinalizer(milvuscluster, MCFinalizerName) {
 			controllerutil.AddFinalizer(milvuscluster, MCFinalizerName)
-			if err := r.Update(ctx, milvuscluster); err != nil {
-				return ctrl.Result{}, err
-			}
+			err := r.Update(ctx, milvuscluster)
+			return ctrl.Result{}, err
 		}
 
 	} else {
@@ -113,9 +112,8 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				return ctrl.Result{}, err
 			}
 			controllerutil.RemoveFinalizer(milvuscluster, MCFinalizerName)
-			if err := r.Update(ctx, milvuscluster); err != nil {
-				return ctrl.Result{}, err
-			}
+			err := r.Update(ctx, milvuscluster)
+			return ctrl.Result{}, err
 		}
 		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
