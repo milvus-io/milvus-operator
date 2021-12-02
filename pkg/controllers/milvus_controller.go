@@ -33,6 +33,10 @@ import (
 	"github.com/milvus-io/milvus-operator/pkg/config"
 )
 
+const (
+	MilvusFinalizerName = "milvus.milvus.io/finalizer"
+)
+
 // MilvusReconciler reconciles a Milvus object
 type MilvusReconciler struct {
 	client.Client
@@ -78,22 +82,20 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// Finalize
 	if milvus.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !controllerutil.ContainsFinalizer(milvus, MCFinalizerName) {
-			controllerutil.AddFinalizer(milvus, MCFinalizerName)
-			if err := r.Update(ctx, milvus); err != nil {
-				return ctrl.Result{}, err
-			}
+		if !controllerutil.ContainsFinalizer(milvus, MilvusFinalizerName) {
+			controllerutil.AddFinalizer(milvus, MilvusFinalizerName)
+			err := r.Update(ctx, milvus)
+			return ctrl.Result{}, err
 		}
 
 	} else {
-		if controllerutil.ContainsFinalizer(milvus, MCFinalizerName) {
+		if controllerutil.ContainsFinalizer(milvus, MilvusFinalizerName) {
 			if err := r.Finalize(ctx, *milvus); err != nil {
 				return ctrl.Result{}, err
 			}
-			controllerutil.RemoveFinalizer(milvus, MCFinalizerName)
-			if err := r.Update(ctx, milvus); err != nil {
-				return ctrl.Result{}, err
-			}
+			controllerutil.RemoveFinalizer(milvus, MilvusFinalizerName)
+			err := r.Update(ctx, milvus)
+			return ctrl.Result{}, err
 		}
 		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
