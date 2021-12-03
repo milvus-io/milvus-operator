@@ -5,33 +5,20 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/milvus-io/milvus-operator/api/v1alpha1"
-	"github.com/milvus-io/milvus-operator/pkg/config"
-	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestClusterReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
-	config.Init(util.GetGitRepoRootDir())
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	r := newClusterReconcilerForTest(ctrl)
-	mockClient := r.Client.(*MockK8sClient)
-
-	mc := v1alpha1.MilvusCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      "n",
-		},
-	}
-
-	ctx := context.Background()
+	env := newClusterTestEnv(t)
+	defer env.tearDown()
+	r := env.Reconciler
+	mockClient := env.MockClient
+	ctx := env.ctx
+	mc := env.Inst
 
 	// all ok
 	mockClient.EXPECT().
@@ -47,22 +34,13 @@ func TestClusterReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestClusterReconciler_ReconcileDeployments_UpdateIfExisted(t *testing.T) {
-	config.Init(util.GetGitRepoRootDir())
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	r := newClusterReconcilerForTest(ctrl)
-	mockClient := r.Client.(*MockK8sClient)
-
-	m := v1alpha1.MilvusCluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      "mc",
-		},
-	}
-
-	ctx := context.Background()
+func TestClusterReconciler_ReconcileDeployments_Existed(t *testing.T) {
+	env := newClusterTestEnv(t)
+	defer env.tearDown()
+	r := env.Reconciler
+	mockClient := env.MockClient
+	ctx := env.ctx
+	m := env.Inst
 
 	// call client.Update if changed
 	mockClient.EXPECT().
@@ -113,21 +91,12 @@ func TestClusterReconciler_ReconcileDeployments_UpdateIfExisted(t *testing.T) {
 }
 
 func TestReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
-	config.Init(util.GetGitRepoRootDir())
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	r := newMilvusReconcilerForTest(ctrl)
-	mockClient := r.Client.(*MockK8sClient)
-
-	m := v1alpha1.Milvus{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      "n",
-		},
-	}
-
-	ctx := context.Background()
+	env := newMilvusTestEnv(t)
+	defer env.tearDown()
+	r := env.Reconciler
+	mockClient := env.MockClient
+	ctx := env.ctx
+	m := env.Inst
 
 	// all ok
 	gomock.InOrder(
@@ -145,22 +114,13 @@ func TestReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestMilvusReconciler_ReconcileDeployments_UpdateIfExisted(t *testing.T) {
-	config.Init(util.GetGitRepoRootDir())
-
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	r := newMilvusReconcilerForTest(ctrl)
-	mockClient := r.Client.(*MockK8sClient)
-
-	m := v1alpha1.Milvus{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      "mc",
-		},
-	}
-
-	ctx := context.Background()
+func TestMilvusReconciler_ReconcileDeployments_Existed(t *testing.T) {
+	env := newMilvusTestEnv(t)
+	defer env.tearDown()
+	r := env.Reconciler
+	mockClient := env.MockClient
+	ctx := env.ctx
+	m := env.Inst
 
 	// call client.Update if changed configmap
 	gomock.InOrder(
@@ -169,7 +129,7 @@ func TestMilvusReconciler_ReconcileDeployments_UpdateIfExisted(t *testing.T) {
 			DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 				cm := obj.(*appsv1.Deployment)
 				cm.Namespace = "ns"
-				cm.Name = "cm1"
+				cm.Name = "mc"
 				return nil
 			}),
 		mockClient.EXPECT().
@@ -186,7 +146,7 @@ func TestMilvusReconciler_ReconcileDeployments_UpdateIfExisted(t *testing.T) {
 			DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 				cm := obj.(*appsv1.Deployment)
 				cm.Namespace = "ns"
-				cm.Name = "cm1"
+				cm.Name = "mc"
 				r.updateDeployment(m, cm)
 				return nil
 			}),
