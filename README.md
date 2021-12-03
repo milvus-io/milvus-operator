@@ -1,5 +1,11 @@
 # Milvus Operator
 
+[![CI Pipeline](https://github.com/milvus-io/milvus-operator/actions/workflows/ci.yml/badge.svg)](https://github.com/milvus-io/milvus-operator/actions/workflows/ci.yml/badge.svg)
+[![codecov](https://codecov.io/gh/milvus-io/milvus-operator/branch/main/graph/badge.svg?token=DAXmgusBQq)](https://codecov.io/gh/milvus-io/milvus-operator)
+[![Go Reference](https://pkg.go.dev/badge/github.com/milvus-io/milvus-operator.svg)](https://pkg.go.dev/github.com/milvus-io/milvus-operator)
+<img src="https://img.shields.io/github/license/milvus-io/milvus" alt="license">
+
+
 > **ATTENTIONS:** THE `MAIN` BRANCH MAY BE IN AN UNSTABLE OR EVEN BROKEN STATE DURING DEVELOPMENT.
 
 ## Overview
