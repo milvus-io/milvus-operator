@@ -492,7 +492,7 @@ bookkeeper:
     persistence: true
     journal:
       name: journal
-      size: 10Gi
+      size: 100Gi
       local_storage: true
       ## If you already have an existent storage class and want to reuse it, you can specify its name with the option below
       ##
@@ -507,7 +507,7 @@ bookkeeper:
         # provisioner: kubernetes.io/gce-pd
     ledgers:
       name: ledgers
-      size: 50Gi
+      size: 200Gi
       local_storage: true
       # storageClassName:
       # storageClass:
@@ -835,6 +835,8 @@ proxy:
     maxMessageSize: "104857600"
     defaultRetentionTimeInMinutes: "10080"
     defaultRetentionSizeInMB: "8192"
+    backlogQuotaDefaultLimitGB: "8"
+    backlogQuotaDefaultRetentionPolicy: producer_exception
   ## Proxy service
   ## templates/proxy-service.yaml
   ##
