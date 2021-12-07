@@ -20,11 +20,7 @@ func (l pulsarLog) SubLogger(fields pulsarlog.Fields) pulsarlog.Logger {
 }
 
 func (l pulsarLog) WithFields(fields pulsarlog.Fields) pulsarlog.Entry {
-	newlogger := l.logger
-	for name, value := range fields {
-		newlogger = newlogger.WithValues(name, value)
-	}
-	return pulsarLog{logger: newlogger}
+	return l.SubLogger(fields)
 }
 
 func (l pulsarLog) WithField(name string, value interface{}) pulsarlog.Entry {
