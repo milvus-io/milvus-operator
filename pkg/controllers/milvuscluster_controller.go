@@ -44,10 +44,11 @@ const (
 // MilvusClusterReconciler reconciles a MilvusCluster object
 type MilvusClusterReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	logger       logr.Logger
-	helmSettings *cli.EnvSettings
-	statusSyncer *MilvusClusterStatusSyncer
+	Scheme         *runtime.Scheme
+	logger         logr.Logger
+	helmSettings   *cli.EnvSettings
+	helmReconciler HelmReconciler
+	statusSyncer   *MilvusClusterStatusSyncer
 }
 
 //+kubebuilder:rbac:groups=milvus.io,resources=milvusclusters,verbs=get;list;watch;create;update;patch;delete

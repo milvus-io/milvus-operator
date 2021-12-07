@@ -24,10 +24,7 @@ func (r *MilvusReconciler) Finalize(ctx context.Context, mil v1alpha1.Milvus) er
 	}
 
 	if len(deletingReleases) > 0 {
-		cfg, err := NewHelmCfg(r.helmSettings, r.logger, mil.Namespace)
-		if err != nil {
-			return err
-		}
+		cfg := NewHelmCfg(r.helmSettings, r.logger, mil.Namespace)
 
 		errs := []error{}
 		for releaseName, deletePVC := range deletingReleases {

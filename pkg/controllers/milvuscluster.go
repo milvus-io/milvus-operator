@@ -97,10 +97,7 @@ func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.Milv
 	}
 
 	if len(deletingReleases) > 0 {
-		cfg, err := NewHelmCfg(r.helmSettings, r.logger, mc.Namespace)
-		if err != nil {
-			return err
-		}
+		cfg := NewHelmCfg(r.helmSettings, r.logger, mc.Namespace)
 
 		errs := []error{}
 		for releaseName, deletePVC := range deletingReleases {
