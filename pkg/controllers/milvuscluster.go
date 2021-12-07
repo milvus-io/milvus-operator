@@ -8,7 +8,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/milvus-io/milvus-operator/api/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/helm"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/pkg/errors"

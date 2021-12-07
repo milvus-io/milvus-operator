@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 
-	milvusv1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
+	milvusv1alpha1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"helm.sh/helm/v3/pkg/cli"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"

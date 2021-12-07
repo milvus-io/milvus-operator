@@ -62,9 +62,10 @@ type MilvusStatus struct {
 	Endpoint string `json:"endpoint,omitempty"`
 }
 
+// +genclient
+// +genclient:noStatus
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-
 // Milvus is the Schema for the milvus API
 type Milvus struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -75,7 +76,6 @@ type Milvus struct {
 }
 
 //+kubebuilder:object:root=true
-
 // MilvusList contains a list of Milvus
 type MilvusList struct {
 	metav1.TypeMeta `json:",inline"`
