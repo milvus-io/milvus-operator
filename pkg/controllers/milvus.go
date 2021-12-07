@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/milvus-io/milvus-operator/api/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/helm"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/pkg/errors"

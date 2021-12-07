@@ -143,6 +143,9 @@ type MilvusCondition struct {
 	Message string `json:"message,omitempty"`
 }
 
+// +genclient
+// +genclient:noStatus
+
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:shortName=mc;mic
@@ -156,7 +159,6 @@ type MilvusCluster struct {
 }
 
 //+kubebuilder:object:root=true
-
 // MilvusClusterList contains a list of MilvusCluster
 type MilvusClusterList struct {
 	metav1.TypeMeta `json:",inline"`

@@ -12,7 +12,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
-	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
+	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 )
 
 var (

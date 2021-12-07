@@ -1,6 +1,7 @@
 domain: milvus.io
 layout:
 - go.kubebuilder.io/v3
+multigroup: true
 projectName: milvus-operator
 repo: github.com/milvus-io/milvus-operator
 resources:
@@ -10,7 +11,7 @@ resources:
   controller: true
   domain: milvus.io
   kind: MilvusCluster
-  path: github.com/milvus-io/milvus-operator/api/v1alpha1
+  path: github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true
@@ -22,7 +23,7 @@ resources:
   controller: true
   domain: milvus.io
   kind: Milvus
-  path: github.com/milvus-io/milvus-operator/api/v1alpha1
+  path: github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1
   version: v1alpha1
   webhooks:
     defaulting: true

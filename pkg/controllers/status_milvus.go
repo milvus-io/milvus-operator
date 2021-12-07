@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/milvus-io/milvus-operator/api/v1alpha1"
-	milvusv1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	milvusv1alpha1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/minio/madmin-go"
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"

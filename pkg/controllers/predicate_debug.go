@@ -3,7 +3,7 @@ package controllers
 import (
 	"fmt"
 
-	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/api/v1alpha1"
+	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
