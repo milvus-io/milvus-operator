@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"time"
 
-	"helm.sh/helm/v3/pkg/cli"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -42,7 +41,6 @@ type MilvusReconciler struct {
 	client.Client
 	Scheme         *runtime.Scheme
 	logger         logr.Logger
-	helmSettings   *cli.EnvSettings
 	helmReconciler HelmReconciler
 	statusSyncer   *MilvusStatusSyncer
 }

@@ -13,6 +13,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+func IsSetDefaultDone(mc *v1alpha1.Milvus) bool {
+	return mc.Status.Status != ""
+}
+
 func (r *MilvusReconciler) Finalize(ctx context.Context, mil v1alpha1.Milvus) error {
 	deletingReleases := map[string]bool{}
 
@@ -24,7 +28,7 @@ func (r *MilvusReconciler) Finalize(ctx context.Context, mil v1alpha1.Milvus) er
 	}
 
 	if len(deletingReleases) > 0 {
-		cfg := NewHelmCfg(r.helmSettings, r.logger, mil.Namespace)
+		cfg := r.helmReconciler.NewHelmCfg(mil.Namespace)
 
 		errs := []error{}
 		for releaseName, deletePVC := range deletingReleases {
@@ -42,6 +46,7 @@ func (r *MilvusReconciler) Finalize(ctx context.Context, mil v1alpha1.Milvus) er
 					}),
 				}); err != nil {
 					errs = append(errs, err)
+					continue
 				}
 
 				for _, pvc := range pvcList.Items {
@@ -86,16 +91,13 @@ func (r *MilvusReconciler) SetDefaultStatus(ctx context.Context, mc *v1alpha1.Mi
 }
 
 func (r *MilvusReconciler) ReconcileAll(ctx context.Context, mil v1alpha1.Milvus) error {
-	g, gtx := NewGroup(ctx)
-	g.Go(WrappedReconcileMilvus(r.ReconcileEtcd, gtx, mil))
-	g.Go(WrappedReconcileMilvus(r.ReconcileMinio, gtx, mil))
-	g.Go(WrappedReconcileMilvus(r.ReconcileMilvus, gtx, mil))
-
-	if err := g.Wait(); err != nil {
-		return fmt.Errorf("reconcile milvus: %w", err)
+	milvusReconcilers := []MilvusReconcileFunc{
+		r.ReconcileEtcd,
+		r.ReconcileMinio,
+		r.ReconcileMilvus,
 	}
-
-	return nil
+	err := defaultGroupReconciler.ReconcileMilvus(ctx, milvusReconcilers, mil)
+	return errors.Wrap(err, "reconcile milvus")
 }
 
 func (r *MilvusReconciler) ReconcileMilvus(ctx context.Context, mil v1alpha1.Milvus) error {
@@ -104,16 +106,13 @@ func (r *MilvusReconciler) ReconcileMilvus(ctx context.Context, mil v1alpha1.Mil
 	}
 
 	if err := r.ReconcileConfigMaps(ctx, mil); err != nil {
-		return fmt.Errorf("configmap: %w", err)
+		return errors.Wrap(err, "configmap")
 	}
-
-	g, gtx := NewGroup(ctx)
-	g.Go(WrappedReconcileMilvus(r.ReconcileDeployments, gtx, mil))
-	g.Go(WrappedReconcileMilvus(r.ReconcileServices, gtx, mil))
-	g.Go(WrappedReconcileMilvus(r.ReconcilePodMonitor, gtx, mil))
-	if err := g.Wait(); err != nil {
-		return fmt.Errorf("components: %w", err)
+	milvusComsReconcilers := []MilvusReconcileFunc{
+		r.ReconcileDeployments,
+		r.ReconcileServices,
+		r.ReconcilePodMonitor,
 	}
-
-	return nil
+	err := defaultGroupReconciler.ReconcileMilvus(ctx, milvusComsReconcilers, mil)
+	return errors.Wrap(err, "reconcile components")
 }

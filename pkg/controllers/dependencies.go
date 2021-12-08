@@ -21,20 +21,9 @@ const (
 	PulsarChart = "config/assets/charts/pulsar"
 )
 
-func NewHelmCfg(helmSettings *cli.EnvSettings, logger logr.Logger, namespace string) *action.Configuration {
-	cfg := new(action.Configuration)
-	helmLogger := func(format string, v ...interface{}) {
-		logger.WithName("helm").Info(fmt.Sprintf(format, v...))
-	}
-
-	// cfg.Init will never return err, only panic if bad driver
-	cfg.Init(helmSettings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), helmLogger)
-
-	return cfg
-}
-
 // HelmReconciler reconciles Helm releases
 type HelmReconciler interface {
+	NewHelmCfg(namespace string) *action.Configuration
 	Reconcile(ctx context.Context, request helm.ChartRequest) error
 }
 
@@ -51,9 +40,21 @@ func NewLocalHelmReconciler(helmSettings *cli.EnvSettings, logger logr.Logger) H
 	}
 }
 
+func (l LocalHelmReconciler) NewHelmCfg(namespace string) *action.Configuration {
+	cfg := new(action.Configuration)
+	helmLogger := func(format string, v ...interface{}) {
+		l.logger.Info(fmt.Sprintf(format, v...))
+	}
+
+	// cfg.Init will never return err, only panic if bad driver
+	cfg.Init(l.helmSettings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), helmLogger)
+
+	return cfg
+}
+
 // ReconcileHelm reconciles Helm releases
 func (l LocalHelmReconciler) Reconcile(ctx context.Context, request helm.ChartRequest) error {
-	cfg := NewHelmCfg(l.helmSettings, l.logger, request.Namespace)
+	cfg := l.NewHelmCfg(request.Namespace)
 
 	exist, err := helm.ReleaseExist(cfg, request.ReleaseName)
 	if err != nil {

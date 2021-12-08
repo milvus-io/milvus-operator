@@ -18,11 +18,11 @@ func SetupControllers(ctx context.Context, mgr manager.Manager, enableHook bool)
 	settings.KubeAPIServer = conf.Host
 	settings.MaxHistory = 2
 	settings.KubeToken = conf.BearerToken
-	helmReconciler := NewLocalHelmReconciler(settings, logger.WithName("helm"))
 	getter := settings.RESTClientGetter()
 	config := getter.(*genericclioptions.ConfigFlags)
 	insecure := true
 	config.Insecure = &insecure
+	helmReconciler := NewLocalHelmReconciler(settings, logger.WithName("helm"))
 
 	// should be run after mgr started to make sure the client is ready
 	clusterStatusSyncer := NewMilvusClusterStatusSyncer(ctx, mgr.GetClient(), logger.WithName("status-syncer"))
@@ -44,11 +44,11 @@ func SetupControllers(ctx context.Context, mgr manager.Manager, enableHook bool)
 	statusSyncer := NewMilvusStatusSyncer(ctx, mgr.GetClient(), logger.WithName("status-syncer"))
 
 	controller := &MilvusReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		logger:       logger.WithName("milvus"),
-		helmSettings: settings,
-		statusSyncer: statusSyncer,
+		Client:         mgr.GetClient(),
+		Scheme:         mgr.GetScheme(),
+		logger:         logger.WithName("milvus"),
+		helmReconciler: helmReconciler,
+		statusSyncer:   statusSyncer,
 	}
 	if err := controller.SetupWithManager(mgr); err != nil {
 		logger.Error(err, "unable to setup milvus controller with manager", "controller", "MilvusCluster")

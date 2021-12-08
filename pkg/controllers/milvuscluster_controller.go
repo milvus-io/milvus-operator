@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"helm.sh/helm/v3/pkg/cli"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -46,7 +45,6 @@ type MilvusClusterReconciler struct {
 	client.Client
 	Scheme         *runtime.Scheme
 	logger         logr.Logger
-	helmSettings   *cli.EnvSettings
 	helmReconciler HelmReconciler
 	statusSyncer   *MilvusClusterStatusSyncer
 }

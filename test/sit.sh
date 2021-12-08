@@ -5,7 +5,7 @@
 # utils
 export LOG_PATH=/tmp/sit.log
 log() {
-    echo "$(date +"%Y-%m-%d %H:%M:%S") $1" >> $LOG_PATH
+    echo "$(date +"%Y-%m-%d %H:%M:%S") $1"
 }
 
 # milvus cluster cases:
@@ -23,7 +23,7 @@ case_create_delete_cluster(){
         if [ "$CR_STATUS" = "Healthy" ]; then
             break
         fi
-        log "$(date +"%Y-%m-%d %H:%M:%S") MilvusCluster status: $CR_STATUS"
+        log "MilvusCluster status: $CR_STATUS"
         ATTEMPTS=$((ATTEMPTS + 1))
         sleep 10
     done
@@ -35,7 +35,7 @@ case_create_delete_cluster(){
     fi
 
     # Delete CR
-    log "Deleting MilvusCluster ..." >> $LOG_PATH
+    log "Deleting MilvusCluster ..."
     kubectl delete -f test/min-mc.yaml
 }
 
@@ -55,7 +55,7 @@ case_create_delete_milvus(){
         if [ "$CR_STATUS" = "Healthy" ]; then
             break
         fi
-        log "$(date +"%Y-%m-%d %H:%M:%S") Milvus status: $CR_STATUS"
+        log "Milvus status: $CR_STATUS"
         ATTEMPTS=$((ATTEMPTS + 1))
         sleep 10
     done
@@ -67,16 +67,9 @@ case_create_delete_milvus(){
     fi
 
     # Delete CR
-    log "Deleting Milvus ..." >> $LOG_PATH
+    log "Deleting Milvus ..."
     kubectl delete -f test/min-milvus.yaml
 }
-
-# test case start banner
-echo "==============================="
-echo "System Integration Test Start"
-echo "==============================="
-echo "log can be found in $LOG_PATH"
-echo "" > $LOG_PATH
 
 success=0
 count=0
@@ -91,7 +84,7 @@ echo "Running total: ${#cases[@]} CASES"
 # run each test case in sequence
 for case in "${cases[@]}"; do
     echo "Running CASE[$count]: $case ..."
-    $case >> $LOG_PATH
+    $case
     if [ $? -eq 0 ]; then
         echo "$case [success]"
         success=$((success + 1))
@@ -111,9 +104,5 @@ if [ $success -eq $count ]; then
     exit 0
 else
     echo "$success of $count tests passed"
-    echo "==============================="
-    echo "Detail Logs"
-    echo "==============================="
-    cat $LOG_PATH
     exit 1
 fi
