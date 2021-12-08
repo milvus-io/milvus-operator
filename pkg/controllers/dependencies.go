@@ -13,29 +13,48 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 )
 
+//go:generate mockgen -package=controllers -source=dependencies.go -destination=dependencies_mock.go HelmReconciler
+
 const (
 	EtcdChart   = "config/assets/charts/etcd"
 	MinioChart  = "config/assets/charts/minio"
 	PulsarChart = "config/assets/charts/pulsar"
 )
 
-func NewHelmCfg(helmSettings *cli.EnvSettings, logger logr.Logger, namespace string) (*action.Configuration, error) {
-	cfg := new(action.Configuration)
-	helmLogger := func(format string, v ...interface{}) {
-		logger.WithName("helm").Info(fmt.Sprintf(format, v...))
-	}
-	if err := cfg.Init(helmSettings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), helmLogger); err != nil {
-		return nil, err
-	}
-
-	return cfg, nil
+// HelmReconciler reconciles Helm releases
+type HelmReconciler interface {
+	NewHelmCfg(namespace string) *action.Configuration
+	Reconcile(ctx context.Context, request helm.ChartRequest) error
 }
 
-func ReconcileHelm(ctx context.Context, helmSettings *cli.EnvSettings, logger logr.Logger, request helm.ChartRequest) error {
-	cfg, err := NewHelmCfg(helmSettings, logger, request.Namespace)
-	if err != nil {
-		return err
+// LocalHelmReconciler implements HelmReconciler at local
+type LocalHelmReconciler struct {
+	helmSettings *cli.EnvSettings
+	logger       logr.Logger
+}
+
+func NewLocalHelmReconciler(helmSettings *cli.EnvSettings, logger logr.Logger) HelmReconciler {
+	return &LocalHelmReconciler{
+		helmSettings: helmSettings,
+		logger:       logger,
 	}
+}
+
+func (l LocalHelmReconciler) NewHelmCfg(namespace string) *action.Configuration {
+	cfg := new(action.Configuration)
+	helmLogger := func(format string, v ...interface{}) {
+		l.logger.Info(fmt.Sprintf(format, v...))
+	}
+
+	// cfg.Init will never return err, only panic if bad driver
+	cfg.Init(l.helmSettings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), helmLogger)
+
+	return cfg
+}
+
+// ReconcileHelm reconciles Helm releases
+func (l LocalHelmReconciler) Reconcile(ctx context.Context, request helm.ChartRequest) error {
+	cfg := l.NewHelmCfg(request.Namespace)
 
 	exist, err := helm.ReleaseExist(cfg, request.ReleaseName)
 	if err != nil {
@@ -82,7 +101,7 @@ func (r *MilvusClusterReconciler) ReconcileEtcd(ctx context.Context, mc v1alpha1
 		Values:      mc.Spec.Dep.Etcd.InCluster.Values.Data,
 	}
 
-	return ReconcileHelm(ctx, r.helmSettings, r.logger, request)
+	return r.helmReconciler.Reconcile(ctx, request)
 }
 
 func (r *MilvusClusterReconciler) ReconcilePulsar(ctx context.Context, mc v1alpha1.MilvusCluster) error {
@@ -97,7 +116,7 @@ func (r *MilvusClusterReconciler) ReconcilePulsar(ctx context.Context, mc v1alph
 		Values:      mc.Spec.Dep.Pulsar.InCluster.Values.Data,
 	}
 
-	return ReconcileHelm(ctx, r.helmSettings, r.logger, request)
+	return r.helmReconciler.Reconcile(ctx, request)
 }
 
 func (r *MilvusClusterReconciler) ReconcileMinio(ctx context.Context, mc v1alpha1.MilvusCluster) error {
@@ -112,7 +131,7 @@ func (r *MilvusClusterReconciler) ReconcileMinio(ctx context.Context, mc v1alpha
 		Values:      mc.Spec.Dep.Storage.InCluster.Values.Data,
 	}
 
-	return ReconcileHelm(ctx, r.helmSettings, r.logger, request)
+	return r.helmReconciler.Reconcile(ctx, request)
 }
 
 func (r *MilvusReconciler) ReconcileEtcd(ctx context.Context, mil v1alpha1.Milvus) error {
@@ -127,7 +146,7 @@ func (r *MilvusReconciler) ReconcileEtcd(ctx context.Context, mil v1alpha1.Milvu
 		Values:      mil.Spec.Dep.Etcd.InCluster.Values.Data,
 	}
 
-	return ReconcileHelm(ctx, r.helmSettings, r.logger, request)
+	return r.helmReconciler.Reconcile(ctx, request)
 }
 
 func (r *MilvusReconciler) ReconcileMinio(ctx context.Context, mil v1alpha1.Milvus) error {
@@ -142,5 +161,5 @@ func (r *MilvusReconciler) ReconcileMinio(ctx context.Context, mil v1alpha1.Milv
 		Values:      mil.Spec.Dep.Storage.InCluster.Values.Data,
 	}
 
-	return ReconcileHelm(ctx, r.helmSettings, r.logger, request)
+	return r.helmReconciler.Reconcile(ctx, request)
 }

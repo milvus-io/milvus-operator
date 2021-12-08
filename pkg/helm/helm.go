@@ -22,7 +22,10 @@ func NeedUpdate(status release.Status) bool {
 		status == release.StatusUninstalled
 }
 
-func GetStatus(cfg *action.Configuration, releaseName string) (release.Status, error) {
+// LocalClient is the local implementation of the Client interface.
+type LocalClient struct{}
+
+func (d *LocalClient) GetStatus(cfg *action.Configuration, releaseName string) (release.Status, error) {
 	client := action.NewStatus(cfg)
 	rel, err := client.Run(releaseName)
 	if err != nil {
@@ -32,7 +35,7 @@ func GetStatus(cfg *action.Configuration, releaseName string) (release.Status, e
 	return rel.Info.Status, nil
 }
 
-func GetValues(cfg *action.Configuration, releaseName string) (map[string]interface{}, error) {
+func (d *LocalClient) GetValues(cfg *action.Configuration, releaseName string) (map[string]interface{}, error) {
 	client := action.NewGetValues(cfg)
 	vals, err := client.Run(releaseName)
 	if err != nil {
@@ -46,7 +49,7 @@ func GetValues(cfg *action.Configuration, releaseName string) (map[string]interf
 	return vals, nil
 }
 
-func ReleaseExist(cfg *action.Configuration, releaseName string) (bool, error) {
+func (d *LocalClient) ReleaseExist(cfg *action.Configuration, releaseName string) (bool, error) {
 	histClient := action.NewHistory(cfg)
 	histClient.Max = 1
 	_, err := histClient.Run(releaseName)
@@ -57,19 +60,19 @@ func ReleaseExist(cfg *action.Configuration, releaseName string) (bool, error) {
 	return err == nil, err
 }
 
-func Upgrade(cfg *action.Configuration, request ChartRequest) error {
+func (d *LocalClient) Upgrade(cfg *action.Configuration, request ChartRequest) error {
 	exist, err := ReleaseExist(cfg, request.ReleaseName)
 	if err != nil {
 		return err
 	}
 	if !exist {
-		return Install(cfg, request)
+		return d.Install(cfg, request)
 	}
 
-	return Update(cfg, request)
+	return d.Update(cfg, request)
 }
 
-func Update(cfg *action.Configuration, request ChartRequest) error {
+func (d *LocalClient) Update(cfg *action.Configuration, request ChartRequest) error {
 	client := action.NewUpgrade(cfg)
 	client.Namespace = request.Namespace
 	chartRequested, err := loader.Load(request.Chart)
@@ -84,7 +87,7 @@ func Update(cfg *action.Configuration, request ChartRequest) error {
 	return err
 }
 
-func Install(cfg *action.Configuration, request ChartRequest) error {
+func (d *LocalClient) Install(cfg *action.Configuration, request ChartRequest) error {
 	client := action.NewInstall(cfg)
 	client.ReleaseName = request.ReleaseName
 	client.Namespace = request.Namespace
@@ -101,7 +104,7 @@ func Install(cfg *action.Configuration, request ChartRequest) error {
 	return err
 }
 
-func Uninstall(cfg *action.Configuration, releaseName string) error {
+func (d *LocalClient) Uninstall(cfg *action.Configuration, releaseName string) error {
 	_, err := cfg.Releases.History(releaseName)
 	if errors.Is(err, driver.ErrReleaseNotFound) {
 		return nil

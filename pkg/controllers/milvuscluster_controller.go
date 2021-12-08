@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"helm.sh/helm/v3/pkg/cli"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -44,10 +43,10 @@ const (
 // MilvusClusterReconciler reconciles a MilvusCluster object
 type MilvusClusterReconciler struct {
 	client.Client
-	Scheme       *runtime.Scheme
-	logger       logr.Logger
-	helmSettings *cli.EnvSettings
-	statusSyncer *MilvusClusterStatusSyncer
+	Scheme         *runtime.Scheme
+	logger         logr.Logger
+	helmReconciler HelmReconciler
+	statusSyncer   *MilvusClusterStatusSyncer
 }
 
 //+kubebuilder:rbac:groups=milvus.io,resources=milvusclusters,verbs=get;list;watch;create;update;patch;delete

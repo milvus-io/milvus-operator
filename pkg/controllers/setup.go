@@ -22,16 +22,17 @@ func SetupControllers(ctx context.Context, mgr manager.Manager, enableHook bool)
 	config := getter.(*genericclioptions.ConfigFlags)
 	insecure := true
 	config.Insecure = &insecure
+	helmReconciler := NewLocalHelmReconciler(settings, logger.WithName("helm"))
 
 	// should be run after mgr started to make sure the client is ready
 	clusterStatusSyncer := NewMilvusClusterStatusSyncer(ctx, mgr.GetClient(), logger.WithName("status-syncer"))
 
 	clusterController := &MilvusClusterReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		logger:       logger.WithName("milvus-cluster"),
-		helmSettings: settings,
-		statusSyncer: clusterStatusSyncer,
+		Client:         mgr.GetClient(),
+		Scheme:         mgr.GetScheme(),
+		logger:         logger.WithName("milvus-cluster"),
+		helmReconciler: helmReconciler,
+		statusSyncer:   clusterStatusSyncer,
 	}
 
 	if err := clusterController.SetupWithManager(mgr); err != nil {
@@ -43,11 +44,11 @@ func SetupControllers(ctx context.Context, mgr manager.Manager, enableHook bool)
 	statusSyncer := NewMilvusStatusSyncer(ctx, mgr.GetClient(), logger.WithName("status-syncer"))
 
 	controller := &MilvusReconciler{
-		Client:       mgr.GetClient(),
-		Scheme:       mgr.GetScheme(),
-		logger:       logger.WithName("milvus"),
-		helmSettings: settings,
-		statusSyncer: statusSyncer,
+		Client:         mgr.GetClient(),
+		Scheme:         mgr.GetScheme(),
+		logger:         logger.WithName("milvus"),
+		helmReconciler: helmReconciler,
+		statusSyncer:   statusSyncer,
 	}
 	if err := controller.SetupWithManager(mgr); err != nil {
 		logger.Error(err, "unable to setup milvus controller with manager", "controller", "MilvusCluster")

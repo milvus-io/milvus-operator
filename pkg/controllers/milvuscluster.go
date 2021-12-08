@@ -18,10 +18,6 @@ func IsClusterSetDefaultDone(mc *v1alpha1.MilvusCluster) bool {
 	return mc.Status.Status != ""
 }
 
-func IsSetDefaultDone(mc *v1alpha1.Milvus) bool {
-	return mc.Status.Status != ""
-}
-
 // SetDefaultStatus update status if default not set; return true if updated, return false if not, return err if update failed
 func (r *MilvusClusterReconciler) SetDefaultStatus(ctx context.Context, mc *v1alpha1.MilvusCluster) (bool, error) {
 	if mc.Status.Status == "" {
@@ -50,17 +46,14 @@ func (r *MilvusClusterReconciler) SetDefault(ctx context.Context, mc *v1alpha1.M
 }
 
 func (r *MilvusClusterReconciler) ReconcileAll(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	g, gtx := NewGroup(ctx)
-	g.Go(WarppedReconcileFunc(r.ReconcileEtcd, gtx, mc))
-	g.Go(WarppedReconcileFunc(r.ReconcilePulsar, gtx, mc))
-	g.Go(WarppedReconcileFunc(r.ReconcileMinio, gtx, mc))
-	g.Go(WarppedReconcileFunc(r.ReconcileMilvus, gtx, mc))
-
-	if err := g.Wait(); err != nil {
-		return fmt.Errorf("reconcile milvus: %w", err)
+	clusterReconcilers := []MilvusClusterReconcileFunc{
+		r.ReconcileEtcd,
+		r.ReconcilePulsar,
+		r.ReconcileMinio,
+		r.ReconcileMilvus,
 	}
-
-	return nil
+	err := defaultGroupReconciler.ReconcileMilvusCluster(ctx, clusterReconcilers, mc)
+	return errors.Wrap(err, "reconcile milvuscluster")
 }
 
 func (r *MilvusClusterReconciler) ReconcileMilvus(ctx context.Context, mc v1alpha1.MilvusCluster) error {
@@ -72,15 +65,13 @@ func (r *MilvusClusterReconciler) ReconcileMilvus(ctx context.Context, mc v1alph
 		return fmt.Errorf("configmap: %w", err)
 	}
 
-	g, gtx := NewGroup(ctx)
-	g.Go(WarppedReconcileFunc(r.ReconcileDeployments, gtx, mc))
-	g.Go(WarppedReconcileFunc(r.ReconcileServices, gtx, mc))
-	g.Go(WarppedReconcileFunc(r.ReconcilePodMonitor, gtx, mc))
-	if err := g.Wait(); err != nil {
-		return fmt.Errorf("components: %w", err)
+	comReconcilers := []MilvusClusterReconcileFunc{
+		r.ReconcileDeployments,
+		r.ReconcileServices,
+		r.ReconcilePodMonitor,
 	}
-
-	return nil
+	err := defaultGroupReconciler.ReconcileMilvusCluster(ctx, comReconcilers, mc)
+	return errors.Wrap(err, "reconcile milvuscluster")
 }
 
 func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.MilvusCluster) error {
@@ -97,10 +88,7 @@ func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.Milv
 	}
 
 	if len(deletingReleases) > 0 {
-		cfg, err := NewHelmCfg(r.helmSettings, r.logger, mc.Namespace)
-		if err != nil {
-			return err
-		}
+		cfg := r.helmReconciler.NewHelmCfg(mc.Namespace)
 
 		errs := []error{}
 		for releaseName, deletePVC := range deletingReleases {
@@ -118,6 +106,7 @@ func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.Milv
 					}),
 				}); err != nil {
 					errs = append(errs, err)
+					continue
 				}
 
 				for _, pvc := range pvcList.Items {

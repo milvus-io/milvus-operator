@@ -8,6 +8,7 @@ import (
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/milvus-io/milvus-operator/pkg/util"
+	"helm.sh/helm/v3/pkg/cli"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrlRuntime "sigs.k8s.io/controller-runtime"
@@ -38,6 +39,8 @@ func newMilvusTestEnv(t *testing.T) *milvusTestEnv {
 			Name:      "n",
 		},
 	}
+	inst.Spec.Dep.Etcd.InCluster = new(v1alpha1.InClusterConfig)
+	inst.Spec.Dep.Storage.InCluster = new(v1alpha1.InClusterConfig)
 	return &milvusTestEnv{
 		MockClient: mockClient,
 		Ctrl:       ctrl,
@@ -72,6 +75,9 @@ func newClusterTestEnv(t *testing.T) *clusterTestEnv {
 			Name:      "mc",
 		},
 	}
+	inst.Spec.Dep.Etcd.InCluster = new(v1alpha1.InClusterConfig)
+	inst.Spec.Dep.Storage.InCluster = new(v1alpha1.InClusterConfig)
+	inst.Spec.Dep.Pulsar.InCluster = new(v1alpha1.InClusterConfig)
 	return &clusterTestEnv{
 		MockClient: mockClient,
 		Ctrl:       ctrl,
@@ -87,10 +93,13 @@ func newClusterReconcilerForTest(ctrl *gomock.Controller) *MilvusClusterReconcil
 	logger := ctrlRuntime.Log.WithName("test")
 	scheme := runtime.NewScheme()
 	v1alpha1.AddToScheme(scheme)
+	helmSetting := cli.New()
+	helm := NewLocalHelmReconciler(helmSetting, logger)
 	r := MilvusClusterReconciler{
-		Client: mockClient,
-		logger: logger,
-		Scheme: scheme,
+		Client:         mockClient,
+		logger:         logger,
+		Scheme:         scheme,
+		helmReconciler: helm,
 	}
 	return &r
 }
@@ -101,10 +110,13 @@ func newMilvusReconcilerForTest(ctrl *gomock.Controller) *MilvusReconciler {
 	logger := ctrlRuntime.Log.WithName("test")
 	scheme := runtime.NewScheme()
 	v1alpha1.AddToScheme(scheme)
+	helmSetting := cli.New()
+	helm := NewLocalHelmReconciler(helmSetting, logger)
 	r := MilvusReconciler{
-		Client: mockClient,
-		logger: logger,
-		Scheme: scheme,
+		Client:         mockClient,
+		logger:         logger,
+		Scheme:         scheme,
+		helmReconciler: helm,
 	}
 	return &r
 }
