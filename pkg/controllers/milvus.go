@@ -91,28 +91,28 @@ func (r *MilvusReconciler) SetDefaultStatus(ctx context.Context, mc *v1alpha1.Mi
 }
 
 func (r *MilvusReconciler) ReconcileAll(ctx context.Context, mil v1alpha1.Milvus) error {
-	milvusReconcilers := []MilvusReconcileFunc{
+	milvusReconcilers := []Func{
 		r.ReconcileEtcd,
 		r.ReconcileMinio,
 		r.ReconcileMilvus,
 	}
-	err := defaultGroupReconciler.ReconcileMilvus(ctx, milvusReconcilers, mil)
+	err := defaultGroupRunner.Run(milvusReconcilers, ctx, mil)
 	return errors.Wrap(err, "reconcile milvus")
 }
 
 func (r *MilvusReconciler) ReconcileMilvus(ctx context.Context, mil v1alpha1.Milvus) error {
-	if !IsDependencyReady(mil.Status) {
+	if !IsDependencyReady(mil.Status.Conditions, false) {
 		return nil
 	}
 
 	if err := r.ReconcileConfigMaps(ctx, mil); err != nil {
 		return errors.Wrap(err, "configmap")
 	}
-	milvusComsReconcilers := []MilvusReconcileFunc{
+	milvusComsReconcilers := []Func{
 		r.ReconcileDeployments,
 		r.ReconcileServices,
 		r.ReconcilePodMonitor,
 	}
-	err := defaultGroupReconciler.ReconcileMilvus(ctx, milvusComsReconcilers, mil)
+	err := defaultGroupRunner.Run(milvusComsReconcilers, ctx, mil)
 	return errors.Wrap(err, "reconcile components")
 }

@@ -117,10 +117,10 @@ func TestCluster_ReconcileAll(t *testing.T) {
 	ctx := env.ctx
 	m := env.Inst
 
-	mockGroup := NewMockGroupReconciler(env.Ctrl)
-	defaultGroupReconciler = mockGroup
+	mockGroup := NewMockGroupRunner(env.Ctrl)
+	defaultGroupRunner = mockGroup
 
-	mockGroup.EXPECT().ReconcileMilvusCluster(gomock.Any(), gomock.Len(4), m)
+	mockGroup.EXPECT().Run(gomock.Len(4), gomock.Any(), m)
 
 	err := r.ReconcileAll(ctx, m)
 	assert.NoError(t, err)
@@ -139,8 +139,8 @@ func TestCluster_ReconcileMilvus(t *testing.T) {
 	assert.NoError(t, err)
 
 	// dep ready
-	mockGroup := NewMockGroupReconciler(env.Ctrl)
-	defaultGroupReconciler = mockGroup
+	mockGroup := NewMockGroupRunner(env.Ctrl)
+	defaultGroupRunner = mockGroup
 
 	m.Status.Conditions = []v1alpha1.MilvusCondition{
 		{
@@ -167,7 +167,7 @@ func TestCluster_ReconcileMilvus(t *testing.T) {
 			Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")),
 		mockClient.EXPECT().
 			Create(gomock.Any(), gomock.Any()).Return(nil),
-		mockGroup.EXPECT().ReconcileMilvus(gomock.Any(), gomock.Len(3), m),
+		mockGroup.EXPECT().Run(gomock.Len(3), gomock.Any(), m),
 	)
 
 	err = r.ReconcileMilvus(ctx, m)

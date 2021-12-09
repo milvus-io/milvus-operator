@@ -1,13 +1,17 @@
 package controllers
 
 import (
+	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 func TestNamespacedName(t *testing.T) {
@@ -364,10 +368,10 @@ func TestIsDependencyReady(t *testing.T) {
 			},
 		},
 	}
-	assert.False(t, IsDependencyReady(status))
+	assert.False(t, IsDependencyReady(status.Conditions, false))
 	// all ready -> ready
 	status.Conditions[1].Status = corev1.ConditionTrue
-	assert.True(t, IsDependencyReady(status))
+	assert.True(t, IsDependencyReady(status.Conditions, false))
 }
 
 func TestUpdateClusterCondition(t *testing.T) {
@@ -480,4 +484,18 @@ func TestInt32Ptr(t *testing.T) {
 
 func TestGetFuncName(t *testing.T) {
 	assert.Contains(t, getFuncName(getFuncName), "getFuncName")
+}
+
+func TestLoopWithInterval(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	callCnt := 0
+	loopFunc := func() error {
+		callCnt++
+		return errors.New("test")
+	}
+	logger := logf.Log.WithName("test")
+	go LoopWithInterval(ctx, loopFunc, time.Second/10, logger)
+	time.Sleep(time.Second)
+	assert.Less(t, 9, callCnt)
 }
