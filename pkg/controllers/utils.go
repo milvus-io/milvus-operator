@@ -1,12 +1,15 @@
 package controllers
 
 import (
+	"context"
 	_ "crypto/sha256"
 	"fmt"
 	"reflect"
 	"runtime"
 	"strings"
+	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
@@ -283,31 +286,27 @@ func GetConditionStatus(b bool) corev1.ConditionStatus {
 }
 
 func IsClusterDependencyReady(status v1alpha1.MilvusClusterStatus) bool {
-	ready := 0
-	for _, c := range status.Conditions {
-		if c.Type == v1alpha1.EtcdReady ||
-			c.Type == v1alpha1.PulsarReady ||
-			c.Type == v1alpha1.StorageReady {
-			if c.Status == corev1.ConditionTrue {
-				ready++
-			}
-		}
-	}
-
-	return ready == 3
+	return IsDependencyReady(status.Conditions, true)
 }
 
-func IsDependencyReady(status v1alpha1.MilvusStatus) bool {
+func IsDependencyReady(conditions []v1alpha1.MilvusCondition, isCluster bool) bool {
 	ready := 0
-	for _, c := range status.Conditions {
-		if c.Type == v1alpha1.EtcdReady ||
-			c.Type == v1alpha1.StorageReady {
-			if c.Status == corev1.ConditionTrue {
+	for _, c := range conditions {
+		if c.Status != corev1.ConditionTrue {
+			continue
+		}
+		switch c.Type {
+		case v1alpha1.EtcdReady, v1alpha1.StorageReady:
+			ready++
+		case v1alpha1.PulsarReady:
+			if isCluster {
 				ready++
 			}
 		}
 	}
-
+	if isCluster {
+		return ready == 3
+	}
 	return ready == 2
 }
 
@@ -394,4 +393,23 @@ func getFuncName(i interface{}) string {
 		return splited[length-1]
 	}
 	return splited[0]
+}
+
+func LoopWithInterval(ctx context.Context, loopFunc func() error, interval time.Duration, logger logr.Logger) {
+	funcName := getFuncName(loopFunc)
+	logger.Info("setup loop", "func", funcName, "interval", interval.String())
+	ticker := time.NewTicker(interval)
+	for {
+		logger.Info("loopfunc run", "func", funcName)
+		err := loopFunc()
+		if err != nil {
+			logger.Error(err, "loopFunc err", "func", funcName)
+		}
+		logger.Info("loopfunc end", "func", funcName)
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+	}
 }

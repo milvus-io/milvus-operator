@@ -88,22 +88,6 @@ func (g *Group) Wait() error {
 	return nil
 }
 
-func WarppedReconcileFunc(
-	f func(context.Context, v1alpha1.MilvusCluster) error,
-	ctx context.Context, mc v1alpha1.MilvusCluster) func() error {
-	return func() error {
-		return f(ctx, mc)
-	}
-}
-
-func WrappedReconcileMilvus(
-	f func(context.Context, v1alpha1.Milvus) error,
-	ctx context.Context, mil v1alpha1.Milvus) func() error {
-	return func() error {
-		return f(ctx, mil)
-	}
-}
-
 func WarppedReconcileComponentFunc(
 	f func(context.Context, v1alpha1.MilvusCluster, MilvusComponent) error,
 	ctx context.Context, mc v1alpha1.MilvusCluster, c MilvusComponent) func() error {

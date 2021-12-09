@@ -46,13 +46,13 @@ func (r *MilvusClusterReconciler) SetDefault(ctx context.Context, mc *v1alpha1.M
 }
 
 func (r *MilvusClusterReconciler) ReconcileAll(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	clusterReconcilers := []MilvusClusterReconcileFunc{
+	clusterReconcilers := []Func{
 		r.ReconcileEtcd,
 		r.ReconcilePulsar,
 		r.ReconcileMinio,
 		r.ReconcileMilvus,
 	}
-	err := defaultGroupReconciler.ReconcileMilvusCluster(ctx, clusterReconcilers, mc)
+	err := defaultGroupRunner.Run(clusterReconcilers, ctx, mc)
 	return errors.Wrap(err, "reconcile milvuscluster")
 }
 
@@ -65,12 +65,12 @@ func (r *MilvusClusterReconciler) ReconcileMilvus(ctx context.Context, mc v1alph
 		return fmt.Errorf("configmap: %w", err)
 	}
 
-	comReconcilers := []MilvusClusterReconcileFunc{
+	comReconcilers := []Func{
 		r.ReconcileDeployments,
 		r.ReconcileServices,
 		r.ReconcilePodMonitor,
 	}
-	err := defaultGroupReconciler.ReconcileMilvusCluster(ctx, comReconcilers, mc)
+	err := defaultGroupRunner.Run(comReconcilers, ctx, mc)
 	return errors.Wrap(err, "reconcile milvuscluster")
 }
 
