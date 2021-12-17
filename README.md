@@ -15,10 +15,60 @@ The Milvus Operator provides an easy and solid solution to deploy and manage a f
 
 # Getting started
 ## Deploy milvus operator
-See [instructions on how to install/uninstall milvus operator](docs/installation/installation.md)
+```shell
+kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.3/cert-manager.yaml
+kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/deploy/manifests/deployment.yaml
+```
+
+For more infomation Check [instructions on how to install/uninstall milvus operator](docs/installation/installation.md)
 
 ## Create milvus cluster
 ```shell
 kubectl apply -f config/sameples/milvuscluster_default.yaml
 ```
+
+# Versioning
+
+Versions of the underlying components are listed below:
+
+<!-- source csv for table
+Components, Milvus, Pulsar, Etcd, MinIO
+Versions, 2.0.0-rc8 `[1]`, 2.7.3, 3.5.0,2021.10.6 -->
+
+|Components| Milvus| Pulsar| Etcd| MinIO|
+|---|---|---|---|---|
+|Versions| 2.0.0-rc8 `[1]`| 2.7.3| 3.5.0|2021.10.6|
+
+
+**NOTES:**
+
+`[1]` Version of milvus is the default version we will use, you can set it to other version. The Compatibility with milvus releases is showed below.
+
+## Compatibility With Milvus Releases
+
+<!-- source csv for table
+Milvus Versions, 1.x, 2.0.0-rc1-2.0.0-rc8
+Compatibility, :heavy_multiplication_x:, :heavy_check_mark: -->
+
+|Milvus Versions| 1.x| 2.0.0-rc1-2.0.0-rc8|
+|---|---|---|
+|Compatibility| :heavy_multiplication_x:| :heavy_check_mark:|
+
+
+
+**NOTES:**
+
+  :heavy_check_mark: : support
+  :heavy_multiplication_x: : not support
+
+
+# Documentation
+- [How it works](docs/arch/arch.md)
+- [Installation](docs/installation/installation.md)
+- [How to configure the MilvusCluster](docs/CRD/milvus-cluster.md)
+- How to configure dependencies:
+    - [etcd](config/assets/charts/etcd/README.md)
+    - [minio](config/assets/charts/minio/README.md)
+    - [pulsar](config/assets/charts/pulsar/README.md)
+- [Install KinD for development](docs/installation/kind-installation.md)
 
