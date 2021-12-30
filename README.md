@@ -24,7 +24,7 @@ For more infomation Check [instructions on how to install/uninstall milvus opera
 
 ## Create milvus cluster
 ```shell
-kubectl apply -f config/sameples/milvuscluster_default.yaml
+kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/config/samples/milvuscluster_default.yaml
 ```
 
 # Versioning
