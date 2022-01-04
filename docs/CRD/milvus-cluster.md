@@ -51,7 +51,7 @@ spec:
     # Components global specifications
     
     # Global image name for milvus components. It will override the default one. Default is determined by operator version
-    image: milvusdb/milvus:v2.0.0-rc8-20211104-d1f4106 # Optional
+    image: milvusdb/milvus:v2.0.0-pre-ga # Optional
 
     # Global image pull policy. It will override the the default one.
     imagePullPolicy: IfNotPresent # Optional, default = IfNotPresent
@@ -132,7 +132,7 @@ spec:
       port: 8080 # Optional
 
       # Private Component Spec fields overrides the global ones
-      image: milvusdb/milvus:v2.0.0-rc8-20211104-d1f4106 # Optional=
+      image: milvusdb/milvus:v2.0.0-pre-ga # Optional=
       imagePullPolicy: IfNotPresent # Optional
       imagePullSecrets: # Optional
       - name: mySecret

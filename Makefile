@@ -167,7 +167,7 @@ kind: ## Download kind locally if necessary.
 ##@ system integration test
 sit-prepare-images:
 	docker build -t ${SIT_IMG} .
-	docker pull -q milvusdb/milvus:v2.0.0-rc8-20211104-d1f4106
+	docker pull -q milvusdb/milvus:v2.0.0-pre-ga
 	docker pull -q apachepulsar/pulsar:2.7.3
 	docker pull -q bitnami/etcd:3.5.0-debian-10-r24
 	docker pull -q bitnami/minio:2021.10.6-debian-10-r0
@@ -177,7 +177,7 @@ sit-prepare-images:
 	docker pull -q quay.io/jetstack/cert-manager-cainjector:v1.5.3
 
 sit-load-images:
-	kind load docker-image milvusdb/milvus:v2.0.0-rc8-20211104-d1f4106
+	kind load docker-image milvusdb/milvus:v2.0.0-pre-ga
 	kind load docker-image apachepulsar/pulsar:2.7.3
 	kind load docker-image bitnami/etcd:3.5.0-debian-10-r24
 	kind load docker-image bitnami/minio:2021.10.6-debian-10-r0
