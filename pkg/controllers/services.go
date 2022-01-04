@@ -2,7 +2,8 @@ package controllers
 
 import (
 	"context"
-	"fmt"
+
+	pkgerr "github.com/pkg/errors"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -77,16 +78,8 @@ func (r *MilvusClusterReconciler) ReconcileComponentService(
 }
 
 func (r *MilvusClusterReconciler) ReconcileServices(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	g, gtx := NewGroup(ctx)
-	for _, component := range MilvusComponents {
-		g.Go(WarppedReconcileComponentFunc(r.ReconcileComponentService, gtx, mc, component))
-	}
-
-	if err := g.Wait(); err != nil {
-		return fmt.Errorf("reconcile milvus services: %w", err)
-	}
-
-	return nil
+	err := r.ReconcileComponentService(ctx, mc, Proxy)
+	return pkgerr.Wrap(err, "reconcile milvus services")
 }
 
 func (r *MilvusReconciler) ReconcileServices(ctx context.Context, mil v1alpha1.Milvus) error {

@@ -33,9 +33,9 @@ func TestClusterReconciler_ReconcileServices_CreateIfNotExist(t *testing.T) {
 	m.Default()
 
 	mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")).Times(5)
+		Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")).Times(1)
 
-	mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Times(5)
+	mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Times(1)
 
 	err := r.ReconcileServices(ctx, m)
 	assert.NoError(t, err)
@@ -64,9 +64,9 @@ func TestClusterReconciler_ReconcileServices_UpdateIfExisted(t *testing.T) {
 			s.Namespace = "ns"
 			s.Name = "cm1"
 			return nil
-		}).Times(5)
+		}).Times(1)
 
-	mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Times(5)
+	mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1)
 
 	err := r.ReconcileServices(ctx, m)
 	assert.NoError(t, err)
