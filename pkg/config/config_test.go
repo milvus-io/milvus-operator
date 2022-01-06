@@ -6,7 +6,26 @@ import (
 
 	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/stretchr/testify/assert"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
+
+func TestGetVersion(t *testing.T) {
+	assert.Equal(t, version, GetVersion())
+	version = "version"
+	assert.Equal(t, "version", GetVersion())
+}
+
+func TestGetCommit(t *testing.T) {
+	commit = "commit"
+	assert.Equal(t, commit, GetCommit())
+}
+
+func TestPrintVersionMessageOK(t *testing.T) {
+	logger := ctrl.Log.WithName("test")
+	ctrl.SetLogger(zap.New())
+	PrintVersionMessage(logger)
+}
 
 func TestInit_NewConfigFailed(t *testing.T) {
 	workDir := "/a-bad-path/a-bad-path"

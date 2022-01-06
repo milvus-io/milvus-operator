@@ -1,5 +1,7 @@
 FROM golang:1.16 as builder
 
+ARG VERSION
+
 WORKDIR /workspace
 # ENV GOPROXY https://goproxy.cn
 # Copy the Go Modules manifests
@@ -19,7 +21,7 @@ COPY tool/ tool/
 COPY config/assets/ out/config/assets/
 COPY scripts/run.sh out/run.sh
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o out/manager main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-X github.com/milvus-io/milvus-operator/pkg/config.version=$VERSION" -a -o out/manager main.go
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o out/merge ./tool/merge
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o out/cp ./tool/cp
 #

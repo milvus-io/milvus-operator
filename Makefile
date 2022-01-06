@@ -3,6 +3,7 @@
 IMG ?= milvusdb/milvus-operator:dev-latest
 RELEASE_IMG ?= milvusdb/milvus-operator:latest
 SIT_IMG ?= milvus-operator:sit
+VERSION=$(shell git rev-parse --short HEAD)
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
@@ -79,12 +80,10 @@ test-only:
 	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile tmp.out; cat tmp.out | sed '/zz_generated.deepcopy.go/d' | sed '/_mock.go/d'  > cover.out
 
 ##@ Build
-
-build: generate fmt vet ## Build manager binary.
-	go build -o bin/manager main.go
+build: generate fmt vet build-only ## Build manager binary.
 
 build-only:
-	go build -o bin/manager main.go
+	go build -ldflags "-X github.com/milvus-io/milvus-operator/pkg/config.version=$(VERSION)" -o bin/manager main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
@@ -166,7 +165,7 @@ kind: ## Download kind locally if necessary.
 
 ##@ system integration test
 sit-prepare-images:
-	docker build -t ${SIT_IMG} .
+	docker build --build-arg VERSION=$(VERSION) -t ${SIT_IMG} .
 	docker pull -q milvusdb/milvus:v2.0.0-pre-ga
 	docker pull -q apachepulsar/pulsar:2.7.3
 	docker pull -q bitnami/etcd:3.5.0-debian-10-r24

@@ -4,10 +4,18 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 )
 
+var (
+	version = "0.2.5" // inject when go build through ldflag
+	commit  = ""      // inject when go build through ldflag
+)
+
 const (
+	VersionLabel = "milvus.io/operator-version"
+
 	DefaultMilvusVersion   = "v2.0.0-pre-ga"
 	DefaultMilvusBaseImage = "milvusdb/milvus"
 	DefaultMilvusImage     = DefaultMilvusBaseImage + ":" + DefaultMilvusVersion
@@ -21,6 +29,20 @@ const (
 	ChartDir            = "config/assets/charts"
 	ProviderName        = "milvus-operator"
 )
+
+// GetVersion returns the version of the operator
+func GetVersion() string {
+	return version
+}
+
+// GetCommit returns the 8byte git commit id of the operator
+func GetCommit() string {
+	return commit
+}
+
+func PrintVersionMessage(logger logr.Logger) {
+	logger.WithValues("version", version, "commit", commit, "default milvus", DefaultMilvusVersion).Info("Operator Version Info")
+}
 
 var (
 	defaultConfig *Config

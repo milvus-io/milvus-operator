@@ -25,7 +25,7 @@ jobs:
       - name: Build Docker Image
         shell: bash
         run: |
-          docker build -t ${REGISTRY_NAME}:${IMAGE_TAG} .
+          docker build --build-arg VERSION=$(git rev-parse --short HEAD) -t ${REGISTRY_NAME}:${IMAGE_TAG} .
       - name: Push Docker Image
         shell: bash
         run: |

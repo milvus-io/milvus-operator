@@ -45,7 +45,10 @@ var _ webhook.Defaulter = &Milvus{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Milvus) Default() {
-	milvuslog.Info("default", "name", r.Name)
+	if r.Labels == nil {
+		r.Labels = make(map[string]string)
+	}
+	r.Labels[config.VersionLabel] = config.GetVersion()
 
 	if r.Spec.Dep.Storage.Type == "" {
 		r.Spec.Dep.Storage.Type = "MinIO"
