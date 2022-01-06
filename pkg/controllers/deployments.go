@@ -14,12 +14,21 @@ import (
 )
 
 const (
-	MilvusConfigVolumeName   = "milvus-config"
-	MilvusConfigMountPath    = "/milvus/configs/milvus.yaml"
-	MilvusConfigMountSubPath = "milvus.yaml"
-	AccessKey                = "access-key"
-	SecretKey                = "secret-key"
-	AnnotationCheckSum       = "checksum/config"
+	MilvusConfigVolumeName       = "milvus-config"
+	MilvusOriginalConfigPath     = "/milvus/configs/milvus.yaml"
+	MilvusUserConfigMountPath    = "/milvus/configs/user.yaml"
+	MilvusUserConfigMountSubPath = "user.yaml"
+	AccessKey                    = "access-key"
+	SecretKey                    = "secret-key"
+	AnnotationCheckSum           = "checksum/config"
+
+	ToolsVolumeName = "tools"
+	ToolsMountPath  = "/milvus/tools"
+	RunScriptPath   = ToolsMountPath + "/run.sh"
+	MergeToolPath   = ToolsMountPath + "/merge"
+
+	OperatorNamespace = "milvus-operator"
+	OperatorName      = "milvus-operator-controller-manager"
 )
 
 var (
@@ -70,6 +79,10 @@ func (r *MilvusClusterReconciler) updateDeployment(
 		deployment.Spec.Selector = new(metav1.LabelSelector)
 		deployment.Spec.Selector.MatchLabels = appLabels
 	}
+
+	deployment.Spec.Template.Spec.InitContainers = []corev1.Container{
+		getInitContainer(),
+	}
 	deployment.Spec.Template.Labels = MergeLabels(deployment.Spec.Template.Labels, appLabels)
 
 	if deployment.Spec.Template.Annotations == nil {
@@ -78,23 +91,9 @@ func (r *MilvusClusterReconciler) updateDeployment(
 	deployment.Spec.Template.Annotations[AnnotationCheckSum] = GetConfCheckSum(mc.Spec)
 
 	// update configmap volume
-	volumeIdx := GetVolumeIndex(deployment.Spec.Template.Spec.Volumes, MilvusConfigVolumeName)
-	volume := corev1.Volume{
-		Name: MilvusConfigVolumeName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: mc.Name,
-				},
-				DefaultMode: &MilvusConfigMapMode,
-			},
-		},
-	}
-	if volumeIdx < 0 {
-		deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, volume)
-	} else {
-		deployment.Spec.Template.Spec.Volumes[volumeIdx] = volume
-	}
+	volumes := &deployment.Spec.Template.Spec.Volumes
+	addVolume(volumes, configVolumeByName(mc.Name))
+	addVolume(volumes, toolVolume)
 
 	// update component container
 	containerIdx := GetContainerIndex(deployment.Spec.Template.Spec.Containers, component.GetContainerName())
@@ -106,24 +105,14 @@ func (r *MilvusClusterReconciler) updateDeployment(
 		containerIdx = len(deployment.Spec.Template.Spec.Containers) - 1
 	}
 	container := &deployment.Spec.Template.Spec.Containers[containerIdx]
-	container.Args = []string{"milvus", "run", component.String()}
+	container.Args = []string{RunScriptPath, "milvus", "run", component.String()}
 	env := component.GetEnv(mc.Spec)
 	env = append(env, GetStorageSecretRefEnv(mc.Spec.Dep.Storage.SecretRef)...)
 	container.Env = MergeEnvVar(container.Env, env)
 	container.Ports = MergeContainerPort(container.Ports, component.GetContainerPorts(mc.Spec))
 
-	milvusVolumeMount := corev1.VolumeMount{
-		Name:      MilvusConfigVolumeName,
-		ReadOnly:  true,
-		MountPath: MilvusConfigMountPath,
-		SubPath:   MilvusConfigMountSubPath,
-	}
-	mountIdx := GetVolumeMountIndex(container.VolumeMounts, milvusVolumeMount.MountPath)
-	if mountIdx < 0 {
-		container.VolumeMounts = append(container.VolumeMounts, milvusVolumeMount)
-	} else {
-		container.VolumeMounts[mountIdx] = milvusVolumeMount
-	}
+	addVolumeMount(&container.VolumeMounts, configVolumeMount)
+	addVolumeMount(&container.VolumeMounts, toolVolumeMount)
 
 	container.ImagePullPolicy = component.GetImagePullPolicy(mc.Spec)
 	container.Image = component.GetImage(mc.Spec)
@@ -245,6 +234,9 @@ func (r *MilvusReconciler) updateDeployment(
 		deployment.Spec.Selector = new(metav1.LabelSelector)
 		deployment.Spec.Selector.MatchLabels = appLabels
 	}
+	deployment.Spec.Template.Spec.InitContainers = []corev1.Container{
+		getInitContainer(),
+	}
 	deployment.Spec.Template.Labels = MergeLabels(deployment.Spec.Template.Labels, appLabels)
 
 	if deployment.Spec.Template.Annotations == nil {
@@ -253,23 +245,9 @@ func (r *MilvusReconciler) updateDeployment(
 	deployment.Spec.Template.Annotations[AnnotationCheckSum] = GetMilvusConfCheckSum(mc.Spec)
 
 	// update configmap volume
-	volumeIdx := GetVolumeIndex(deployment.Spec.Template.Spec.Volumes, MilvusConfigVolumeName)
-	volume := corev1.Volume{
-		Name: MilvusConfigVolumeName,
-		VolumeSource: corev1.VolumeSource{
-			ConfigMap: &corev1.ConfigMapVolumeSource{
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: mc.Name,
-				},
-				DefaultMode: &MilvusConfigMapMode,
-			},
-		},
-	}
-	if volumeIdx < 0 {
-		deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, volume)
-	} else {
-		deployment.Spec.Template.Spec.Volumes[volumeIdx] = volume
-	}
+	volumes := &deployment.Spec.Template.Spec.Volumes
+	addVolume(volumes, configVolumeByName(mc.Name))
+	addVolume(volumes, toolVolume)
 
 	// update component container
 	containerIdx := GetContainerIndex(deployment.Spec.Template.Spec.Containers, MilvusName)
@@ -281,7 +259,7 @@ func (r *MilvusReconciler) updateDeployment(
 		containerIdx = len(deployment.Spec.Template.Spec.Containers) - 1
 	}
 	container := &deployment.Spec.Template.Spec.Containers[containerIdx]
-	container.Args = []string{"milvus", "run", "standalone"}
+	container.Args = []string{RunScriptPath, "milvus", "run", "standalone"}
 	env := mc.Spec.Env
 	env = append(env, GetStorageSecretRefEnv(mc.Spec.Dep.Storage.SecretRef)...)
 	container.Env = MergeEnvVar(container.Env, env)
@@ -298,18 +276,8 @@ func (r *MilvusReconciler) updateDeployment(
 		},
 	})
 
-	milvusVolumeMount := corev1.VolumeMount{
-		Name:      MilvusConfigVolumeName,
-		ReadOnly:  true,
-		MountPath: MilvusConfigMountPath,
-		SubPath:   MilvusConfigMountSubPath,
-	}
-	mountIdx := GetVolumeMountIndex(container.VolumeMounts, milvusVolumeMount.MountPath)
-	if mountIdx < 0 {
-		container.VolumeMounts = append(container.VolumeMounts, milvusVolumeMount)
-	} else {
-		container.VolumeMounts[mountIdx] = milvusVolumeMount
-	}
+	addVolumeMount(&container.VolumeMounts, configVolumeMount)
+	addVolumeMount(&container.VolumeMounts, toolVolumeMount)
 
 	if mc.Spec.ImagePullPolicy != nil {
 		container.ImagePullPolicy = *mc.Spec.ImagePullPolicy
@@ -323,4 +291,70 @@ func (r *MilvusReconciler) updateDeployment(
 	deployment.Spec.Template.Spec.ImagePullSecrets = mc.Spec.ImagePullSecrets
 
 	return nil
+}
+
+func addVolume(volumes *[]corev1.Volume, volume corev1.Volume) {
+	volumeIdx := GetVolumeIndex(*volumes, volume.Name)
+	if volumeIdx < 0 {
+		*volumes = append(*volumes, volume)
+	} else {
+		(*volumes)[volumeIdx] = volume
+	}
+}
+
+func addVolumeMount(volumeMounts *[]corev1.VolumeMount, volumeMount corev1.VolumeMount) {
+	volumeMountIdx := GetVolumeMountIndex(*volumeMounts, volumeMount.MountPath)
+	if volumeMountIdx < 0 {
+		*volumeMounts = append(*volumeMounts, volumeMount)
+	} else {
+		(*volumeMounts)[volumeMountIdx] = volumeMount
+	}
+}
+
+func getInitContainer() corev1.Container {
+	imageInfo := globalCommonInfo.OperatorImageInfo
+	copyToolsCommand := []string{"/cp", "/run.sh,/merge", RunScriptPath + "," + MergeToolPath}
+	return corev1.Container{
+		Name:            "config",
+		Image:           imageInfo.Image,
+		ImagePullPolicy: imageInfo.ImagePullPolicy,
+		Command:         copyToolsCommand,
+		VolumeMounts: []corev1.VolumeMount{
+			toolVolumeMount,
+		},
+	}
+}
+
+var (
+	toolVolume = corev1.Volume{
+		Name: ToolsVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			EmptyDir: &corev1.EmptyDirVolumeSource{},
+		},
+	}
+	toolVolumeMount = corev1.VolumeMount{
+		Name:      ToolsVolumeName,
+		MountPath: ToolsMountPath,
+	}
+
+	configVolumeMount = corev1.VolumeMount{
+		Name:      MilvusConfigVolumeName,
+		ReadOnly:  true,
+		MountPath: MilvusUserConfigMountPath,
+		SubPath:   MilvusUserConfigMountSubPath,
+	}
+)
+
+func configVolumeByName(name string) corev1.Volume {
+	return corev1.Volume{
+		Name: MilvusConfigVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: name,
+				},
+				DefaultMode: &MilvusConfigMapMode,
+			},
+		},
+	}
 }

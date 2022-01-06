@@ -78,6 +78,8 @@ type MilvusClusterReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.statusSyncer.RunIfNot()
+	globalCommonInfo.InitIfNot(r.Client)
+
 	if !config.IsDebug() {
 		defer func() {
 			if err := recover(); err != nil {

@@ -1,7 +1,6 @@
 package util
 
 import (
-	"encoding/json"
 	"errors"
 	"log"
 	"testing"
@@ -37,42 +36,84 @@ func TestSetStringSlice(t *testing.T) {
 	assert.Equal(t, slice[1], values[1].(string))
 }
 
-var originJson = `{
-	"a": {
-		"a1": "av1",
-		"a2": {
-			"aa2": "aav2"
-		}
+var mergeTests = []struct {
+	def       map[string]interface{}
+	overrides map[string]interface{}
+	expected  map[string]interface{}
+}{
+	{
+		def:       map[string]interface{}{"foo": "bar"},
+		overrides: map[string]interface{}{},
+		expected:  map[string]interface{}{"foo": "bar"},
 	},
-	"b": [1,2,3],
-	"c": 5
-}`
-
-var patchJson = `{
-	"a": {
-		"a2": {
-			"aa2": "patch-aav2",
-			"aa3": 123
-		}
-	}
-}`
+	{
+		def:       map[string]interface{}{"foo": "bar"},
+		overrides: map[string]interface{}{"foo": "baz"},
+		expected:  map[string]interface{}{"foo": "baz"},
+	},
+	{
+		def:       map[string]interface{}{"foo": "bar"},
+		overrides: map[string]interface{}{"foo": []string{"baz", "qux"}},
+		expected:  map[string]interface{}{"foo": []string{"baz", "qux"}},
+	},
+	{
+		def: map[string]interface{}{
+			"foo": "bar",
+			"bar": map[string]interface{}{"key": "val"},
+		},
+		overrides: map[string]interface{}{
+			"foo": "baz",
+			"bar": map[string]interface{}{"val": "key"},
+		},
+		expected: map[string]interface{}{
+			"foo": "baz",
+			"bar": map[string]interface{}{
+				"key": "val",
+				"val": "key",
+			},
+		},
+	},
+	{
+		def: map[string]interface{}{"foo": "bar"},
+		overrides: map[string]interface{}{
+			"foo": map[string]interface{}{"foo2": "bar2"},
+		},
+		expected: map[string]interface{}{
+			"foo": map[string]interface{}{"foo2": "bar2"},
+		},
+	},
+	{
+		def: map[string]interface{}{
+			"foo": map[string]interface{}{"foo2": "bar2"},
+		},
+		overrides: map[string]interface{}{"foo": "bar"},
+		expected:  map[string]interface{}{"foo": "bar"},
+	},
+	{
+		def: map[string]interface{}{
+			"etcd": map[string]interface{}{
+				"endpoint": []string{"ip1"},
+			},
+		},
+		overrides: map[string]interface{}{
+			"etcd": map[string]interface{}{
+				"endpoint": []string{"ip2", "ip3"},
+			},
+		},
+		expected: map[string]interface{}{
+			"etcd": map[string]interface{}{
+				"endpoint": []string{"ip2", "ip3"},
+			},
+		},
+	},
+}
 
 func TestMergeValues(t *testing.T) {
-	origin := map[string]interface{}{}
-	patch := map[string]interface{}{}
-	if err := json.Unmarshal([]byte(originJson), &origin); err != nil {
-		t.Error(err)
+	for i, test := range mergeTests {
+		MergeValues(test.def, test.overrides)
+		actual := test.def
+		assert.Equal(t, test.expected, actual, "Test #%d", i)
 	}
-	if err := json.Unmarshal([]byte(patchJson), &patch); err != nil {
-		t.Error(err)
-	}
-
-	MergeValues(origin, patch)
-	c, ok := origin["c"].(float64)
-	if !ok || c != 5 {
-		t.Errorf("c is not int or 5")
-	}
-
 }
 
 func TestGetHostPort(t *testing.T) {

@@ -60,6 +60,8 @@ type MilvusReconciler struct {
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.statusSyncer.RunIfNot()
+	globalCommonInfo.InitIfNot(r.Client)
+
 	if !config.IsDebug() {
 		defer func() {
 			if err := recover(); err != nil {

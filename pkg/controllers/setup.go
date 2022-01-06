@@ -2,11 +2,17 @@ package controllers
 
 import (
 	"context"
+	"sync"
 
 	milvusv1alpha1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/cli"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -67,4 +73,53 @@ func SetupControllers(ctx context.Context, mgr manager.Manager, enableHook bool)
 	}
 
 	return nil
+}
+
+// CommonInfo should be init when before time reconcile
+type CommonInfo struct {
+	OperatorImageInfo ImageInfo
+	once              sync.Once
+}
+
+// global common info singleton
+var globalCommonInfo CommonInfo
+
+func (c *CommonInfo) InitIfNot(cli client.Client) {
+	c.once.Do(func() {
+		imageInfo, err := getOperatorImageInfo(cli)
+		if err != nil {
+			logf.Log.WithName("CommonInfo").Error(err, "get operator image info fail, use default")
+			imageInfo = &DefaultOperatorImageInfo
+		}
+		c.OperatorImageInfo = *imageInfo
+	})
+}
+
+// ImageInfo for image pulling
+type ImageInfo struct {
+	Image           string
+	ImagePullPolicy corev1.PullPolicy
+}
+
+var (
+	DefaultOperatorImageInfo = ImageInfo{
+		Image:           "milvus/milvus-operator:latest",
+		ImagePullPolicy: corev1.PullAlways,
+	}
+)
+
+func getOperatorImageInfo(cli client.Client) (*ImageInfo, error) {
+	deploy := appsv1.Deployment{}
+	err := cli.Get(context.TODO(), NamespacedName(OperatorNamespace, OperatorName), &deploy)
+	if err != nil {
+		return nil, errors.Wrap(err, "get operator deployment fail")
+	}
+	if len(deploy.Spec.Template.Spec.Containers) < 1 {
+		return nil, errors.New("operator deployment has no container")
+	}
+	container := deploy.Spec.Template.Spec.Containers[0]
+	return &ImageInfo{
+		Image:           container.Image,
+		ImagePullPolicy: container.ImagePullPolicy,
+	}, nil
 }

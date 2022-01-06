@@ -15,10 +15,6 @@ import (
 	"github.com/milvus-io/milvus-operator/pkg/util"
 )
 
-const (
-	MilvusConfigYaml = "milvus.yaml"
-)
-
 func (r *MilvusClusterReconciler) getMinioAccessInfo(ctx context.Context, mc v1alpha1.MilvusCluster) (string, string) {
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: mc.Namespace, Name: mc.Spec.Dep.Storage.SecretRef}
@@ -75,7 +71,7 @@ func (r *MilvusClusterReconciler) updateConfigMap(ctx context.Context, mc v1alph
 	if configmap.Data == nil {
 		configmap.Data = make(map[string]string)
 	}
-	configmap.Data[MilvusConfigYaml] = string(milvusYaml)
+	configmap.Data[MilvusUserConfigMountSubPath] = string(milvusYaml)
 
 	return nil
 }
@@ -188,7 +184,7 @@ func (r *MilvusReconciler) updateConfigMap(ctx context.Context, mil v1alpha1.Mil
 	if configmap.Data == nil {
 		configmap.Data = make(map[string]string)
 	}
-	configmap.Data[MilvusConfigYaml] = string(milvusYaml)
+	configmap.Data[MilvusUserConfigMountSubPath] = string(milvusYaml)
 
 	return nil
 }
