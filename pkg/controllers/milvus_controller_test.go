@@ -23,6 +23,8 @@ func TestMilvusReconciler_ReconcileFinalizer(t *testing.T) {
 	r.statusSyncer = &MilvusStatusSyncer{}
 	// syncer need not to run in this test
 	r.statusSyncer.Once.Do(func() {})
+	// globalCommonInfo need not to run in this test
+	globalCommonInfo.once.Do(func() {})
 	mockClient := r.Client.(*MockK8sClient)
 
 	// case create
