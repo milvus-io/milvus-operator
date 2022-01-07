@@ -1,0 +1,12 @@
+namePrefix: '{{ include "chart.fullname" . }}-'
+
+namespace: '{{ .Release.Namespace }}'
+
+generatorOptions:
+  disableNameSuffixHash: true
+
+commonAnnotations:
+  cert-manager.io/inject-ca-from: '{{.Release.Namespace}}/{{. | include "chart.fullname"}}-serving-cert'
+
+bases:
+- ../../crd

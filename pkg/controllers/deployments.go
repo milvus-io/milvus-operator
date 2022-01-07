@@ -26,13 +26,13 @@ const (
 	ToolsMountPath  = "/milvus/tools"
 	RunScriptPath   = ToolsMountPath + "/run.sh"
 	MergeToolPath   = ToolsMountPath + "/merge"
-
-	OperatorNamespace = "milvus-operator"
-	OperatorName      = "milvus-operator-controller-manager"
 )
 
 var (
 	MilvusConfigMapMode int32 = 420
+	// set by run flag in main
+	OperatorNamespace = "milvus-operator"
+	OperatorName      = "milvus-operator-controller-manager"
 )
 
 func GetStorageSecretRefEnv(secretRef string) []corev1.EnvVar {

@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+  name: '{{ include "chart.fullname" . }}-controller-manager-metrics-service'
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  ports:
+  - name: https
+    port: 8443
+    targetPort: https
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: '{{ include "chart.fullname" . }}-webhook-service'
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  ports:
+  - port: 443
+    targetPort: webhook-server
+    protocol: TCP
+    name: https
+  selector:
+    {{- include "chart.selectorLabels" . | nindent 4 }}
