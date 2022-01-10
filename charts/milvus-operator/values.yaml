@@ -1,0 +1,184 @@
+# Default values for milvus-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+image:
+  # image.repository -- The image repository whose default is the chart appVersion.
+  repository: milvusdb/milvus-operator
+  # image.pullPolicy -- The image pull policy for the controller.
+  pullPolicy: IfNotPresent
+  # image.tag -- The image tag whose default is the chart appVersion.
+  tag: "latest"
+
+# installCRDs -- If true, CRD resources will be installed as part of the Helm chart. If enabled, when uninstalling CRD resources will be deleted causing all installed custom resources to be DELETED
+installCRDs: true
+
+nameOverride: ""
+fullnameOverride: ""
+
+# imagePullSecrets -- Reference to one or more secrets to be used when pulling images
+# <https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/>
+# For example:
+# `[
+#   {"name":"image-pull-secret"}
+# ]`
+imagePullSecrets: []
+
+# priorityClassName -- priority class to be used for the milvus-operator pods
+priorityClassName: ""
+
+leaderElection:
+  # leaderElection.namespace -- The namespace used to store the ConfigMap for leader election
+  namespace: "kube-system"
+
+rbac:
+  # rbac.create -- Whether to install Role Based Access Control
+  create: true
+
+# replicaCount -- Number of replicas for the controller
+replicaCount: 1
+
+
+# strategy -- Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#deploymentstrategy-v1-apps>
+# For example:
+# `{
+#   "type": "RollingUpdate",
+#   "rollingUpdate": {
+#     "maxSurge": 0,
+#     "maxUnavailable": 1
+#   }
+# }`
+strategy: {}
+
+serviceAccount:
+  # serviceAccount.create -- Specifies whether a service account should be created
+  create: true
+  # serviceAccount.annotations -- Annotations to add to the service account
+  annotations: {}
+  # serviceAccount.name -- The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+
+# resources -- Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#resourcerequirements-v1-core>
+resources:
+  limits:
+    cpu: 500m
+    memory: 300Mi
+  requests:
+    cpu: 300m
+    memory: 200Mi
+
+# volumes -- Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#volume-v1-core>
+# For example:
+# `[
+#   {
+#     "name": "test-volume",
+#     "awsElasticBlockStore": {
+#       "volumeID": "<volume-id>",
+#       "fsType": "ext4"
+#     }
+#   }
+# ]`
+volumes: []
+
+# volumeMounts -- Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#volumemount-v1-core>
+# For example:
+# `[
+#   {
+#     "mountPath": "/test-ebs",
+#     "name": "test-volume"
+#   }
+# ]`
+volumeMounts: []
+
+# deploymentAnnotations -- Additional annotations to add to the controller Deployment
+deploymentAnnotations: {}
+
+# podAnnotations -- Additional annotations to add to the controller Pods
+podAnnotations: {}
+
+# podLabels -- Additional labels to add to the controller Pods
+podLabels: {}
+
+# podSecurityContext -- Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#podsecuritycontext-v1-core>
+# For example:
+# `{
+#   "fsGroup": 2000,
+#   "runAsUser": 1000,
+#   "runAsNonRoot": true
+# }`
+podSecurityContext:
+  runAsUser: 65532
+  runAsNonRoot: true
+
+# allowPrivilegeEscalation -- Allow privilege escalation for the controller Pods
+allowPrivilegeEscalation: false
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+
+# autoscaling:
+#   enabled: false
+#   minReplicas: 1
+#   maxReplicas: 100
+#   targetCPUUtilizationPercentage: 80
+#   # targetMemoryUtilizationPercentage: 80
+
+# nodeSelector -- Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#nodeselector-v1-core>
+# For example:
+# `[
+#   {
+#     "matchExpressions": [
+#       {
+#         "key": "kubernetes.io/e2e-az-name",
+#         "operator": "In",
+#         "values": [
+#           "e2e-az1",
+#           "e2e-az2"
+#         ]
+#       }
+#     ]
+#   }
+# ]`
+nodeSelector: {}
+
+# tolerations -- Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#toleration-v1-core>
+# For example:
+# `[
+#   {
+#     "key": "foo.bar.com/role",
+#     "operator": "Equal",
+#     "value": "master",
+#     "effect": "NoSchedule"
+#   }
+# ]`
+tolerations: []
+
+# affinity -- Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core>
+# For example:
+# `{
+#   "nodeAffinity": {
+#     "requiredDuringSchedulingIgnoredDuringExecution": {
+#       "nodeSelectorTerms": [
+#         {
+#           "matchExpressions": [
+#             {
+#               "key": "foo.bar.com/role",
+#               "operator": "In",
+#               "values": [
+#                 "master"
+#               ]
+#             }
+#           ]
+#         }
+#       ]
+#     }
+#   }
+# }`
+affinity: {}

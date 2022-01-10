@@ -334,7 +334,7 @@ A complete set of config fields can be found at https://github.com/milvus-io/mil
 NOTE! The fields of dependencies' address and port cannot be set in the Milvus Cluster CR.
 
 ## Status spec
-The status spec of the CR HarborCluster is described as below:
+The status spec of the CR MilvusCluster is described as below:
 ``` yaml
 status:
   # Show the generous status of the MilvusCluster
