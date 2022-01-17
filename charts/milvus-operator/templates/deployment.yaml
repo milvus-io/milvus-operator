@@ -3,7 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels: {{- include "chart.labels" . | nindent 4 }}
-  name: milvus-operator-controller-manager
+  name: {{ include "chart.fullname" . | quote }}
   namespace: {{ .Release.Namespace | quote }}
 spec:
   selector:
@@ -16,6 +16,10 @@ spec:
       affinity: {{- toYaml .Values.affinity | nindent 8 }}
       containers:
       - args:
+        - -namespace
+        - {{ .Release.Namespace | quote }}
+        - -name
+        - {{ include "chart.fullname" . | quote }}
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=127.0.0.1:8080
         - --leader-elect
@@ -56,4 +60,4 @@ spec:
       - name: cert
         secret:
           defaultMode: 420
-          secretName: '{{ include "chart.fullname" . }}-certificate'
+          secretName: '{{ include "chart.fullname" . }}-webhook-cert'

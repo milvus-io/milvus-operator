@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	milvusv1alpha1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/cli"
 	appsv1 "k8s.io/api/apps/v1"
@@ -103,16 +104,16 @@ type ImageInfo struct {
 
 var (
 	DefaultOperatorImageInfo = ImageInfo{
-		Image:           "milvus/milvus-operator:latest",
+		Image:           "milvusdb/milvus-operator:latest",
 		ImagePullPolicy: corev1.PullAlways,
 	}
 )
 
 func getOperatorImageInfo(cli client.Client) (*ImageInfo, error) {
 	deploy := appsv1.Deployment{}
-	err := cli.Get(context.TODO(), NamespacedName(OperatorNamespace, OperatorName), &deploy)
+	err := cli.Get(context.TODO(), NamespacedName(config.OperatorNamespace, config.OperatorName), &deploy)
 	if err != nil {
-		return nil, errors.Wrap(err, "get operator deployment fail")
+		return nil, errors.Wrapf(err, "get operator deployment[%s/%s] fail", config.OperatorNamespace, config.OperatorName)
 	}
 	if len(deploy.Spec.Template.Spec.Containers) < 1 {
 		return nil, errors.New("operator deployment has no container")

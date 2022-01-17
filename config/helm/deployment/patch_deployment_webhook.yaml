@@ -9,4 +9,4 @@ spec:
       - name: cert
         secret:
           defaultMode: 420
-          secretName: '{{ include "chart.fullname" . }}-certificate'
+          secretName: '{{ include "chart.fullname" . }}-webhook-cert'

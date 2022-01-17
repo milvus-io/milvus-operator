@@ -133,6 +133,7 @@ func (r *MilvusCluster) Default() {
 		}
 		r.Spec.Dep.Storage.SecretRef = r.Name + "-minio"
 	}
+	milvusclusterlog.Info("milvus webhook called", "secretRef", r.Spec.Dep.Storage.SecretRef)
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.

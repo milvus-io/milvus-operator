@@ -104,16 +104,16 @@ install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
-deploy: deploy-cert-manager ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+deploy: ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 #	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 #	$(KUSTOMIZE) build config/default | kubectl apply -f -
 	kubectl apply -f deploy/manifests/deployment.yaml
 
-undeploy: undeploy-cert-manager ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
+undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
 #	$(KUSTOMIZE) build config/default | kubectl delete -f -
 	kubectl delete -f deploy/manifests/deployment.yaml
 
-deploy-dev: deploy-cert-manager manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
+deploy-dev: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
 	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/dev | kubectl apply -f -
 
@@ -166,34 +166,48 @@ kind: ## Download kind locally if necessary.
 	$(call go-get-tool,$(KIND),sigs.k8s.io/kind@v0.11.1)
 
 ##@ system integration test
-sit-prepare-images:
+sit-prepare-operator-images:
+	@echo "Preparing operator images"
 	docker build -t ${SIT_IMG} .
+	docker pull -q quay.io/jetstack/cert-manager-controller:v1.5.3
+	docker pull -q quay.io/jetstack/cert-manager-webhook:v1.5.3
+	docker pull -q quay.io/jetstack/cert-manager-cainjector:v1.5.3
+
+sit-prepare-images: sit-prepare-operator-images
+	@echo "Preparing images"
 	docker pull -q milvusdb/milvus:v2.0.0-pre-ga
 	docker pull -q apachepulsar/pulsar:2.7.3
 	docker pull -q bitnami/etcd:3.5.0-debian-10-r24
 	docker pull -q bitnami/minio:2021.10.6-debian-10-r0
 	docker pull -q bitnami/minio-client:2021.9.23-debian-10-r13
-	docker pull -q quay.io/jetstack/cert-manager-controller:v1.5.3
-	docker pull -q quay.io/jetstack/cert-manager-webhook:v1.5.3
-	docker pull -q quay.io/jetstack/cert-manager-cainjector:v1.5.3
 
-sit-load-images:
-	kind load docker-image milvusdb/milvus:v2.0.0-pre-ga
-	kind load docker-image apachepulsar/pulsar:2.7.3
-	kind load docker-image bitnami/etcd:3.5.0-debian-10-r24
-	kind load docker-image bitnami/minio:2021.10.6-debian-10-r0
-	kind load docker-image bitnami/minio-client:2021.9.23-debian-10-r13
+sit-load-operator-images:
+	@echo "Loading operator images"
 	kind load docker-image ${SIT_IMG}
 	kind load docker-image quay.io/jetstack/cert-manager-controller:v1.5.3
 	kind load docker-image quay.io/jetstack/cert-manager-webhook:v1.5.3
 	kind load docker-image quay.io/jetstack/cert-manager-cainjector:v1.5.3
 
-sit-generate:
+sit-load-images: sit-load-operator-images
+	@echo "Loading images"
+	kind load docker-image milvusdb/milvus:v2.0.0-pre-ga
+	kind load docker-image apachepulsar/pulsar:2.7.3
+	kind load docker-image bitnami/etcd:3.5.0-debian-10-r24
+	kind load docker-image bitnami/minio:2021.10.6-debian-10-r0
+	kind load docker-image bitnami/minio-client:2021.9.23-debian-10-r13
+
+sit-generate-manifest:
 	cat deploy/manifests/deployment.yaml | sed  "s#${RELEASE_IMG}#${SIT_IMG}#g" > test/test_gen.yaml
 
-sit-deploy: sit-load-images deploy-cert-manager sit-generate
-	kubectl apply -f test/test_gen.yaml
-	kubectl wait --timeout=3m --for=condition=available deployments/milvus-operator-controller-manager -n milvus-operator
+sit-deploy: sit-load-images
+	@echo "Deploying"
+	$(HELM) install --set image.repository=milvus-operator,image.tag=sit,resources.requests.cpu=10m -n milvus-operator --create-namespace milvus-operator ./charts/milvus-operator
+	kubectl -n milvus-operator describe pods
+	@echo "Waiting for operator to be ready"
+	kubectl -n milvus-operator wait --for=condition=complete job/milvus-operator-checker --timeout=6m
+	kubectl -n milvus-operator rollout restart deploy/milvus-operator
+	kubectl -n milvus-operator wait --timeout=3m --for=condition=available deployments/milvus-operator
+	sleep 5 #wait for the service to be ready
 
 sit-test: 
 	./test/sit.sh
@@ -253,7 +267,6 @@ $(CHARTS_DIRECTORY)/milvus-operator-$(VERSION).tgz: $(CHART_MILVUS_OPERATOR)/tem
 	$(CHART_TEMPLATE_PATH)/role.yaml $(CHART_TEMPLATE_PATH)/clusterrole.yaml \
 	$(CHART_TEMPLATE_PATH)/rolebinding.yaml $(CHART_TEMPLATE_PATH)/clusterrolebinding.yaml \
 	$(CHART_TEMPLATE_PATH)/mutatingwebhookconfiguration.yaml $(CHART_TEMPLATE_PATH)/validatingwebhookconfiguration.yaml \
-	$(CHART_TEMPLATE_PATH)/certificate.yaml $(CHART_TEMPLATE_PATH)/issuer.yaml \
 	$(CHART_TEMPLATE_PATH)/deployment.yaml
 	$(HELM) package $(CHART_MILVUS_OPERATOR) \
 		--version $(VERSION) \
@@ -328,21 +341,11 @@ $(CHART_TEMPLATE_PATH)/mutatingwebhookconfiguration.yaml: kustomize $(wildcard c
 	sed "s/'\({{[^}}]*}}\)'/\1/g" \
 		>> $(CHART_TEMPLATE_PATH)/mutatingwebhookconfiguration.yaml
 
-$(CHART_TEMPLATE_PATH)/certificate.yaml: kustomize $(wildcard config/helm/certmanager/*) $(wildcard config/certmanager/*)
-	echo '{{- /* $(DO_NOT_EDIT) */ -}}' > $(CHART_TEMPLATE_PATH)/certificate.yaml
-	$(KUSTOMIZE) build --reorder legacy config/helm/certificate | \
-	$(KUSTOMIZE) cfg grep --annotate=false 'kind=Certificate' | \
-	sed "s/'\({{[^}}]*}}\)'/\1/g" \
-		>> $(CHART_TEMPLATE_PATH)/certificate.yaml
-
-$(CHART_TEMPLATE_PATH)/issuer.yaml: kustomize $(wildcard config/helm/certmanager/*) $(wildcard config/certmanager/*)
-	echo '{{- /* $(DO_NOT_EDIT) */ -}}' > $(CHART_TEMPLATE_PATH)/issuer.yaml
-	$(KUSTOMIZE) build --reorder legacy config/helm/certificate | \
-	$(KUSTOMIZE) cfg grep --annotate=false 'kind=Issuer' | \
-	sed "s/'\({{[^}}]*}}\)'/\1/g" \
-		>> $(CHART_TEMPLATE_PATH)/issuer.yaml
-
-deploy-by-helm: deploy-cert-manager
-	$(HELM) install -n milvus-operator --create-namespace milvus-operator ./charts/milvus-operator
+deploy-by-manifest: sit-prepare-operator-images sit-load-operator-images sit-generate-manifest
+	@echo "Deploying Milvus Operator"
+	kubectl apply -f ./test/test_gen.yaml
 	@echo "Waiting for the operator to be ready..."
-	kubectl wait --timeout=3m --for=condition=available deployments/milvus-operator-controller-manager -n milvus-operator
+	kubectl -n milvus-operator wait --for=condition=complete job/milvus-operator-checker --timeout=6m
+	kubectl -n milvus-operator rollout restart deploy/milvus-operator-controller-manager
+	kubectl -n milvus-operator wait --timeout=3m --for=condition=available deployments/milvus-operator-controller-manager
+	sleep 5 #wait for the service to be ready
