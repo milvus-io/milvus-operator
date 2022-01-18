@@ -6,6 +6,7 @@ require (
 	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/apache/pulsar-client-go v0.6.0
+	github.com/coreos/go-semver v0.3.0
 	github.com/fatih/color v1.12.0 // indirect
 	github.com/go-logr/logr v0.4.0
 	github.com/golang/mock v1.6.0
@@ -23,9 +24,11 @@ require (
 	go.etcd.io/etcd/client/v3 v3.5.0
 	helm.sh/helm/v3 v3.6.3
 	k8s.io/api v0.21.3
+	k8s.io/apiextensions-apiserver v0.21.3
 	k8s.io/apimachinery v0.21.3
-	k8s.io/cli-runtime v0.21.0
+	k8s.io/cli-runtime v0.21.3
 	k8s.io/client-go v0.21.3
+	k8s.io/kubectl v0.21.3
 	rsc.io/letsencrypt v0.0.3 // indirect
 	sigs.k8s.io/controller-runtime v0.9.6
 	sigs.k8s.io/yaml v1.2.0

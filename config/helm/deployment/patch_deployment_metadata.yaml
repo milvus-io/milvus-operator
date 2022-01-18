@@ -1,4 +1,7 @@
  - op: replace
+   path: /metadata/name
+   value: '{{ include "chart.fullname" . | quote }}'
+ - op: replace
    path: /metadata/labels
    value: '{{- include "chart.labels" . | nindent 4 }}'
  - op: replace

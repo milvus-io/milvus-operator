@@ -20,7 +20,7 @@ bases:
 # crd/kustomization.yaml
 - ../webhook
 # [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER'. 'WEBHOOK' components are required.
-- ../certmanager
+# - ../certmanager
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
 #- ../prometheus
 
@@ -43,32 +43,20 @@ patchesStrategicMerge:
 # 'CERTMANAGER' needs to be enabled to use ca injection
 - webhookcainjection_patch.yaml
 
-# the following config is for teaching kustomize how to do var substitution
+- job_args_patch.yaml
+
 vars:
-# [CERTMANAGER] To enable cert-manager, uncomment all sections with 'CERTMANAGER' prefix.
-- name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
+- name: DEPLOYMENT_NAMESPACE # namespace of the deployment
   objref:
-    kind: Certificate
-    group: cert-manager.io
+    kind: Deployment
+    group: apps
     version: v1
-    name: serving-cert # this name should match the one in certificate.yaml
+    name: controller-manager # this name should match the one in manager.yaml
   fieldref:
     fieldpath: metadata.namespace
-- name: CERTIFICATE_NAME
+- name: DEPLOYMENT_NAME
   objref:
-    kind: Certificate
-    group: cert-manager.io
+    kind: Deployment
+    group: apps
     version: v1
-    name: serving-cert # this name should match the one in certificate.yaml
-- name: SERVICE_NAMESPACE # namespace of the service
-  objref:
-    kind: Service
-    version: v1
-    name: webhook-service
-  fieldref:
-    fieldpath: metadata.namespace
-- name: SERVICE_NAME
-  objref:
-    kind: Service
-    version: v1
-    name: webhook-service
+    name: controller-manager # this name should match the one in manager.yaml

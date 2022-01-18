@@ -38,12 +38,6 @@ webhooks:
       port: 443
   failurePolicy: Fail
   name: mmilvus.kb.io
-  namespaceSelector:
-    matchExpressions:
-    - key: milvus-operator-webhook-configuration
-      operator: In
-      values:
-      - enabled
   rules:
   - apiGroups:
     - milvus.io

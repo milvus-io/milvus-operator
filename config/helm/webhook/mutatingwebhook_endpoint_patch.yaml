@@ -16,10 +16,4 @@ webhooks:
       name: '{{ include "chart.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace | quote }}'
       port: 443
-  # This patch add namespace selector to admission webhook config and
-  # resources under namespace with this label to trigger this webhook
-  namespaceSelector:
-    matchExpressions:
-    - key: milvus-operator-webhook-configuration
-      operator: In
-      values: ["enabled"]
+

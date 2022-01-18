@@ -4,12 +4,16 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"io/ioutil"
 	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/Masterminds/sprig"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -100,4 +104,23 @@ func CheckSum(s []byte) string {
 	h := sha256.New()
 	h.Write(s)
 	return fmt.Sprintf("%x", h.Sum(nil))
+}
+
+var DefaultHTTPTimeout = 15 * time.Second
+
+func HTTPGetBytes(url string) ([]byte, error) {
+	http.DefaultClient.Timeout = DefaultHTTPTimeout
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get url")
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("unexpected status code %d", resp.StatusCode)
+	}
+	ret, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read response body")
+	}
+	return ret, nil
 }

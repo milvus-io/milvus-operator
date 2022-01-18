@@ -174,3 +174,17 @@ func TestJoinErrors(t *testing.T) {
 func TestCheckSum(t *testing.T) {
 	assert.Equal(t, "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824", CheckSum([]byte("hello")))
 }
+
+func TestHTTPGetBytes(t *testing.T) {
+	// connect failed
+	_, err := HTTPGetBytes("localhost:10000")
+	assert.Error(t, err)
+
+	// ok
+	_, err = HTTPGetBytes("https://httpbin.org/get")
+	assert.NoError(t, err)
+
+	// code err
+	_, err = HTTPGetBytes("https://httpbin.org/post")
+	assert.Error(t, err)
+}
