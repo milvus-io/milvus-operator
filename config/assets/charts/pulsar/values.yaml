@@ -708,7 +708,7 @@ broker:
     #PULSAR_MEM: >
     #  -Xms128m -Xmx256m -XX:MaxDirectMemorySize=256m
     PULSAR_MEM: >
-      -Xms4096m -Xmx4096m -XX:MaxDirectMemorySize=4096m -Dio.netty.leakDetectionLevel=disabled -Dio.netty.recycler.linkCapacity=1024 -XX:+ParallelRefProcEnabled -XX:+UnlockExperimentalVMOptions -XX:+AggressiveOpts -XX:+DoEscapeAnalysis -XX:ParallelGCThreads=32 -XX:ConcGCThreads=32 -XX:G1NewSizePercent=50 -XX:+DisableExplicitGC -XX:-ResizePLAB -XX:+ExitOnOutOfMemoryError -XX:+PerfDisableSharedMem
+      -Xms4096m -Xmx4096m -XX:MaxDirectMemorySize=8192m -Dio.netty.leakDetectionLevel=disabled -Dio.netty.recycler.linkCapacity=1024 -XX:+ParallelRefProcEnabled -XX:+UnlockExperimentalVMOptions -XX:+AggressiveOpts -XX:+DoEscapeAnalysis -XX:ParallelGCThreads=32 -XX:ConcGCThreads=32 -XX:G1NewSizePercent=50 -XX:+DisableExplicitGC -XX:-ResizePLAB -XX:+ExitOnOutOfMemoryError -XX:+PerfDisableSharedMem
     PULSAR_GC: >
       -XX:+UseG1GC
       -XX:MaxGCPauseMillis=10
@@ -727,6 +727,11 @@ broker:
     managedLedgerDefaultEnsembleSize: "2"
     managedLedgerDefaultWriteQuorum: "2"
     managedLedgerDefaultAckQuorum: "2"
+    maxMessageSize: "104857600"
+    defaultRetentionTimeInMinutes: "10080"
+    defaultRetentionSizeInMB: "8192"
+    backlogQuotaDefaultLimitGB: "8"
+    backlogQuotaDefaultRetentionPolicy: producer_exception
   ## Broker service
   ## templates/broker-service.yaml
   ##
@@ -832,11 +837,6 @@ proxy:
       -XX:-ResizePLAB
       -XX:+ExitOnOutOfMemoryError
       -XX:+PerfDisableSharedMem
-    maxMessageSize: "104857600"
-    defaultRetentionTimeInMinutes: "10080"
-    defaultRetentionSizeInMB: "8192"
-    backlogQuotaDefaultLimitGB: "8"
-    backlogQuotaDefaultRetentionPolicy: producer_exception
   ## Proxy service
   ## templates/proxy-service.yaml
   ##
