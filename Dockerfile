@@ -1,5 +1,8 @@
 FROM golang:1.16 as builder
 
+# milvus-operator use https://github.com/milvus-io/milvus-helm's charts & values as its built dependencies
+ARG MILVUS_HELM_VERSION=master
+
 WORKDIR /workspace
 # ENV GOPROXY https://goproxy.cn
 # Copy the Go Modules manifests
@@ -16,7 +19,15 @@ COPY main.go main.go
 COPY apis/ apis/
 COPY pkg/ pkg/
 COPY tool/ tool/
-COPY config/assets/ out/config/assets/
+COPY config/assets/templates out/config/assets/templates
+RUN wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/etcd-6.3.3.tgz -O ./etcd.tgz
+RUN wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/minio-8.0.11.tgz -O ./minio.tgz
+RUN wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/pulsar-1.0.31.tgz -O ./pulsar.tgz
+RUN mkdir -p ./out/config/assets/charts/
+RUN wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/values.yaml -O ./out/config/assets/charts/values.yaml
+RUN tar -xf ./etcd.tgz -C ./out/config/assets/charts/
+RUN tar -xf ./minio.tgz -C ./out/config/assets/charts/
+RUN tar -xf ./pulsar.tgz -C ./out/config/assets/charts/
 COPY scripts/run.sh out/run.sh
 
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o out/manager main.go

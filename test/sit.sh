@@ -31,6 +31,7 @@ case_create_delete_cluster(){
     if [ "$CR_STATUS" != "Healthy" ]; then
         log "MilvusCluster creation failed"
         log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit mc/mc-sit -o yaml)"
+        log "MilvusCluster helm values: \n $(helm -n mc-sit get values mc-sit-pulsar)"
         log "MilvusCluster describe pods: \n $(kubectl -n mc-sit describe pods)"
         return 1
     fi
@@ -64,6 +65,7 @@ case_create_delete_milvus(){
     if [ "$CR_STATUS" != "Healthy" ]; then
         log "Milvus creation failed"
         log "Milvus final yaml: \n $(kubectl get -n milvus-sit milvus/milvus-sit -o yaml)"
+        log "Milvus helm values: \n $(helm -n milvus-sit get values milvus-sit-pulsar)"
         log "Milvus describe pods: \n $(kubectl -n mc-sit describe pods)"
         return 1
     fi

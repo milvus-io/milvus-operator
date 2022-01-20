@@ -106,10 +106,9 @@ func GetMinioCondition(
 	if err != nil {
 		return newErrStorageCondResult(v1alpha1.ReasonClientErr, err.Error()), nil
 	}
-
 	ready := false
 	for _, server := range st.Servers {
-		if server.State == "online" {
+		if server.State == "ok" {
 			ready = true
 			break
 		}

@@ -18,8 +18,8 @@ const (
 	MilvusOriginalConfigPath     = "/milvus/configs/milvus.yaml"
 	MilvusUserConfigMountPath    = "/milvus/configs/user.yaml"
 	MilvusUserConfigMountSubPath = "user.yaml"
-	AccessKey                    = "access-key"
-	SecretKey                    = "secret-key"
+	AccessKey                    = "accesskey"
+	SecretKey                    = "secretkey"
 	AnnotationCheckSum           = "checksum/config"
 
 	ToolsVolumeName = "tools"

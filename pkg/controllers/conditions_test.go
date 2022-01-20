@@ -81,89 +81,100 @@ func TestGetMinioCondition(t *testing.T) {
 	ctx := context.TODO()
 	logger := logf.Log.WithName("test")
 	mockK8sCli := NewMockK8sClient(ctrl)
+	mockMinio := NewMockMinioClient(ctrl)
 	errTest := errors.New("test")
 	errNotFound := k8sErrors.NewNotFound(schema.GroupResource{}, "")
-	// not "not found" err
-	mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errTest)
-	ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-	assert.Error(t, err)
 
-	// "not found" err
-	mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
-	ret, err = GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-	assert.NoError(t, err)
-	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonSecretNotExist, ret.Reason)
+	t.Run(`get secret failed`, func(t *testing.T) {
+		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errTest)
+		_, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
+		assert.Error(t, err)
+	})
 
-	// secrets not found
-	mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-	ret, err = GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-	assert.NoError(t, err)
-	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonSecretNotExist, ret.Reason)
+	t.Run(`secret not found`, func(t *testing.T) {
+		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
+		ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+		assert.Equal(t, v1alpha1.ReasonSecretNotExist, ret.Reason)
+	})
 
-	// new client failed
-	newMinioClientFunc = getMockNewMinioClientFunc(nil, errTest)
-	mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
-			secret.Data = map[string][]byte{
-				AccessKey: []byte("accessKeyID"),
-				SecretKey: []byte("secretAccessKey"),
-			}
-		})
-	ret, err = GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-	assert.NoError(t, err)
-	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonClientErr, ret.Reason)
+	t.Run(`secrets keys not found`, func(t *testing.T) {
+		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+		assert.Equal(t, v1alpha1.ReasonSecretNotExist, ret.Reason)
+	})
 
-	// new client ok, check failed
-	mockMinio := NewMockMinioClient(ctrl)
-	newMinioClientFunc = getMockNewMinioClientFunc(mockMinio, nil)
-	mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
-			secret.Data = map[string][]byte{
-				AccessKey: []byte("accessKeyID"),
-				SecretKey: []byte("secretAccessKey"),
-			}
-		})
-	mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{}, errTest)
-	ret, err = GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-	assert.NoError(t, err)
-	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonClientErr, ret.Reason)
+	t.Run("new client failed", func(t *testing.T) {
+		newMinioClientFunc = getMockNewMinioClientFunc(nil, errTest)
+		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
+				secret.Data = map[string][]byte{
+					AccessKey: []byte("accessKeyID"),
+					SecretKey: []byte("secretAccessKey"),
+				}
+			})
+		ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+		assert.Equal(t, v1alpha1.ReasonClientErr, ret.Reason)
 
-	// new get info ok, check failed
-	mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
-			secret.Data = map[string][]byte{
-				AccessKey: []byte("accessKeyID"),
-				SecretKey: []byte("secretAccessKey"),
-			}
-		})
-	mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{}, nil)
-	ret, err = GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-	assert.NoError(t, err)
-	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonStorageNotReady, ret.Reason)
+	})
+
+	t.Run("new client ok, check failed", func(t *testing.T) {
+		newMinioClientFunc = getMockNewMinioClientFunc(mockMinio, nil)
+		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
+				secret.Data = map[string][]byte{
+					AccessKey: []byte("accessKeyID"),
+					SecretKey: []byte("secretAccessKey"),
+				}
+			})
+		mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{}, errTest)
+		ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+		assert.Equal(t, v1alpha1.ReasonClientErr, ret.Reason)
+
+	})
+
+	t.Run("new get info ok, check failed", func(t *testing.T) {
+		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
+				secret.Data = map[string][]byte{
+					AccessKey: []byte("accessKeyID"),
+					SecretKey: []byte("secretAccessKey"),
+				}
+			})
+		mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{}, nil)
+		ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+		assert.Equal(t, v1alpha1.ReasonStorageNotReady, ret.Reason)
+	})
 
 	// one online check ok
-	mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
-		Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
-			secret.Data = map[string][]byte{
-				AccessKey: []byte("accessKeyID"),
-				SecretKey: []byte("secretAccessKey"),
-			}
-		})
-	mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{
-		Servers: []madmin.ServerProperties{
-			{State: "online"},
-			{State: "offline"},
-		},
-	}, nil)
-	ret, err = GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-	assert.NoError(t, err)
-	assert.Equal(t, corev1.ConditionTrue, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonStorageReady, ret.Reason)
+	t.Run(`is "not found" err`, func(t *testing.T) {
+		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
+				secret.Data = map[string][]byte{
+					AccessKey: []byte("accessKeyID"),
+					SecretKey: []byte("secretAccessKey"),
+				}
+			})
+		mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{
+			Servers: []madmin.ServerProperties{
+				{State: "ok"},
+				{State: "not ok"},
+			},
+		}, nil)
+		ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionTrue, ret.Status)
+		assert.Equal(t, v1alpha1.ReasonStorageReady, ret.Reason)
+	})
 }
 
 func getMockNewEtcdClient(cli EtcdClient, err error) NewEtcdClientFunc {

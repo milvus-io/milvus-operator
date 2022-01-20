@@ -1,0 +1,6 @@
+pulsar:
+  replicas: 3
+etcd:
+  replicas: 3
+minio:
+  replicas: 3

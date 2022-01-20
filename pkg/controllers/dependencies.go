@@ -3,14 +3,19 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"reflect"
 
 	"github.com/go-logr/logr"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/helm"
+	"github.com/milvus-io/milvus-operator/pkg/util"
+	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
+	"k8s.io/cli-runtime/pkg/genericclioptions"
+	"sigs.k8s.io/yaml"
 )
 
 //go:generate mockgen -package=controllers -source=dependencies.go -destination=dependencies_mock.go HelmReconciler
@@ -19,6 +24,16 @@ const (
 	EtcdChart   = "config/assets/charts/etcd"
 	MinioChart  = "config/assets/charts/minio"
 	PulsarChart = "config/assets/charts/pulsar"
+
+	Etcd   = "etcd"
+	Minio  = "minio"
+	Pulsar = "pulsar"
+)
+
+var (
+	// DefaultValuesPath is the path to the default values file
+	// variable in test, const in runtime
+	DefaultValuesPath = "config/assets/charts/values.yaml"
 )
 
 // HelmReconciler reconciles Helm releases
@@ -27,16 +42,43 @@ type HelmReconciler interface {
 	Reconcile(ctx context.Context, request helm.ChartRequest) error
 }
 
+type Chart = string
+type Values = map[string]interface{}
+
 // LocalHelmReconciler implements HelmReconciler at local
 type LocalHelmReconciler struct {
-	helmSettings *cli.EnvSettings
-	logger       logr.Logger
+	helmSettings       *cli.EnvSettings
+	logger             logr.Logger
+	chartDefaultValues map[Chart]Values
 }
 
-func NewLocalHelmReconciler(helmSettings *cli.EnvSettings, logger logr.Logger) HelmReconciler {
+func readValuesFromFile(file string) (Values, error) {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read file %s", file)
+	}
+	ret := Values{}
+	err = yaml.Unmarshal(data, &ret)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal file %s", file)
+	}
+	return ret, nil
+}
+
+func MustNewLocalHelmReconciler(helmSettings *cli.EnvSettings, logger logr.Logger) *LocalHelmReconciler {
+	values, err := readValuesFromFile(DefaultValuesPath)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to read default helm chart values from [%s]", DefaultValuesPath)
+		panic(err)
+	}
 	return &LocalHelmReconciler{
 		helmSettings: helmSettings,
 		logger:       logger,
+		chartDefaultValues: map[Chart]Values{
+			Etcd:   values[Etcd].(Values),
+			Minio:  values[Minio].(Values),
+			Pulsar: values[Pulsar].(Values),
+		},
 	}
 }
 
@@ -47,14 +89,57 @@ func (l LocalHelmReconciler) NewHelmCfg(namespace string) *action.Configuration 
 	}
 
 	// cfg.Init will never return err, only panic if bad driver
-	cfg.Init(l.helmSettings.RESTClientGetter(), namespace, os.Getenv("HELM_DRIVER"), helmLogger)
+	cfg.Init(
+		getRESTClientGetterWithNamespace(l.helmSettings, namespace),
+		namespace,
+		os.Getenv("HELM_DRIVER"),
+		helmLogger,
+	)
 
 	return cfg
+}
+
+func getRESTClientGetterWithNamespace(env *cli.EnvSettings, namespace string) genericclioptions.RESTClientGetter {
+	return &genericclioptions.ConfigFlags{
+		Namespace:        &namespace,
+		Context:          &env.KubeContext,
+		BearerToken:      &env.KubeToken,
+		APIServer:        &env.KubeAPIServer,
+		CAFile:           &env.KubeCaFile,
+		KubeConfig:       &env.KubeConfig,
+		Impersonate:      &env.KubeAsUser,
+		ImpersonateGroup: &env.KubeAsGroups,
+		Insecure:         &configFlagInsecure,
+	}
+}
+
+func getChartNameByPath(chart string) string {
+	switch chart {
+	case EtcdChart:
+		return Etcd
+	case MinioChart:
+		return Minio
+	case PulsarChart:
+		return Pulsar
+	default:
+		return ""
+	}
+}
+
+func (l LocalHelmReconciler) MergeWithDefaultValues(chartPath string, values Values) Values {
+	chart := getChartNameByPath(chartPath)
+	ret := Values{}
+	util.MergeValues(ret, l.chartDefaultValues[chart])
+	util.MergeValues(ret, values)
+	return ret
 }
 
 // ReconcileHelm reconciles Helm releases
 func (l LocalHelmReconciler) Reconcile(ctx context.Context, request helm.ChartRequest) error {
 	cfg := l.NewHelmCfg(request.Namespace)
+	l.logger.Info("debug helm reconcile", "namespace", request.Namespace, "release", request.ReleaseName)
+
+	request.Values = l.MergeWithDefaultValues(request.Chart, request.Values)
 
 	exist, err := helm.ReleaseExist(cfg, request.ReleaseName)
 	if err != nil {
@@ -82,8 +167,14 @@ func (l LocalHelmReconciler) Reconcile(ctx context.Context, request helm.ChartRe
 		delete(vals, "initialize")
 	}
 
-	if reflect.DeepEqual(vals, request.Values) && !helm.NeedUpdate(status) {
+	deepEqual := reflect.DeepEqual(vals, request.Values)
+	needUpdate := helm.NeedUpdate(status)
+	if deepEqual && !needUpdate {
 		return nil
+	}
+	l.logger.Info("update helm", "namespace", request.Namespace, "release", request.ReleaseName, "needUpdate", needUpdate, "deepEqual", deepEqual)
+	if !deepEqual {
+		l.logger.Info("update helm values", "old", vals, "new", request.Values)
 	}
 
 	return helm.Update(cfg, request)

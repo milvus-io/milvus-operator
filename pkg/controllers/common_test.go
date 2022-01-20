@@ -94,7 +94,7 @@ func newClusterReconcilerForTest(ctrl *gomock.Controller) *MilvusClusterReconcil
 	scheme := runtime.NewScheme()
 	v1alpha1.AddToScheme(scheme)
 	helmSetting := cli.New()
-	helm := NewLocalHelmReconciler(helmSetting, logger)
+	helm := MustNewLocalHelmReconciler(helmSetting, logger)
 	r := MilvusClusterReconciler{
 		Client:         mockClient,
 		logger:         logger,
@@ -111,7 +111,7 @@ func newMilvusReconcilerForTest(ctrl *gomock.Controller) *MilvusReconciler {
 	scheme := runtime.NewScheme()
 	v1alpha1.AddToScheme(scheme)
 	helmSetting := cli.New()
-	helm := NewLocalHelmReconciler(helmSetting, logger)
+	helm := MustNewLocalHelmReconciler(helmSetting, logger)
 	r := MilvusReconciler{
 		Client:         mockClient,
 		logger:         logger,
