@@ -16,7 +16,6 @@ The Milvus Operator provides an easy and solid solution to deploy and manage a f
 # Getting started
 ## Deploy milvus operator
 ```shell
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.3/cert-manager.yaml
 kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/deploy/manifests/deployment.yaml
 ```
 
@@ -54,6 +53,16 @@ Compatibility, :heavy_multiplication_x:, :heavy_multiplication_x:, :heavy_check_
 |---|---|---|---|
 |Compatibility| :heavy_multiplication_x:| :heavy_multiplication_x:| :heavy_check_mark: |
 
+
+## Compatibility With Milvus-Operator Earlier Releases
+
+<!-- source csv for table
+Milvus Operator Versions, 0.1.x, 0.2.x, 0.3.x
+Compatibility, :heavy_multiplication_x:, :heavy_multiplication_x:, :heavy_check_mark:  -->
+
+|Milvus Operator Versions| 0.1.x | 0.2.x | 0.3.x |
+|---|---|---|---|
+|Compatibility| :heavy_multiplication_x:| :heavy_multiplication_x:| :heavy_check_mark: |
 
 **NOTES:**
 
