@@ -1,5 +1,5 @@
 # Custom Resource Definition
-This document guides user to learn the related fields defined in the MilvusCluster CRD and then customize their Milvus cluster deployment stack.
+This document guides user to learn the related fields defined in the `MilvusCluster` CRD and then customize their Milvus cluster deployment stack.
 
 *CRD version*: `v1alpha1`
 
@@ -214,7 +214,7 @@ spec:
           replicaCount: 1
 ```
 
-A complete fields doc can be found at https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/etcd/values.yaml.
+A complete fields doc can be found at https://artifacthub.io/packages/helm/bitnami/etcd/6.3.3.
 
 
 #### Dependency Pulsar
@@ -270,7 +270,7 @@ spec:
             replicaCount: 1
 ```
 
-A complete fields doc can be found at https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/pulsar/values.yaml.
+A complete fields doc can be found at https://github.com/kafkaesque-io/pulsar-helm-chart/blob/pulsar-1.0.31/helm-chart-sources/pulsar/values.yaml.
 
 #### Dependency Storage
 The dependency storage may be specified as external or in-cluster. When use in-cluster storage, only `MinIO` storage type is supported.
@@ -311,7 +311,7 @@ spec:
           mode: standalone
 ```
 
-A complete fields doc can be found at https://github.com/milvus-io/milvus-operator/blob/main/config/assets/charts/minio/values.yaml.
+A complete fields doc can be found at https://github.com/milvus-io/milvus-helm/blob/master/charts/minio/values.yaml.
 
 ### Config
 Config overrides the fields of Milvus Cluster's config file template. 

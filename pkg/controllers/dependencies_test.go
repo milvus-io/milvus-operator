@@ -4,17 +4,23 @@ import (
 	"context"
 	"errors"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/golang/mock/gomock"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/helm"
+	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
+
+func init() {
+	DefaultValuesPath = util.GetGitRepoRootDir() + "test/values.yaml"
+}
 
 func TestLocalHelmReconciler_ReconcilePanic(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
@@ -25,7 +31,7 @@ func TestLocalHelmReconciler_ReconcilePanic(t *testing.T) {
 
 	ctx := context.TODO()
 	request := helm.ChartRequest{}
-	rec := NewLocalHelmReconciler(settings, logger)
+	rec := MustNewLocalHelmReconciler(settings, logger)
 
 	// bad driver failed
 	os.Setenv("HELM_DRIVER", "bad")
@@ -51,77 +57,84 @@ func TestLocalHelmReconciler_Reconcile(t *testing.T) {
 
 	ctx := context.TODO()
 	request := helm.ChartRequest{}
-	rec := NewLocalHelmReconciler(settings, logger)
+	rec := MustNewLocalHelmReconciler(settings, logger)
 	errTest := errors.New("test")
 
-	// ReleaseExist failed
-	mockHelm.EXPECT().
-		ReleaseExist(gomock.Any(), gomock.Any()).
-		Return(false, errTest)
-	err := rec.Reconcile(ctx, request)
-	assert.Error(t, err)
+	t.Run("ReleaseExist failed", func(t *testing.T) {
+		mockHelm.EXPECT().
+			ReleaseExist(gomock.Any(), gomock.Any()).
+			Return(false, errTest)
+		err := rec.Reconcile(ctx, request)
+		assert.Error(t, err)
+	})
 
-	// not existed, install pulsar
-	request.Chart = PulsarChart
-	request.Values = make(map[string]interface{})
-	mockHelm.EXPECT().
-		ReleaseExist(gomock.Any(), gomock.Any()).
-		Return(false, nil)
-	mockHelm.EXPECT().
-		Install(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(cfg *action.Configuration, request helm.ChartRequest) error {
-			assert.True(t, request.Values["initialize"].(bool))
-			return nil
-		})
-	err = rec.Reconcile(ctx, request)
-	assert.NoError(t, err)
+	t.Run("not existed, install pulsar", func(t *testing.T) {
+		request.Chart = PulsarChart
+		request.Values = make(map[string]interface{})
+		mockHelm.EXPECT().
+			ReleaseExist(gomock.Any(), gomock.Any()).
+			Return(false, nil)
+		mockHelm.EXPECT().
+			Install(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(cfg *action.Configuration, request helm.ChartRequest) error {
+				assert.True(t, request.Values["initialize"].(bool))
+				return nil
+			})
+		err := rec.Reconcile(ctx, request)
+		assert.NoError(t, err)
+	})
 
-	// existed, get values failed
-	request.Values = make(map[string]interface{})
-	mockHelm.EXPECT().
-		ReleaseExist(gomock.Any(), gomock.Any()).
-		Return(true, nil)
-	mockHelm.EXPECT().GetValues(gomock.Any(), gomock.Any()).Return(nil, errTest)
-	err = rec.Reconcile(ctx, request)
-	assert.Error(t, err)
+	t.Run("existed, get values failed", func(t *testing.T) {
+		request.Values = make(map[string]interface{})
+		mockHelm.EXPECT().
+			ReleaseExist(gomock.Any(), gomock.Any()).
+			Return(true, nil)
+		mockHelm.EXPECT().GetValues(gomock.Any(), gomock.Any()).Return(nil, errTest)
+		err := rec.Reconcile(ctx, request)
+		assert.Error(t, err)
+	})
 
-	// existed, get status failed
-	request.Values = make(map[string]interface{})
-	mockHelm.EXPECT().
-		ReleaseExist(gomock.Any(), gomock.Any()).
-		Return(true, nil)
-	mockHelm.EXPECT().GetValues(gomock.Any(), gomock.Any())
-	mockHelm.EXPECT().GetStatus(gomock.Any(), gomock.Any()).Return(release.StatusUnknown, errTest)
-	err = rec.Reconcile(ctx, request)
-	assert.Error(t, err)
+	t.Run("existed, get status failed", func(t *testing.T) {
+		request.Values = make(map[string]interface{})
+		mockHelm.EXPECT().
+			ReleaseExist(gomock.Any(), gomock.Any()).
+			Return(true, nil)
+		mockHelm.EXPECT().GetValues(gomock.Any(), gomock.Any())
+		mockHelm.EXPECT().GetStatus(gomock.Any(), gomock.Any()).Return(release.StatusUnknown, errTest)
+		err := rec.Reconcile(ctx, request)
+		assert.Error(t, err)
+	})
 
-	// existed, not need udpate
-	request.Values = make(map[string]interface{})
-	mockHelm.EXPECT().
-		ReleaseExist(gomock.Any(), gomock.Any()).
-		Return(true, nil)
-	mockHelm.EXPECT().GetValues(gomock.Any(), gomock.Any()).Return(map[string]interface{}{}, nil)
-	mockHelm.EXPECT().GetStatus(gomock.Any(), gomock.Any()).Return(release.StatusDeployed, nil)
-	err = rec.Reconcile(ctx, request)
-	assert.NoError(t, err)
+	t.Run("existed, not need udpate", func(t *testing.T) {
+		request.Values = make(map[string]interface{})
+		mockHelm.EXPECT().
+			ReleaseExist(gomock.Any(), gomock.Any()).
+			Return(true, nil)
+		mockHelm.EXPECT().GetValues(gomock.Any(), gomock.Any()).Return(rec.chartDefaultValues[Pulsar], nil)
+		mockHelm.EXPECT().GetStatus(gomock.Any(), gomock.Any()).Return(release.StatusDeployed, nil)
+		err := rec.Reconcile(ctx, request)
+		assert.NoError(t, err)
+	})
 
 	// existed, pulsar update
-	request.Chart = PulsarChart
-	request.Values["val2"] = true
-	mockHelm.EXPECT().
-		ReleaseExist(gomock.Any(), gomock.Any()).
-		Return(true, nil)
-	mockHelm.EXPECT().GetValues(gomock.Any(), gomock.Any()).Return(map[string]interface{}{"initialize": true}, nil)
-	mockHelm.EXPECT().GetStatus(gomock.Any(), gomock.Any()).Return(release.StatusDeployed, nil)
-	mockHelm.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(
-		func(cfg *action.Configuration, request helm.ChartRequest) error {
-			_, has := request.Values["initialize"]
-			assert.False(t, has)
-			assert.True(t, request.Values["val2"].(bool))
-			return nil
-		})
-	err = rec.Reconcile(ctx, request)
-	assert.NoError(t, err)
+	t.Run("existed, pulsar update", func(t *testing.T) {
+		request.Chart = PulsarChart
+		request.Values["val2"] = true
+		mockHelm.EXPECT().
+			ReleaseExist(gomock.Any(), gomock.Any()).
+			Return(true, nil)
+		mockHelm.EXPECT().GetValues(gomock.Any(), gomock.Any()).Return(map[string]interface{}{"initialize": true}, nil)
+		mockHelm.EXPECT().GetStatus(gomock.Any(), gomock.Any()).Return(release.StatusDeployed, nil)
+		mockHelm.EXPECT().Update(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(cfg *action.Configuration, request helm.ChartRequest) error {
+				_, has := request.Values["initialize"]
+				assert.False(t, has)
+				assert.True(t, request.Values["val2"].(bool))
+				return nil
+			})
+		err := rec.Reconcile(ctx, request)
+		assert.NoError(t, err)
+	})
 }
 
 func TestMilvusReconciler_ReconcileDeps(t *testing.T) {
@@ -211,4 +224,25 @@ func TestClusterReconciler_ReconcileDeps(t *testing.T) {
 	// external ignored
 	m.Spec.Dep.Pulsar.External = true
 	assert.NoError(t, r.ReconcilePulsar(ctx, m))
+}
+
+func TestGetChartNameByPath(t *testing.T) {
+	assert.Equal(t, Etcd, getChartNameByPath(EtcdChart))
+	assert.Equal(t, Minio, getChartNameByPath(MinioChart))
+	assert.Equal(t, Pulsar, getChartNameByPath(PulsarChart))
+	assert.Equal(t, "", getChartNameByPath("unknown"))
+}
+
+func TestL1(t *testing.T) {
+	reflect.DeepEqual(map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": "a",
+			"a": "b",
+		},
+	}, Values{
+		"a": Values{
+			"a": "b",
+			"b": "a",
+		},
+	})
 }

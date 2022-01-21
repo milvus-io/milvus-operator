@@ -17,6 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
+var configFlagInsecure = true
+
 func SetupControllers(ctx context.Context, mgr manager.Manager, enableHook bool) error {
 	logger := ctrl.Log.WithName("controller")
 
@@ -27,9 +29,8 @@ func SetupControllers(ctx context.Context, mgr manager.Manager, enableHook bool)
 	settings.KubeToken = conf.BearerToken
 	getter := settings.RESTClientGetter()
 	config := getter.(*genericclioptions.ConfigFlags)
-	insecure := true
-	config.Insecure = &insecure
-	helmReconciler := NewLocalHelmReconciler(settings, logger.WithName("helm"))
+	config.Insecure = &configFlagInsecure
+	helmReconciler := MustNewLocalHelmReconciler(settings, logger.WithName("helm"))
 
 	// should be run after mgr started to make sure the client is ready
 	clusterStatusSyncer := NewMilvusClusterStatusSyncer(ctx, mgr.GetClient(), logger.WithName("status-syncer"))

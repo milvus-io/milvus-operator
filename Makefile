@@ -4,6 +4,7 @@ IMG ?= milvusdb/milvus-operator:dev-latest
 RELEASE_IMG ?= milvusdb/milvus-operator:latest
 SIT_IMG ?= milvus-operator:sit
 VERSION ?= 0.2.5
+MILVUS_HELM_VERSION ?= milvus-2.4.23
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
@@ -91,7 +92,7 @@ run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
 docker-build: test build ## Build docker image with the manager.
-	docker build -t ${IMG} .
+	docker build --build-arg MILVUS_HELM_VERSION=$(MILVUS_HELM_VERSION) -t ${IMG} . 
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
@@ -168,7 +169,7 @@ kind: ## Download kind locally if necessary.
 ##@ system integration test
 sit-prepare-operator-images:
 	@echo "Preparing operator images"
-	docker build -t ${SIT_IMG} .
+	docker build --build-arg MILVUS_HELM_VERSION=$(MILVUS_HELM_VERSION) -t ${SIT_IMG} .
 	docker pull -q quay.io/jetstack/cert-manager-controller:v1.5.3
 	docker pull -q quay.io/jetstack/cert-manager-webhook:v1.5.3
 	docker pull -q quay.io/jetstack/cert-manager-cainjector:v1.5.3
