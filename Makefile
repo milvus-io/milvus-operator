@@ -3,8 +3,8 @@
 IMG ?= milvusdb/milvus-operator:dev-latest
 RELEASE_IMG ?= milvusdb/milvus-operator:latest
 SIT_IMG ?= milvus-operator:sit
-VERSION ?= 0.3.0
-MILVUS_HELM_VERSION ?= milvus-2.4.23
+VERSION ?= 0.3.1
+MILVUS_HELM_VERSION ?= milvus-3.0.0
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false"
@@ -176,11 +176,11 @@ sit-prepare-operator-images:
 
 sit-prepare-images: sit-prepare-operator-images
 	@echo "Preparing images"
-	docker pull -q milvusdb/milvus:v2.0.0-pre-ga
+	docker pull -q milvusdb/milvus:v2.0.0
 	docker pull -q apachepulsar/pulsar:2.7.3
 	docker pull -q bitnami/etcd:3.5.0-debian-10-r24
-	docker pull -q bitnami/minio:2021.10.6-debian-10-r0
-	docker pull -q bitnami/minio-client:2021.9.23-debian-10-r13
+	docker pull -q minio/minio:RELEASE.2021-02-14T04-01-33Z
+	docker pull -q minio/mc:RELEASE.2021-02-14T04-28-06Z
 
 sit-load-operator-images:
 	@echo "Loading operator images"
@@ -191,11 +191,11 @@ sit-load-operator-images:
 
 sit-load-images: sit-load-operator-images
 	@echo "Loading images"
-	kind load docker-image milvusdb/milvus:v2.0.0-pre-ga
+	kind load docker-image milvusdb/milvus:v2.0.0
 	kind load docker-image apachepulsar/pulsar:2.7.3
 	kind load docker-image bitnami/etcd:3.5.0-debian-10-r24
-	kind load docker-image bitnami/minio:2021.10.6-debian-10-r0
-	kind load docker-image bitnami/minio-client:2021.9.23-debian-10-r13
+	kind load docker-image minio/minio:RELEASE.2021-02-14T04-01-33Z
+	kind load docker-image minio/mc:RELEASE.2021-02-14T04-28-06Z
 
 sit-generate-manifest:
 	cat deploy/manifests/deployment.yaml | sed  "s#${RELEASE_IMG}#${SIT_IMG}#g" > test/test_gen.yaml
