@@ -32,11 +32,11 @@ Versions of the underlying components are listed below:
 
 <!-- source csv for table
 Components, Milvus, Pulsar, Etcd, MinIO
-Versions, v2.0.0-pre-ga `[1]`, 2.7.3, 3.5.0,2021.10.6 -->
+Versions, v2.0.0 `[1]`, 2.7.3, 3.5.0,2021.2.14 -->
 
 |Components| Milvus| Pulsar| Etcd| MinIO|
 |---|---|---|---|---|
-|Versions| v2.0.0-pre-ga `[1]`| 2.7.3| 3.5.0|2021.10.6|
+|Versions| v2.0.0 `[1]`| 2.7.3| 3.5.0|2021.2.14|
 
 
 **NOTES:**
@@ -46,13 +46,12 @@ Versions, v2.0.0-pre-ga `[1]`, 2.7.3, 3.5.0,2021.10.6 -->
 ## Compatibility With Milvus Releases
 
 <!-- source csv for table
-Milvus Versions, 1.x, 2.0.0-rc1-2.0.0-rc8, v2.0.0-pre-ga 
-Compatibility, :heavy_multiplication_x:, :heavy_multiplication_x:, :heavy_check_mark:  -->
+Milvus Versions, <=2.0.0-rc1-2.0.0-rc8, v2.0.0-pre-ga, v2.0.0
+Compatibility, :heavy_multiplication_x:, :heavy_check_mark:, :heavy_check_mark:  -->
 
-|Milvus Versions| 1.x| 2.0.0-rc1-2.0.0-rc8| v2.0.0-pre-ga |
+|Milvus Versions| <=2.0.0-rc1-2.0.0-rc8| v2.0.0-pre-ga| v2.0.0|
 |---|---|---|---|
-|Compatibility| :heavy_multiplication_x:| :heavy_multiplication_x:| :heavy_check_mark: |
-
+|Compatibility| :heavy_multiplication_x:| :heavy_check_mark:| :heavy_check_mark:|
 
 ## Compatibility With Milvus-Operator Earlier Releases
 
