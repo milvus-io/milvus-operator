@@ -177,7 +177,7 @@ func TestMilvusReconciler_ReconcileDeps(t *testing.T) {
 
 func TestClusterReconciler_ReconcileDeps(t *testing.T) {
 	env := newClusterTestEnv(t)
-	defer env.tearDown()
+	defer env.checkMocks()
 	r := env.Reconciler
 	ctx := env.ctx
 	m := env.Inst

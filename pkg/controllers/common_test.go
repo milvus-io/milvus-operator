@@ -58,7 +58,7 @@ type clusterTestEnv struct {
 	ctx        context.Context
 }
 
-func (m *clusterTestEnv) tearDown() {
+func (m *clusterTestEnv) checkMocks() {
 	m.Ctrl.Finish()
 }
 

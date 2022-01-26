@@ -74,6 +74,27 @@ func (r *MilvusClusterReconciler) ReconcileMilvus(ctx context.Context, mc v1alph
 	return errors.Wrap(err, "reconcile milvuscluster")
 }
 
+func (r *MilvusClusterReconciler) batchDeletePVC(ctx context.Context, namespace, labelKey, labelValue string) error {
+	pvcList := &corev1.PersistentVolumeClaimList{}
+	if err := r.List(ctx, pvcList, &client.ListOptions{
+		Namespace: namespace,
+		LabelSelector: labels.SelectorFromSet(map[string]string{
+			labelKey: labelValue,
+		}),
+	}); err != nil {
+		return err
+	}
+
+	for _, pvc := range pvcList.Items {
+		if err := r.Delete(ctx, &pvc); err != nil {
+			return errors.Wrapf(err, "delete pvc %s/%s failed", namespace, pvc.Name)
+		} else {
+			r.logger.Info("pvc deleted", "name", pvc.Name, "namespace", pvc.Namespace)
+		}
+	}
+	return nil
+}
+
 func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.MilvusCluster) error {
 	deletingReleases := map[string]bool{}
 
@@ -98,23 +119,19 @@ func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.Milv
 			}
 
 			if deletePVC {
-				pvcList := &corev1.PersistentVolumeClaimList{}
-				if err := r.List(ctx, pvcList, &client.ListOptions{
-					Namespace: mc.Namespace,
-					LabelSelector: labels.SelectorFromSet(map[string]string{
-						AppLabelInstance: releaseName,
-					}),
-				}); err != nil {
+				// for etcd charts
+				err := r.batchDeletePVC(ctx, mc.Namespace, AppLabelInstance, releaseName)
+				if err != nil {
+					err = errors.Wrapf(err, "delete pvc with label %s=%s failed", AppLabelInstance, releaseName)
 					errs = append(errs, err)
 					continue
 				}
-
-				for _, pvc := range pvcList.Items {
-					if err := r.Delete(ctx, &pvc); err != nil {
-						errs = append(errs, err)
-					} else {
-						r.logger.Info("pvc deleted", "name", pvc.Name, "namespace", pvc.Namespace)
-					}
+				// for pulsar & minio charts
+				err = r.batchDeletePVC(ctx, mc.Namespace, HelmReleaseLabel, releaseName)
+				if err != nil {
+					err = errors.Wrapf(err, "delete pvc with label %s=%s failed", HelmReleaseLabel, releaseName)
+					errs = append(errs, err)
+					continue
 				}
 			}
 		}
