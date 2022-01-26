@@ -264,7 +264,6 @@ CHART_TEMPLATE_PATH := $(CHART_MILVUS_OPERATOR)/templates
 
 $(CHARTS_DIRECTORY)/milvus-operator-$(VERSION).tgz: $(CHART_MILVUS_OPERATOR)/templates/crds.yaml \
 	$(wildcard $(CHART_MILVUS_OPERATOR)/assets/*) \
-	$(CHART_MILVUS_OPERATOR)/charts \
 	$(CHART_TEMPLATE_PATH)/role.yaml $(CHART_TEMPLATE_PATH)/clusterrole.yaml \
 	$(CHART_TEMPLATE_PATH)/rolebinding.yaml $(CHART_TEMPLATE_PATH)/clusterrolebinding.yaml \
 	$(CHART_TEMPLATE_PATH)/mutatingwebhookconfiguration.yaml $(CHART_TEMPLATE_PATH)/validatingwebhookconfiguration.yaml \

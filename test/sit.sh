@@ -39,6 +39,10 @@ case_create_delete_cluster(){
     # Delete CR
     log "Deleting MilvusCluster ..."
     kubectl delete -f test/min-mc.yaml
+    log "Checking PVC deleted ..."
+    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l release=mc-sit-minio
+    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l release=mc-sit-pulsar
+    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l app.kubernetes.io/instance=mc-sit-etcd
 }
 
 
@@ -73,6 +77,9 @@ case_create_delete_milvus(){
     # Delete CR
     log "Deleting Milvus ..."
     kubectl delete -f test/min-milvus.yaml
+    log "Checking PVC deleted ..."
+    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l release=mc-sit-minio
+    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l app.kubernetes.io/instance=mc-sit-etcd
 }
 
 success=0

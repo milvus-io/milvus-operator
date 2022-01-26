@@ -26,6 +26,7 @@ const (
 	AppLabelVersion   = AppLabel + "version"
 	AppLabelComponent = AppLabel + "component"
 	AppLabelName      = AppLabel + "name"
+	HelmReleaseLabel  = "release"
 )
 
 func getServicePortIdx(srcPorts []corev1.ServicePort, dst corev1.ServicePort) int {

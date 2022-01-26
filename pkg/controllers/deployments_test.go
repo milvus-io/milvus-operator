@@ -14,7 +14,7 @@ import (
 
 func TestClusterReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
 	env := newClusterTestEnv(t)
-	defer env.tearDown()
+	defer env.checkMocks()
 	r := env.Reconciler
 	mockClient := env.MockClient
 	ctx := env.ctx
@@ -36,7 +36,7 @@ func TestClusterReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
 
 func TestClusterReconciler_ReconcileDeployments_Existed(t *testing.T) {
 	env := newClusterTestEnv(t)
-	defer env.tearDown()
+	defer env.checkMocks()
 	r := env.Reconciler
 	mockClient := env.MockClient
 	ctx := env.ctx

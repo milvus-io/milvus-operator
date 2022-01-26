@@ -17,7 +17,6 @@ import (
 
 func TestCluster_Finalize(t *testing.T) {
 	env := newClusterTestEnv(t)
-	defer env.tearDown()
 	r := env.Reconciler
 	mockClient := env.MockClient
 	ctx := env.ctx
@@ -26,62 +25,73 @@ func TestCluster_Finalize(t *testing.T) {
 	helm.SetDefaultClient(mockHelm)
 	errTest := errors.New("test")
 
-	// no delete
-	err := r.Finalize(ctx, m)
-	assert.NoError(t, err)
+	t.Run("no delete", func(t *testing.T) {
+		err := r.Finalize(ctx, m)
+		assert.NoError(t, err)
+	})
 
-	// etcd, delete pvc
-	m.Spec.Dep.Etcd.InCluster.DeletionPolicy = v1alpha1.DeletionPolicyDelete
-	m.Spec.Dep.Etcd.InCluster.PVCDeletion = true
-	mockHelm.EXPECT().Uninstall(gomock.Any(), gomock.Any())
-	mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, list client.ObjectList, opts ...client.ListOption) {
-			pvcList := list.(*corev1.PersistentVolumeClaimList)
-			pvcList.Items = []corev1.PersistentVolumeClaim{
-				{},
-			}
-		})
-	mockClient.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil)
-	err = r.Finalize(ctx, m)
-	assert.NoError(t, err)
+	t.Run("etcd delete pvc", func(t *testing.T) {
+		defer env.checkMocks()
+		m.Spec.Dep.Etcd.InCluster.DeletionPolicy = v1alpha1.DeletionPolicyDelete
+		m.Spec.Dep.Etcd.InCluster.PVCDeletion = true
+		mockHelm.EXPECT().Uninstall(gomock.Any(), gomock.Any())
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any())
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, list client.ObjectList, opts ...client.ListOption) {
+				pvcList := list.(*corev1.PersistentVolumeClaimList)
+				pvcList.Items = []corev1.PersistentVolumeClaim{
+					{},
+				}
+			})
+		mockClient.EXPECT().Delete(gomock.Any(), gomock.Any())
+		err := r.Finalize(ctx, m)
+		assert.NoError(t, err)
+	})
 
-	// storage, delete, uninstall failed
-	m.Spec.Dep.Etcd.InCluster.DeletionPolicy = v1alpha1.DeletionPolicyRetain
-	m.Spec.Dep.Storage.InCluster.DeletionPolicy = v1alpha1.DeletionPolicyDelete
-	m.Spec.Dep.Storage.InCluster.PVCDeletion = true
-	mockHelm.EXPECT().Uninstall(gomock.Any(), gomock.Any()).Return(errTest)
-	err = r.Finalize(ctx, m)
-	assert.Error(t, err)
+	t.Run("storage uninstall failed", func(t *testing.T) {
+		defer env.checkMocks()
+		m.Spec.Dep.Etcd.InCluster.DeletionPolicy = v1alpha1.DeletionPolicyRetain
+		m.Spec.Dep.Storage.InCluster.DeletionPolicy = v1alpha1.DeletionPolicyDelete
+		m.Spec.Dep.Storage.InCluster.PVCDeletion = true
+		mockHelm.EXPECT().Uninstall(gomock.Any(), gomock.Any()).Return(errTest)
+		err := r.Finalize(ctx, m)
+		assert.Error(t, err)
+	})
 
-	// storage, delete, list failed
-	mockHelm.EXPECT().Uninstall(gomock.Any(), gomock.Any())
-	mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, list client.ObjectList, opts ...client.ListOption) {
-			pvcList := list.(*corev1.PersistentVolumeClaimList)
-			pvcList.Items = []corev1.PersistentVolumeClaim{
-				{},
-			}
-		}).Return(errTest)
-	err = r.Finalize(ctx, m)
-	assert.Error(t, err)
+	t.Run("storage list failed", func(t *testing.T) {
+		defer env.checkMocks()
+		mockHelm.EXPECT().Uninstall(gomock.Any(), gomock.Any())
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, list client.ObjectList, opts ...client.ListOption) {
+				pvcList := list.(*corev1.PersistentVolumeClaimList)
+				pvcList.Items = []corev1.PersistentVolumeClaim{
+					{},
+				}
+			}).Return(errTest)
+		err := r.Finalize(ctx, m)
+		assert.Error(t, err)
+	})
 
-	// storage, delete, delete failed
-	mockHelm.EXPECT().Uninstall(gomock.Any(), gomock.Any())
-	mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, list client.ObjectList, opts ...client.ListOption) {
-			pvcList := list.(*corev1.PersistentVolumeClaimList)
-			pvcList.Items = []corev1.PersistentVolumeClaim{
-				{},
-			}
-		})
-	mockClient.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(errTest)
-	err = r.Finalize(ctx, m)
-	assert.Error(t, err)
+	t.Run("storage delete failed", func(t *testing.T) {
+		defer env.checkMocks()
+		mockHelm.EXPECT().Uninstall(gomock.Any(), gomock.Any())
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any())
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, list client.ObjectList, opts ...client.ListOption) {
+				pvcList := list.(*corev1.PersistentVolumeClaimList)
+				pvcList.Items = []corev1.PersistentVolumeClaim{
+					{},
+				}
+			})
+		mockClient.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(errTest)
+		err := r.Finalize(ctx, m)
+		assert.Error(t, err)
+	})
 }
 
 func TestCluster_SetDefaultStatus(t *testing.T) {
 	env := newClusterTestEnv(t)
-	defer env.tearDown()
+	defer env.checkMocks()
 	r := env.Reconciler
 	mockClient := env.MockClient
 	ctx := env.ctx
@@ -112,7 +122,7 @@ func TestCluster_SetDefaultStatus(t *testing.T) {
 
 func TestCluster_ReconcileAll(t *testing.T) {
 	env := newClusterTestEnv(t)
-	defer env.tearDown()
+	defer env.checkMocks()
 	r := env.Reconciler
 	ctx := env.ctx
 	m := env.Inst
