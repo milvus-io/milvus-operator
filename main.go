@@ -45,6 +45,7 @@ func main() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&workDir, "work-dir", "", "The work directory where the config assets locate")
+	flag.StringVar(&controllers.ToolImage, "tool-image", controllers.ToolImage, "default tool image for setup milvus")
 	flag.StringVar(&config.OperatorNamespace, "namespace", config.OperatorNamespace, "The namespace of self")
 	flag.StringVar(&config.OperatorName, "name", config.OperatorName, "The name of self")
 	opts := zap.Options{

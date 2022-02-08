@@ -38,7 +38,10 @@ vendor/
 test/*_gen.yaml
 *_mock.go
 
-## Helm packages
+# Helm packages
 charts/index.yaml
 charts/*.tgz
 charts/milvus-operator/charts/*.tgz
+
+# output
+out/

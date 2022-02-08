@@ -12,7 +12,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
-var groupLog = logf.Log.WithName("group-panic")
+var groupLog = logf.Log.WithName("group")
 
 type Group struct {
 	wait   sync.WaitGroup
@@ -82,7 +82,7 @@ func (g *Group) Wait() error {
 	}
 
 	if len(errTexts) > 0 {
-		return errors.Errorf("groups error: %s", strings.Join(errTexts, ":"))
+		return errors.Errorf("groups error: %s", strings.Join(errTexts, ";"))
 	}
 
 	return nil

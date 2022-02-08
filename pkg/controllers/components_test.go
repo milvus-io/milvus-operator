@@ -21,142 +21,143 @@ func TestMilvusComponent_IsNode(t *testing.T) {
 	assert.True(t, QueryNode.IsNode())
 }
 
-func TestMilvusComponent_GetEnv(t *testing.T) {
-	spec := v1alpha1.MilvusClusterSpec{}
-	spec.Com.ComponentSpec.Env = []corev1.EnvVar{
-		{Name: "a"},
-	}
-	spec.Com.QueryNode.Component.ComponentSpec.Env = []corev1.EnvVar{
-		{Name: "b"},
-	}
-	com := QueryNode
-	merged := com.GetEnv(spec)
-	assert.Equal(t, 3, len(merged))
-	assert.Equal(t, "CACHE_SIZE", merged[2].Name)
-}
+func TestMergeComponentSpec(t *testing.T) {
+	t.Run("merge image", func(t *testing.T) {
+		src := ComponentSpec{}
+		dst := ComponentSpec{}
+		dst.Image = "a"
+		merged := MergeComponentSpec(src, dst).Image
+		assert.Equal(t, "a", merged)
+		src.Image = "b"
+		merged = MergeComponentSpec(src, dst).Image
+		assert.Equal(t, "b", merged)
+	})
 
-func TestMilvusComponent_GetImagePullSecrets(t *testing.T) {
-	// if empty, use global
-	globalSecrets := []corev1.LocalObjectReference{
-		{Name: "a"},
-	}
-	spec := v1alpha1.MilvusClusterSpec{}
-	spec.Com.ComponentSpec.ImagePullSecrets = globalSecrets
-	com := QueryNode
-	secrets := com.GetImagePullSecrets(spec)
-	assert.Equal(t, 1, len(secrets))
-	assert.Equal(t, "a", secrets[0].Name)
+	t.Run("merge imagePullPolicy", func(t *testing.T) {
+		src := ComponentSpec{}
+		dst := ComponentSpec{}
+		merged := MergeComponentSpec(src, dst).ImagePullPolicy
+		assert.Equal(t, corev1.PullIfNotPresent, *merged)
 
-	// if not empty, use specific component's
-	specificSecrets := []corev1.LocalObjectReference{
-		{Name: "b"},
-	}
-	spec.Com.QueryNode.Component.ComponentSpec.ImagePullSecrets = specificSecrets
-	com = QueryNode
-	secrets = com.GetImagePullSecrets(spec)
-	assert.Equal(t, 1, len(secrets))
-	assert.Equal(t, "b", secrets[0].Name)
-}
+		always := corev1.PullAlways
+		dst.ImagePullPolicy = &always
+		merged = MergeComponentSpec(src, dst).ImagePullPolicy
+		assert.Equal(t, always, *merged)
 
-func TestMilvusComponent_GetImagePullPolicy(t *testing.T) {
-	// not set in both global & specific, use default
+		never := corev1.PullNever
+		src.ImagePullPolicy = &never
+		merged = MergeComponentSpec(src, dst).ImagePullPolicy
+		assert.Equal(t, never, *merged)
+	})
 
-	spec := v1alpha1.MilvusClusterSpec{}
-	com := QueryNode
-	policy := com.GetImagePullPolicy(spec)
-	assert.Equal(t, corev1.PullIfNotPresent, policy)
+	t.Run("merge env", func(t *testing.T) {
+		src := ComponentSpec{}
+		dst := ComponentSpec{}
+		src.Env = []corev1.EnvVar{
+			{Name: "a"},
+		}
+		dst.Env = []corev1.EnvVar{
+			{Name: "b"},
+		}
+		merged := MergeComponentSpec(src, dst).Env
+		assert.Equal(t, 3, len(merged))
+		assert.Equal(t, "CACHE_SIZE", merged[2].Name)
+	})
 
-	// has only global, use global
-	globalPullPolicy := corev1.PullAlways
-	spec.Com.ComponentSpec.ImagePullPolicy = &globalPullPolicy
-	com = QueryNode
-	policy = com.GetImagePullPolicy(spec)
-	assert.Equal(t, globalPullPolicy, policy)
+	t.Run("merge imagePullSecret", func(t *testing.T) {
+		src := ComponentSpec{}
+		dst := ComponentSpec{}
+		dst.ImagePullSecrets = []corev1.LocalObjectReference{
+			{Name: "a"},
+		}
+		merged := MergeComponentSpec(src, dst).ImagePullSecrets
+		assert.Equal(t, 1, len(merged))
+		assert.Equal(t, "a", merged[0].Name)
 
-	// has both, use specific
-	specificPullPolicy := corev1.PullNever
-	spec.Com.QueryNode.Component.ComponentSpec.ImagePullPolicy = &specificPullPolicy
-	com = QueryNode
-	policy = com.GetImagePullPolicy(spec)
-	assert.Equal(t, specificPullPolicy, policy)
-}
+		src.ImagePullSecrets = []corev1.LocalObjectReference{
+			{Name: "b"},
+		}
+		merged = MergeComponentSpec(src, dst).ImagePullSecrets
+		assert.Equal(t, 1, len(merged))
+		assert.Equal(t, "b", merged[0].Name)
+	})
 
-func TestMilvusComponent_GetTolerations(t *testing.T) {
-	// only global, use global
-	globalTolerations := []corev1.Toleration{
-		{Key: "a"},
-	}
-	spec := v1alpha1.MilvusClusterSpec{
-		Com: v1alpha1.MilvusComponents{
-			ComponentSpec: v1alpha1.ComponentSpec{
-				Tolerations: globalTolerations,
+	t.Run("merge tolerations", func(t *testing.T) {
+		src := ComponentSpec{}
+		dst := ComponentSpec{}
+		dst.Tolerations = []corev1.Toleration{
+			{Key: "a"},
+		}
+		merged := MergeComponentSpec(src, dst).Tolerations
+		assert.Equal(t, 1, len(merged))
+		assert.Equal(t, "a", merged[0].Key)
+
+		src.Tolerations = []corev1.Toleration{
+			{Key: "b"},
+		}
+		merged = MergeComponentSpec(src, dst).Tolerations
+		assert.Equal(t, 1, len(merged))
+		assert.Equal(t, "b", merged[0].Key)
+	})
+
+	t.Run("merge nodeSelector", func(t *testing.T) {
+		src := ComponentSpec{}
+		dst := ComponentSpec{}
+		dst.NodeSelector = map[string]string{
+			"a": "b",
+		}
+		merged := MergeComponentSpec(src, dst).NodeSelector
+		assert.Equal(t, 1, len(merged))
+		assert.Equal(t, "b", merged["a"])
+
+		src.NodeSelector = map[string]string{
+			"a": "c",
+		}
+		merged = MergeComponentSpec(src, dst).NodeSelector
+		assert.Equal(t, 1, len(merged))
+		assert.Equal(t, "c", merged["a"])
+	})
+
+	t.Run("merge resources", func(t *testing.T) {
+		src := ComponentSpec{}
+		dst := ComponentSpec{}
+		dst.Resources = &corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"cpu": resource.MustParse("1"),
 			},
-		},
-	}
-	com := QueryNode
-	assert.Equal(t, globalTolerations, com.GetTolerations(spec))
+			Requests: corev1.ResourceList{
+				"cpu": resource.MustParse("1"),
+			},
+		}
+		merged := MergeComponentSpec(src, dst).Resources
+		assert.Equal(t, dst.Resources, merged)
 
-	// has specific, use specific
-	specificTolerations := []corev1.Toleration{
-		{Key: "b"},
-	}
-	spec.Com.QueryNode.Component.ComponentSpec.Tolerations = specificTolerations
-	assert.Equal(t, specificTolerations, com.GetTolerations(spec))
-}
+		src.Resources = &corev1.ResourceRequirements{
+			Limits: corev1.ResourceList{
+				"a": resource.MustParse("2"),
+			},
+			Requests: corev1.ResourceList{
+				"b": resource.MustParse("2"),
+			},
+		}
+		merged = MergeComponentSpec(src, dst).Resources
+		assert.Equal(t, src.Resources, merged)
+	})
 
-func TestMilvusComponent_GetNodeSelector(t *testing.T) {
-	// only global, use global
-	globalNodeSelector := map[string]string{
-		"a": "b",
-	}
-	spec := v1alpha1.MilvusClusterSpec{}
-	spec.Com.ComponentSpec.NodeSelector = globalNodeSelector
-	com := QueryNode
-	assert.Equal(t, globalNodeSelector, com.GetNodeSelector(spec))
-
-	// has specific, use specific
-	specificNodeSelector := map[string]string{
-		"b": "c",
-	}
-	spec.Com.QueryNode.Component.ComponentSpec.NodeSelector = specificNodeSelector
-	assert.Equal(t, specificNodeSelector, com.GetNodeSelector(spec))
-}
-
-func TestMilvusComponent_GetResources(t *testing.T) {
-	// not set, return empty
-	spec := v1alpha1.MilvusClusterSpec{}
-	com := QueryNode
-	assert.Equal(t, corev1.ResourceRequirements{}, com.GetResources(spec))
-
-	// only global, use global
-	globalResources := corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			"cpu": resource.MustParse("100m"),
-		},
-	}
-	spec.Com.ComponentSpec.Resources = &globalResources
-	assert.Equal(t, globalResources, com.GetResources(spec))
-
-	// has specific, use specific
-	specificResources := corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			"cpu": resource.MustParse("200m"),
-		},
-	}
-	spec.Com.QueryNode.Component.ComponentSpec.Resources = &specificResources
-	assert.Equal(t, specificResources, com.GetResources(spec))
-}
-
-func TestMilvusComponent_GetImage(t *testing.T) {
-	// has global, use global
-	spec := v1alpha1.MilvusClusterSpec{}
-	spec.Com.ComponentSpec.Image = "a"
-	com := QueryNode
-	assert.Equal(t, "a", com.GetImage(spec))
-
-	// has specific, use specific
-	spec.Com.QueryNode.Component.ComponentSpec.Image = "b"
-	assert.Equal(t, "b", com.GetImage(spec))
+	t.Run("merge affinity", func(t *testing.T) {
+		src := ComponentSpec{}
+		dst := ComponentSpec{}
+		dst.Affinity = &corev1.Affinity{
+			NodeAffinity: &corev1.NodeAffinity{},
+		}
+		merged := MergeComponentSpec(src, dst).Affinity
+		assert.Equal(t, dst.Affinity, merged)
+		src.Affinity = &corev1.Affinity{
+			PodAntiAffinity: &corev1.PodAntiAffinity{},
+		}
+		merged = MergeComponentSpec(src, dst).Affinity
+		assert.Equal(t, src.Affinity, merged)
+	})
 }
 
 func TestMilvusComponent_GetReplicas(t *testing.T) {

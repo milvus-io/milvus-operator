@@ -44,10 +44,10 @@ type ComponentSpec struct {
 	Env []corev1.EnvVar `json:"env,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	//EnvFrom []corev1.EnvFromSource `json:"envFrom,omitempty"`
+	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+	Affinity *corev1.Affinity `json:"affinity,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	Tolerations []corev1.Toleration `json:"tolerations,omitempty"`
