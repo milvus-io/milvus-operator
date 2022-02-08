@@ -91,88 +91,6 @@ func (c MilvusComponent) IsNode() bool {
 	return strings.HasSuffix(c.Name, "node")
 }
 
-// GetEnv returns the environment variables for the component
-func (c MilvusComponent) GetEnv(spec v1alpha1.MilvusClusterSpec) []corev1.EnvVar {
-	env := c.GetComponentSpec(spec).Env
-	env = append(env, corev1.EnvVar{
-		Name: "CACHE_SIZE",
-		ValueFrom: &corev1.EnvVarSource{
-			ResourceFieldRef: &corev1.ResourceFieldSelector{
-				Divisor:  resource.MustParse("1Gi"),
-				Resource: "limits.memory",
-			},
-		},
-	})
-
-	return MergeEnvVar(spec.Com.Env, env)
-}
-
-// GetImagePullSecrets returns the image pull secrets for the component
-func (c MilvusComponent) GetImagePullSecrets(spec v1alpha1.MilvusClusterSpec) []corev1.LocalObjectReference {
-	pullSecrets := c.GetComponentSpec(spec).ImagePullSecrets
-	if len(pullSecrets) > 0 {
-		return pullSecrets
-	}
-	return spec.Com.ImagePullSecrets
-}
-
-// GetImagePullPolicy returns the image pull policy for the component
-func (c MilvusComponent) GetImagePullPolicy(spec v1alpha1.MilvusClusterSpec) corev1.PullPolicy {
-	pullPolicy := c.GetComponentSpec(spec).ImagePullPolicy
-	if pullPolicy != nil {
-		return *pullPolicy
-	}
-
-	if spec.Com.ImagePullPolicy != nil {
-		return *spec.Com.ImagePullPolicy
-	}
-	return corev1.PullIfNotPresent
-}
-
-// GetTolerations returns the tolerations for the component
-func (c MilvusComponent) GetTolerations(spec v1alpha1.MilvusClusterSpec) []corev1.Toleration {
-	tolerations := c.GetComponentSpec(spec).Tolerations
-	if len(tolerations) > 0 {
-		return tolerations
-	}
-
-	return spec.Com.Tolerations
-}
-
-// GetNodeSelector returns the node selector for the component
-func (c MilvusComponent) GetNodeSelector(spec v1alpha1.MilvusClusterSpec) map[string]string {
-	nodeSelector := c.GetComponentSpec(spec).NodeSelector
-	if nodeSelector != nil {
-		return nodeSelector
-	}
-
-	return spec.Com.NodeSelector
-}
-
-// GetResources returns the corev1.ResourceRequirements for the component
-func (c MilvusComponent) GetResources(spec v1alpha1.MilvusClusterSpec) corev1.ResourceRequirements {
-	resources := c.GetComponentSpec(spec).Resources
-	if c.GetComponentSpec(spec).Resources != nil {
-		return *resources
-	}
-
-	if spec.Com.Resources != nil {
-		return *spec.Com.Resources
-	}
-
-	return corev1.ResourceRequirements{}
-}
-
-// GetImage returns the image for the component
-func (c MilvusComponent) GetImage(spec v1alpha1.MilvusClusterSpec) string {
-	componentImage := c.GetComponentSpec(spec).Image
-	if len(componentImage) > 0 {
-		return componentImage
-	}
-
-	return spec.Com.Image
-}
-
 // GetReplicas returns the replicas for the component
 func (c MilvusComponent) GetReplicas(spec v1alpha1.MilvusClusterSpec) *int32 {
 	replicas, _ := reflect.ValueOf(spec.Com).
@@ -325,22 +243,7 @@ func GetLivenessProbe() *corev1.Probe {
 	}
 }
 
-func GetReadinessProbe() *corev1.Probe {
-	return &corev1.Probe{
-		Handler: corev1.Handler{
-			HTTPGet: &corev1.HTTPGetAction{
-				Path:   "/healthz",
-				Port:   intstr.FromInt(9091),
-				Scheme: corev1.URISchemeHTTP,
-			},
-		},
-		InitialDelaySeconds: 120,
-		TimeoutSeconds:      3,
-		PeriodSeconds:       30,
-		FailureThreshold:    2,
-		SuccessThreshold:    1,
-	}
-}
+var GetReadinessProbe = GetLivenessProbe
 
 func (c MilvusComponent) GetDeploymentStrategy() appsv1.DeploymentStrategy {
 	if c.IsCoord() {
@@ -356,4 +259,64 @@ func (c MilvusComponent) GetDeploymentStrategy() appsv1.DeploymentStrategy {
 			MaxSurge:       &intstr.IntOrString{Type: intstr.Int, IntVal: 1},
 		},
 	}
+}
+
+type ComponentSpec = v1alpha1.ComponentSpec
+
+const (
+	CacheSizeEnvVarName = "CACHE_SIZE"
+)
+
+var (
+	CacheSizeEnvVar = corev1.EnvVar{
+		Name: CacheSizeEnvVarName,
+		ValueFrom: &corev1.EnvVarSource{
+			ResourceFieldRef: &corev1.ResourceFieldSelector{
+				Divisor:  resource.MustParse("1Gi"),
+				Resource: "limits.memory",
+			},
+		},
+	}
+)
+
+// MergeComponentSpec merges the src ComponentSpec to dst
+func MergeComponentSpec(src, dst ComponentSpec) ComponentSpec {
+	if len(src.Image) > 0 {
+		dst.Image = src.Image
+	}
+
+	if src.ImagePullPolicy != nil {
+		dst.ImagePullPolicy = src.ImagePullPolicy
+	}
+	if dst.ImagePullPolicy == nil {
+		policy := corev1.PullIfNotPresent
+		dst.ImagePullPolicy = &policy
+	}
+
+	if len(src.ImagePullSecrets) > 0 {
+		dst.ImagePullSecrets = src.ImagePullSecrets
+	}
+
+	src.Env = append(src.Env, CacheSizeEnvVar)
+	dst.Env = MergeEnvVar(dst.Env, src.Env)
+
+	if len(src.NodeSelector) > 0 {
+		dst.NodeSelector = src.NodeSelector
+	}
+
+	if src.Affinity != nil {
+		dst.Affinity = src.Affinity
+	}
+
+	if len(src.Tolerations) > 0 {
+		dst.Tolerations = src.Tolerations
+	}
+
+	if src.Resources != nil {
+		dst.Resources = src.Resources
+	}
+	if dst.Resources == nil {
+		dst.Resources = &corev1.ResourceRequirements{}
+	}
+	return dst
 }

@@ -108,9 +108,16 @@ var (
 		Image:           "milvusdb/milvus-operator:latest",
 		ImagePullPolicy: corev1.PullAlways,
 	}
+	ToolImage = ""
 )
 
 func getOperatorImageInfo(cli client.Client) (*ImageInfo, error) {
+	if ToolImage != "" {
+		return &ImageInfo{
+			Image:           ToolImage,
+			ImagePullPolicy: corev1.PullIfNotPresent,
+		}, nil
+	}
 	deploy := appsv1.Deployment{}
 	err := cli.Get(context.TODO(), NamespacedName(config.OperatorNamespace, config.OperatorName), &deploy)
 	if err != nil {
