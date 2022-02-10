@@ -4,14 +4,3 @@ resources:
 
 patchesStrategicMerge:
 - manager_dev_patch.yaml
-
-#patches:
-#- patch: |
-#    - op: "remove"
-#      path: "/spec/template/spec/containers/0"
-#      value: "https://host.docker.internal:9443/mutate-milvus-io-v1alpha1-milvuscluster"
-#  target:
-#    kind: Deployment
-#    name: milvus-operator-controller-manager
-#    namespace: milvus-operator
-#    labelSelector: "control-plane=controller-manager"

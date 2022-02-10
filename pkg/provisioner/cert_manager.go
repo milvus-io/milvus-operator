@@ -32,8 +32,10 @@ func certManagerManifestURLByVersion(version string) string {
 // configs is set by flag in main.go
 var (
 	CertManagerLeastSemanticVersion        = semver.New(strings.TrimPrefix(CertManagerLeastVersion, "v"))
-	InstallCertManagerIfNotExist    bool   = true
-	InstallCertManagerFlag          string = "install-cert-manager"
+	DisableCertManagerCheck         bool   = false
+	DisableCertManagerCheckFlag     string = "disable-cert-manager-check"
+	DisableCertManagerInstall       bool   = false
+	DisableCertManagerInstallFlag   string = "disable-cert-manager-install"
 	logger                                 = ctrl.Log.WithName("cert-manager")
 )
 
@@ -80,8 +82,8 @@ func (c CertManager) checkAndInstall() error {
 		}
 		return errors.Errorf("cert manager crds exist but version is too old, please update it manually")
 	}
-	if !InstallCertManagerIfNotExist {
-		return errors.Errorf("cert manager crds not exist, please install it manually, or enable -%s flag", InstallCertManagerFlag)
+	if DisableCertManagerInstall {
+		return errors.Errorf("cert manager crds not exist, please install it manually, or enable -%s flag", DisableCertManagerInstallFlag)
 	}
 	return errors.Wrap(c.installCertManager(), "failed to install cert manager")
 }

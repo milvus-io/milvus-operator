@@ -12,6 +12,10 @@ image:
 # installCRDs -- If true, CRD resources will be installed as part of the Helm chart. If enabled, when uninstalling CRD resources will be deleted causing all installed custom resources to be DELETED
 installCRDs: true
 
+checker:
+  disableCertManagerCheck: false
+  disableCertManagerInstall: false
+
 # check and install the dependencies when enabled, this need an extra service account with privileged clusterroles
 installDependencies:
   enable: true
