@@ -18,6 +18,7 @@ func main() {
 	flag.StringVar(&config.OperatorName, "name", "milvus-operator-controller-manager", "The namespace of self")
 	flag.BoolVar(&provisioner.DisableCertManagerInstall, provisioner.DisableCertManagerInstallFlag, provisioner.DisableCertManagerInstall, "Disable auto install cert-manager if not exist")
 	flag.BoolVar(&provisioner.DisableCertManagerCheck, provisioner.DisableCertManagerCheckFlag, provisioner.DisableCertManagerCheck, "Disable auto check & install cert-manager")
+	flag.Parse()
 	certMangerProvisioner, err := provisioner.NewCertManager(ctrlConfig.GetConfigOrDie())
 	if err != nil {
 		log.Fatal("unable to create cert manager provisioner ", err)
