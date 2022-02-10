@@ -29,7 +29,14 @@ func TestCertManager_InstallIfNotExist(t *testing.T) {
 	ret, err := NewCertManager(config)
 	assert.NoError(t, err)
 
+	t.Run("install disabled, install failed", func(t *testing.T) {
+		DisableCertManagerInstall = true
+		err = ret.InstallIfNotExist()
+		assert.Error(t, err)
+	})
+
 	// install ok
+	DisableCertManagerInstall = false
 	err = ret.InstallIfNotExist()
 	assert.NoError(t, err)
 

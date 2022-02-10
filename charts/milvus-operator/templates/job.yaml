@@ -18,6 +18,12 @@ spec:
         args:
           - "-namespace={{ .Release.Namespace }}"
           - "-name={{ .Release.Name }}"
+          {{- if .Values.checker.disableCertManagerCheck }}
+          - "-disable-cert-manager-check"
+          {{- end }}
+          {{- if .Values.checker.disableCertManagerInstall }}
+          - "-disable-cert-manager-install"
+          {{- end }}
         resources:
           limits:
             cpu: 500m
