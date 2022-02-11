@@ -15,6 +15,17 @@ The Milvus Operator provides an easy and solid solution to deploy and manage a f
 
 # Getting started
 ## Deploy milvus operator
+
+Install with helm:
+
+```shell
+helm install milvus-operator \
+  -n milvus-operator --create-namespace \
+  https://github.com/milvus-io/milvus-operator/releases/download/v0.3.3/milvus-operator-0.3.3.tgz
+```
+
+Or install with kubectl & raw manifests:
+
 ```shell
 kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/deploy/manifests/deployment.yaml
 ```
