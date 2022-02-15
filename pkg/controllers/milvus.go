@@ -20,10 +20,10 @@ func IsSetDefaultDone(mc *v1alpha1.Milvus) bool {
 func (r *MilvusReconciler) Finalize(ctx context.Context, mil v1alpha1.Milvus) error {
 	deletingReleases := map[string]bool{}
 
-	if mil.Spec.Dep.Etcd.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
+	if !mil.Spec.Dep.Etcd.External && mil.Spec.Dep.Etcd.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
 		deletingReleases[mil.Name+"-etcd"] = mil.Spec.Dep.Etcd.InCluster.PVCDeletion
 	}
-	if mil.Spec.Dep.Storage.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
+	if !mil.Spec.Dep.Etcd.External && mil.Spec.Dep.Storage.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
 		deletingReleases[mil.Name+"-minio"] = mil.Spec.Dep.Storage.InCluster.PVCDeletion
 	}
 

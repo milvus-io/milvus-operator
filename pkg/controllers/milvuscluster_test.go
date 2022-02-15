@@ -48,9 +48,28 @@ func TestCluster_Finalize(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("storage uninstall failed", func(t *testing.T) {
+	t.Run("pulsar delete pvc", func(t *testing.T) {
 		defer env.checkMocks()
 		m.Spec.Dep.Etcd.InCluster.DeletionPolicy = v1alpha1.DeletionPolicyRetain
+		m.Spec.Dep.Pulsar.InCluster.DeletionPolicy = v1alpha1.DeletionPolicyDelete
+		m.Spec.Dep.Pulsar.InCluster.PVCDeletion = true
+		mockHelm.EXPECT().Uninstall(gomock.Any(), gomock.Any())
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any())
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, list client.ObjectList, opts ...client.ListOption) {
+				pvcList := list.(*corev1.PersistentVolumeClaimList)
+				pvcList.Items = []corev1.PersistentVolumeClaim{
+					{},
+				}
+			})
+		mockClient.EXPECT().Delete(gomock.Any(), gomock.Any())
+		err := r.Finalize(ctx, m)
+		assert.NoError(t, err)
+	})
+
+	t.Run("storage uninstall failed", func(t *testing.T) {
+		defer env.checkMocks()
+		m.Spec.Dep.Pulsar.InCluster.DeletionPolicy = v1alpha1.DeletionPolicyRetain
 		m.Spec.Dep.Storage.InCluster.DeletionPolicy = v1alpha1.DeletionPolicyDelete
 		m.Spec.Dep.Storage.InCluster.PVCDeletion = true
 		mockHelm.EXPECT().Uninstall(gomock.Any(), gomock.Any()).Return(errTest)
@@ -87,6 +106,15 @@ func TestCluster_Finalize(t *testing.T) {
 		err := r.Finalize(ctx, m)
 		assert.Error(t, err)
 	})
+
+	t.Run("dependency external ignored", func(t *testing.T) {
+		m.Spec.Dep.Etcd.External = true
+		m.Spec.Dep.Pulsar.External = true
+		m.Spec.Dep.Storage.External = true
+		err := r.Finalize(ctx, m)
+		assert.NoError(t, err)
+	})
+
 }
 
 func TestCluster_SetDefaultStatus(t *testing.T) {

@@ -77,6 +77,13 @@ func TestMilvus_Finalize(t *testing.T) {
 	mockClient.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(errTest)
 	err = r.Finalize(ctx, m)
 	assert.Error(t, err)
+
+	t.Run("dependency external ignored", func(t *testing.T) {
+		m.Spec.Dep.Etcd.External = true
+		m.Spec.Dep.Storage.External = true
+		err := r.Finalize(ctx, m)
+		assert.NoError(t, err)
+	})
 }
 
 func TestMilvus_SetDefaultStatus(t *testing.T) {

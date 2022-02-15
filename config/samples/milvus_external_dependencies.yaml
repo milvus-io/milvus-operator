@@ -1,0 +1,16 @@
+apiVersion: milvus.io/v1alpha1
+kind: Milvus
+metadata:
+  name: my-release
+  labels:
+    app: milvus
+spec:
+  dependencies: 
+    etcd:
+      external: true
+      endpoints: ["etcdAddr-1:2379", "etcdAddr-2:2379", "etcdAddr-3:2379"]
+    storage:
+      external: true
+      endpoint: "storageAddr:9000"
+      secretRef: "secret-name"
+      type: MinIO
