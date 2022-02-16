@@ -43,11 +43,11 @@ Versions of the underlying components are listed below:
 
 <!-- source csv for table
 Components, Milvus, Pulsar, Etcd, MinIO
-Versions, v2.0.0 `[1]`, 2.7.3, 3.5.0,2021.2.14 -->
+Versions, v2.0.0 `[1]`, 2.8.2, 3.5.0,2021.2.14 -->
 
 |Components| Milvus| Pulsar| Etcd| MinIO|
 |---|---|---|---|---|
-|Versions| v2.0.0 `[1]`| 2.7.3| 3.5.0|2021.2.14|
+|Versions| v2.0.0 `[1]`| 2.8.2| 3.5.0|2021.2.14|
 
 
 **NOTES:**
