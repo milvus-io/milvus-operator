@@ -8,6 +8,16 @@ log() {
     echo "$(date +"%Y-%m-%d %H:%M:%S") $1"
 }
 
+delete_milvus_cluster(){
+    # Delete CR
+    log "Deleting MilvusCluster ..."
+    kubectl delete -f test/min-mc.yaml
+    log "Checking PVC deleted ..."
+    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l release=mc-sit-minio
+    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l release=mc-sit-pulsar
+    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l app.kubernetes.io/instance=mc-sit-etcd
+}
+
 # milvus cluster cases:
 case_create_delete_cluster(){
     # create MilvusCluster CR
@@ -33,18 +43,20 @@ case_create_delete_cluster(){
         log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit mc/mc-sit -o yaml)"
         log "MilvusCluster helm values: \n $(helm -n mc-sit get values mc-sit-pulsar)"
         log "MilvusCluster describe pods: \n $(kubectl -n mc-sit describe pods)"
+        delete_milvus_cluster
         return 1
     fi
-
-    # Delete CR
-    log "Deleting MilvusCluster ..."
-    kubectl delete -f test/min-mc.yaml
-    log "Checking PVC deleted ..."
-    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l release=mc-sit-minio
-    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l release=mc-sit-pulsar
-    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l app.kubernetes.io/instance=mc-sit-etcd
+    delete_milvus_cluster
 }
 
+delete_milvus(){
+    # Delete CR
+    log "Deleting Milvus ..."
+    kubectl delete -f test/min-milvus.yaml
+    log "Checking PVC deleted ..."
+    kubectl wait --timeout=1m pvc -n milvus-sit --for=delete -l release=milvus-sit-minio
+    kubectl wait --timeout=1m pvc -n milvus-sit --for=delete -l app.kubernetes.io/instance=milvus-sit-etcd
+}
 
 # milvus cases:
 case_create_delete_milvus(){
@@ -69,17 +81,11 @@ case_create_delete_milvus(){
     if [ "$CR_STATUS" != "Healthy" ]; then
         log "Milvus creation failed"
         log "Milvus final yaml: \n $(kubectl get -n milvus-sit milvus/milvus-sit -o yaml)"
-        log "Milvus helm values: \n $(helm -n milvus-sit get values milvus-sit-pulsar)"
-        log "Milvus describe pods: \n $(kubectl -n mc-sit describe pods)"
+        log "Milvus describe pods: \n $(kubectl -n milvus-sit describe pods)"
+        delete_milvus
         return 1
     fi
-
-    # Delete CR
-    log "Deleting Milvus ..."
-    kubectl delete -f test/min-milvus.yaml
-    log "Checking PVC deleted ..."
-    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l release=mc-sit-minio
-    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l app.kubernetes.io/instance=mc-sit-etcd
+    delete_milvus
 }
 
 success=0

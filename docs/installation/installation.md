@@ -40,7 +40,7 @@ use helm commands to upgrade earlier milvus-operator to current version:
 
 ```shell
 helm upgrade -n milvus-operator milvus-operator --reuse-values \
-  https://github.com/milvus-io/milvus-operator/releases/download/v0.3.5/milvus-operator-0.3.5.tgz \
+  https://github.com/milvus-io/milvus-operator/releases/download/v0.3.5/milvus-operator-0.3.5.tgz
 ```
 
 ## Delete operator
