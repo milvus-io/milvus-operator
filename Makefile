@@ -177,7 +177,7 @@ sit-prepare-operator-images:
 sit-prepare-images: sit-prepare-operator-images
 	@echo "Preparing images"
 	docker pull -q milvusdb/milvus:v2.0.0
-	docker pull -q apachepulsar/pulsar:2.7.3
+	docker pull -q apachepulsar/pulsar:2.8.2
 	docker pull -q bitnami/etcd:3.5.0-debian-10-r24
 	docker pull -q minio/minio:RELEASE.2021-02-14T04-01-33Z
 	docker pull -q minio/mc:RELEASE.2021-02-14T04-28-06Z
@@ -192,7 +192,7 @@ sit-load-operator-images:
 sit-load-images: sit-load-operator-images
 	@echo "Loading images"
 	kind load docker-image milvusdb/milvus:v2.0.0
-	kind load docker-image apachepulsar/pulsar:2.7.3
+	kind load docker-image apachepulsar/pulsar:2.8.2
 	kind load docker-image bitnami/etcd:3.5.0-debian-10-r24
 	kind load docker-image minio/minio:RELEASE.2021-02-14T04-01-33Z
 	kind load docker-image minio/mc:RELEASE.2021-02-14T04-28-06Z

@@ -150,6 +150,7 @@ func (l LocalHelmReconciler) Reconcile(ctx context.Context, request helm.ChartRe
 		if request.Chart == PulsarChart {
 			request.Values["initialize"] = true
 		}
+		l.logger.Info("helm install values", "values", request.Values)
 		return helm.Install(cfg, request)
 	}
 
