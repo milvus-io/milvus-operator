@@ -138,3 +138,11 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 	err = s.UpdateStatus(ctx, m)
 	assert.NoError(t, err)
 }
+
+func TestMilvusClusterStatusSyncer_GetMinioCondition_S3Ready(t *testing.T) {
+	m := v1alpha1.MilvusCluster{}
+	m.Spec.Dep.Storage.Type = v1alpha1.StorageTypeS3
+	ret, err := new(MilvusClusterStatusSyncer).GetMinioCondition(context.TODO(), m)
+	assert.NoError(t, err)
+	assert.Equal(t, S3ReadyCondition, ret)
+}
