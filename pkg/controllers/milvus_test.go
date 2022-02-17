@@ -81,6 +81,8 @@ func TestMilvus_Finalize(t *testing.T) {
 	t.Run("dependency external ignored", func(t *testing.T) {
 		m.Spec.Dep.Etcd.External = true
 		m.Spec.Dep.Storage.External = true
+		m.Spec.Dep.Etcd.InCluster = nil
+		m.Spec.Dep.Storage.InCluster = nil
 		err := r.Finalize(ctx, m)
 		assert.NoError(t, err)
 	})
