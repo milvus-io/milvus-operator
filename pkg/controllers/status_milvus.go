@@ -144,6 +144,9 @@ func (r *MilvusStatusSyncer) GetMilvusCondition(ctx context.Context, mil v1alpha
 
 func (r *MilvusStatusSyncer) GetMinioCondition(
 	ctx context.Context, mil v1alpha1.Milvus) (v1alpha1.MilvusCondition, error) {
+	if mil.Spec.Dep.Storage.Type == v1alpha1.StorageTypeS3 {
+		return S3ReadyCondition, nil
+	}
 	info := StorageConditionInfo{
 		Namespace: mil.Namespace,
 		Storage:   mil.Spec.Dep.Storage,

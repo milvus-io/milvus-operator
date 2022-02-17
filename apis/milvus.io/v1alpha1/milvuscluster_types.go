@@ -76,6 +76,7 @@ const (
 
 	ReasonEtcdReady          = "EtcdReady"
 	ReasonEtcdNotReady       = "EtcdNotReady"
+	ReasonS3Ready            = "S3StorageAssumeReady"
 	ReasonStorageReady       = "StorageReady"
 	ReasonStorageNotReady    = "StorageNotReady"
 	ReasonPulsarReady        = "PulsarReady"

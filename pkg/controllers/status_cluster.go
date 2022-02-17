@@ -28,6 +28,14 @@ const (
 	MessageMilvusHealthy   = "All Milvus components are healthy"
 )
 
+var (
+	S3ReadyCondition = v1alpha1.MilvusCondition{
+		Type:   v1alpha1.StorageReady,
+		Status: GetConditionStatus(true),
+		Reason: v1alpha1.ReasonS3Ready,
+	}
+)
+
 type EtcdEndPointHealth struct {
 	Ep     string `json:"endpoint"`
 	Health bool   `json:"health"`
@@ -166,8 +174,12 @@ func (r *MilvusClusterStatusSyncer) GetPulsarCondition(
 	return GetPulsarCondition(ctx, r.logger, mc.Spec.Dep.Pulsar)
 }
 
+// TODO: rename as GetStorageCondition
 func (r *MilvusClusterStatusSyncer) GetMinioCondition(
 	ctx context.Context, mc v1alpha1.MilvusCluster) (v1alpha1.MilvusCondition, error) {
+	if mc.Spec.Dep.Storage.Type == v1alpha1.StorageTypeS3 {
+		return S3ReadyCondition, nil
+	}
 	info := StorageConditionInfo{
 		Namespace: mc.Namespace,
 		Storage:   mc.Spec.Dep.Storage,

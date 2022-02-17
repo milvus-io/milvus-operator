@@ -7,6 +7,11 @@ const (
 	DeletionPolicyRetain DependencyDeletionPolicy = "Retain"
 )
 
+const (
+	StorageTypeMinIO = "MinIO"
+	StorageTypeS3    = "S3"
+)
+
 type MilvusDependencies struct {
 	// +kubebuilder:validation:Optional
 	Etcd MilvusEtcd `json:"etcd"`
