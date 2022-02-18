@@ -181,6 +181,7 @@ sit-prepare-images: sit-prepare-operator-images
 	docker pull -q bitnami/etcd:3.5.0-debian-10-r24
 	docker pull -q minio/minio:RELEASE.2021-02-14T04-01-33Z
 	docker pull -q minio/mc:RELEASE.2021-02-14T04-28-06Z
+	docker pull -q zilliz/milvus_cli:latest
 
 sit-load-operator-images:
 	@echo "Loading operator images"
@@ -196,6 +197,7 @@ sit-load-images: sit-load-operator-images
 	kind load docker-image bitnami/etcd:3.5.0-debian-10-r24
 	kind load docker-image minio/minio:RELEASE.2021-02-14T04-01-33Z
 	kind load docker-image minio/mc:RELEASE.2021-02-14T04-28-06Z
+	kind load docker-image zilliz/milvus_cli:latest
 
 sit-generate-manifest:
 	cat deploy/manifests/deployment.yaml | sed  "s#${RELEASE_IMG}#${SIT_IMG}#g" > test/test_gen.yaml
