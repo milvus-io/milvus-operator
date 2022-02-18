@@ -116,11 +116,11 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	template.Spec.ImagePullSecrets = mergedComSpec.ImagePullSecrets
 
 	// update component container
-	containerIdx := GetContainerIndex(template.Spec.Containers, MilvusName)
+	containerIdx := GetContainerIndex(template.Spec.Containers, updater.GetComponentName())
 	if containerIdx < 0 {
 		template.Spec.Containers = append(
 			template.Spec.Containers,
-			corev1.Container{Name: MilvusName},
+			corev1.Container{Name: updater.GetComponentName()},
 		)
 		containerIdx = len(template.Spec.Containers) - 1
 	}
@@ -131,7 +131,7 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	container.Env = MergeEnvVar(container.Env, env)
 	container.Ports = MergeContainerPort(container.Ports, []corev1.ContainerPort{
 		{
-			Name:          MilvusName,
+			Name:          updater.GetComponentName(),
 			ContainerPort: MilvusPort,
 			Protocol:      corev1.ProtocolTCP,
 		},
