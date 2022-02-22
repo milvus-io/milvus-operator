@@ -1,0 +1,27 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: hello-milvus
+spec:
+  ttlSecondsAfterFinished: 60
+  template:
+    spec:
+      containers:
+      - name: hello-milvus
+        image: zilliz/milvus_cli:latest
+        command: 
+          - "python3"
+        args:
+          - "/data/hello-milvus.py"
+        volumeMounts:
+        - name: hello-milvus
+          mountPath: /data
+      restartPolicy: Never
+      volumes:
+      - name: hello-milvus
+        configMap:
+          name: hello-milvus
+          items:
+          - key: "hello-milvus.py"
+            path: "hello-milvus.py"
+

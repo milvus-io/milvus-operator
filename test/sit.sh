@@ -8,6 +8,24 @@ log() {
     echo "$(date +"%Y-%m-%d %H:%M:%S") $1"
 }
 
+check_milvus_available(){
+    # if $1 equals milvus-sit
+    if [ "$1" == "milvus-sit" ]; then
+        sed -i 's/host="milvus-milvus"/host="milvus"/g' test/hello-milvus.py
+    else
+        sed -i 's/host=host/host="milvus-milvus"/g' test/hello-milvus.py
+    fi
+    kubectl -n $1 create cm hello-milvus --from-file=test/hello-milvus.py
+    kubectl -n $1 create -f test/hello-milvus-job.yaml
+    kubectl -n $1 wait --for=condition=complete job/hello-milvus --timeout 3m
+    # if return 1, log
+    if [ $? -eq 1 ]; then
+        log "Error: $1 job failed"
+        kubectl -n $1 describe -f test/hello-milvus-job.yaml
+        return 1
+    fi
+}
+
 delete_milvus_cluster(){
     # Delete CR
     log "Deleting MilvusCluster ..."
@@ -29,7 +47,7 @@ case_create_delete_cluster(){
     CR_STATUS=""
     until [ $ATTEMPTS -eq 60 ]; 
     do
-        CR_STATUS=$(kubectl get -n mc-sit mc/mc-sit -o=jsonpath='{.status.status}')
+        CR_STATUS=$(kubectl get -n mc-sit mc/milvus -o=jsonpath='{.status.status}')
         if [ "$CR_STATUS" = "Healthy" ]; then
             break
         fi
@@ -40,9 +58,14 @@ case_create_delete_cluster(){
 
     if [ "$CR_STATUS" != "Healthy" ]; then
         log "MilvusCluster creation failed"
-        log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit mc/mc-sit -o yaml)"
-        log "MilvusCluster helm values: \n $(helm -n mc-sit get values mc-sit-pulsar)"
+        log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit mc/milvus -o yaml)"
+        log "MilvusCluster helm values: \n $(helm -n mc-sit get values milvus-pulsar)"
         log "MilvusCluster describe pods: \n $(kubectl -n mc-sit describe pods)"
+        delete_milvus_cluster
+        return 1
+    fi
+    check_milvus_available mc-sit
+    if [ $? -ne 0 ]; then
         delete_milvus_cluster
         return 1
     fi
@@ -69,7 +92,7 @@ case_create_delete_milvus(){
     CR_STATUS=""
     until [ $ATTEMPTS -eq 60 ]; 
     do
-        CR_STATUS=$(kubectl get -n milvus-sit milvus/milvus-sit -o=jsonpath='{.status.status}')
+        CR_STATUS=$(kubectl get -n milvus-sit milvus/milvus -o=jsonpath='{.status.status}')
         if [ "$CR_STATUS" = "Healthy" ]; then
             break
         fi
@@ -80,8 +103,13 @@ case_create_delete_milvus(){
 
     if [ "$CR_STATUS" != "Healthy" ]; then
         log "Milvus creation failed"
-        log "Milvus final yaml: \n $(kubectl get -n milvus-sit milvus/milvus-sit -o yaml)"
+        log "Milvus final yaml: \n $(kubectl get -n milvus-sit milvus/milvus -o yaml)"
         log "Milvus describe pods: \n $(kubectl -n milvus-sit describe pods)"
+        delete_milvus
+        return 1
+    fi
+    check_milvus_available milvus-sit
+    if [ $? -ne 0 ]; then
         delete_milvus
         return 1
     fi
