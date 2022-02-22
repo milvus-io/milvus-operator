@@ -1,0 +1,117 @@
+apiVersion: milvus.io/v1alpha1
+kind: Milvus
+metadata:
+  name: my-release
+  labels:
+    app: milvus
+# Note: this spec is not directly appliable
+# it list all configarable fields in Milvus CRD
+spec:
+  # Global image name for milvus components. It will override the default one. Default is determined by operator version
+  image: milvusdb/milvus:v2.0.0 # Optional
+
+  # Global image pull policy. It will override the the default one.
+  imagePullPolicy: IfNotPresent # Optional, default = IfNotPresent
+
+  # Global image pull secrets.
+  imagePullSecrets: # Optional
+  - name: mySecret
+  # Global environment variables
+  env: # Optional
+  - name: key
+    value: value
+
+  # Global nodeSelector.
+  # NodeSelector is a selector which must be true for the component to fit on a node.
+  # Selector which must match a node's labels for the pod to be scheduled on that node.
+  # More info: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/
+  nodeSelector: # Optional
+    key: value
+
+  # Global tolerations.
+  # If specified, the pod's tolerations.
+  # More info: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
+  tolerations: [] # Optional
+  # Global affinity.
+  # -- Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core>
+  affinity: {}
+  
+  # Global compute resources required.
+  # Compute Resources required by this component.
+  # Cannot be updated.
+  # More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+  resources: # Optional
+    # Limits describes the maximum amount of compute resources allowed.
+    # More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+    limits: {} # Optional
+    # Requests describes the minimum amount of compute resources required.
+    # If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+    # otherwise to an implementation-defined value.
+    # More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+    requests: {} # Optional
+
+  # persistence for milvus standalone's rocksdb
+  persistence: # Optional
+    enabled: true # Optional, default = false
+    # volume mount path
+    mountPath: /var/lib/milvus
+    # whether to delete the persistent volume when the Milvus CRD is deleted.
+    pvcDeletion: true # Optional, default = false
+    persistentVolumeClaim: # Optional same as kubernetes PersistentVolumeClaim
+      existingClaim: "" # Optional if not empty, will use existing pvc, else create a pvc
+      labels: {} # Optional pvc labels
+      annotations: {} # Optional pvc annotations
+      # spec is same as kubernetes PersistentVolumeClaimSpec
+      # see: https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistentvolumeclaims
+      spec: {} # Optional 
+
+  # Ingress for milvus standalone
+  ingress: # Optional
+    labels: {} # Optional, ingress labels
+    annotations: {} # Optional, ingress annotations
+    ingressClassName: "" # Optional, ingress class name
+    hosts: # ingress hosts list
+      - "host"
+    tlsSecretRefs: # Optional, ingress tls secret refs for host
+      host: 
+      - "tls-secret"
+    
+  serviceType: LoadBalancer # Optional: config how the service will publish, default as ClusterIP, see https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
+
+  dependencies: # Optional
+    etcd: # Optional
+      # Whether (=true) to use an existed external etcd as specified in the field endpoints or 
+      # (=false) create a new etcd inside the same kubernetes cluster for milvus.
+      external: false # Optional default=false
+      # The external etcd endpoints if external=true
+      endpoints:
+      - 192.168.1.1:2379
+      # in-Cluster etcd configuration if external=false
+      inCluster: 
+        # deletionPolicy of etcd when the milvus cluster is deleted
+        deletionPolicy: Retain # Optional ("Delete", "Retain") default="Retain"
+        # When deletionPolicy="Delete" whether the PersistantVolumeClaim shoud be deleted when the etcd is deleted
+        pvcDeletion: false # Optional default=false
+        values: {} # Optional helm values see: https://artifacthub.io/packages/helm/bitnami/etcd/6.3.3
+
+
+    storage: # Optional
+      # Whether (=true) to use an existed external storage as specified in the field endpoints or 
+      # (=false) create a new storage inside the same kubernetes cluster for milvus.
+      external: false # Optional default=false
+      type: "MinIO" # Optional ("MinIO", "S3") default:="MinIO"
+      # Secret reference of the storage if it has
+      secretRef: mySecret # Optional
+      # The external storage endpoint if external=true
+      endpoint: "storageEndpoint"
+      # in-Cluster storage configuration if external=false
+      inCluster: 
+        # deletionPolicy of storage when the milvus cluster is deleted
+        deletionPolicy: Retain # Optional ("Delete", "Retain") default="Retain"
+        # When deletionPolicy="Delete" whether the PersistantVolumeClaim shoud be deleted when the storage is deleted
+        pvcDeletion: false # Optional default=false
+        values: {} # Optional helm values  see: https://github.com/milvus-io/milvus-helm/blob/master/charts/minio/values.yaml
+  
+  # config file of milvus, default is the milvus.yaml in milvus image
+  # all fields reference see: https://github.com/milvus-io/milvus/blob/master/configs/milvus.yaml
+  config: {} # Optional
