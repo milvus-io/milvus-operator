@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	MilvusDataVolumeName         = "milvus-data" // for standalone persistence only
 	MilvusConfigVolumeName       = "milvus-config"
 	MilvusOriginalConfigPath     = "/milvus/configs/milvus.yaml"
 	MilvusUserConfigMountPath    = "/milvus/configs/user.yaml"
@@ -224,5 +225,25 @@ func configVolumeByName(name string) corev1.Volume {
 				DefaultMode: &MilvusConfigMapMode,
 			},
 		},
+	}
+}
+
+func persisentVolumeByName(name string) corev1.Volume {
+	return corev1.Volume{
+		Name: MilvusDataVolumeName,
+		VolumeSource: corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: name,
+				ReadOnly:  false,
+			},
+		},
+	}
+}
+
+func persistentVolumeMount(persist v1alpha1.Persistence) corev1.VolumeMount {
+	return corev1.VolumeMount{
+		Name:      MilvusDataVolumeName,
+		ReadOnly:  false,
+		MountPath: persist.MountPath,
 	}
 }

@@ -61,6 +61,7 @@ case_create_delete_cluster(){
         log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit mc/milvus -o yaml)"
         log "MilvusCluster helm values: \n $(helm -n mc-sit get values milvus-pulsar)"
         log "MilvusCluster describe pods: \n $(kubectl -n mc-sit describe pods)"
+        log "OperatorLog: $(kubectl -n milvus-operator logs deploy/milvus-operator)"
         delete_milvus_cluster
         return 1
     fi
@@ -105,6 +106,7 @@ case_create_delete_milvus(){
         log "Milvus creation failed"
         log "Milvus final yaml: \n $(kubectl get -n milvus-sit milvus/milvus -o yaml)"
         log "Milvus describe pods: \n $(kubectl -n milvus-sit describe pods)"
+        log "OperatorLog: $(kubectl -n milvus-operator logs deploy/milvus-operator)"
         delete_milvus
         return 1
     fi

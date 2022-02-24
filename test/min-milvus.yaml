@@ -21,6 +21,8 @@ spec:
       inCluster:
         deletionPolicy: Delete
         pvcDeletion: true
+  persistence:
+    enabled: true
   config:
     milvus:
       log:

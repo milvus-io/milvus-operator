@@ -77,12 +77,37 @@ func TestMilvus_Finalize(t *testing.T) {
 	mockClient.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(errTest)
 	err = r.Finalize(ctx, m)
 	assert.Error(t, err)
+	env.Ctrl.Finish()
 
 	t.Run("dependency external ignored", func(t *testing.T) {
+		defer env.Ctrl.Finish()
 		m.Spec.Dep.Etcd.External = true
 		m.Spec.Dep.Storage.External = true
 		m.Spec.Dep.Etcd.InCluster = nil
 		m.Spec.Dep.Storage.InCluster = nil
+		err := r.Finalize(ctx, m)
+		assert.NoError(t, err)
+	})
+
+	t.Run("persistence enabled with no deletion", func(t *testing.T) {
+		defer env.Ctrl.Finish()
+		m.Spec.Persistence.Enabled = true
+		err := r.Finalize(ctx, m)
+		assert.NoError(t, err)
+	})
+
+	t.Run("persistence enabled with deletion failed", func(t *testing.T) {
+		defer env.Ctrl.Finish()
+		m.Spec.Persistence.PVCDeletion = true
+		mockClient.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(errTest)
+		err := r.Finalize(ctx, m)
+		assert.Error(t, err)
+	})
+
+	t.Run("persistence enabled with deletion success", func(t *testing.T) {
+		defer env.Ctrl.Finish()
+		m.Spec.Persistence.PVCDeletion = true
+		mockClient.EXPECT().Delete(gomock.Any(), gomock.Any()).Return(nil)
 		err := r.Finalize(ctx, m)
 		assert.NoError(t, err)
 	})

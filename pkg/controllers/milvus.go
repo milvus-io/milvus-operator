@@ -64,6 +64,19 @@ func (r *MilvusReconciler) Finalize(ctx context.Context, mil v1alpha1.Milvus) er
 		}
 	}
 
+	// delete data pvc if need
+	if mil.Spec.Persistence.Enabled && mil.Spec.Persistence.PVCDeletion {
+		pvcName := getPVCNameByInstName(mil.Name)
+		pvc := &corev1.PersistentVolumeClaim{}
+		pvc.Namespace = mil.Namespace
+		pvc.Name = pvcName
+		if err := r.Delete(ctx, pvc); err != nil {
+			return errors.Wrap(err, "delete data pvc failed")
+		} else {
+			r.logger.Info("pvc deleted", "name", pvc.Name, "namespace", pvc.Namespace)
+		}
+	}
+
 	return nil
 }
 
@@ -108,6 +121,11 @@ func (r *MilvusReconciler) ReconcileMilvus(ctx context.Context, mil v1alpha1.Mil
 	if err := r.ReconcileConfigMaps(ctx, mil); err != nil {
 		return errors.Wrap(err, "configmap")
 	}
+
+	if err := r.ReconcilePVCs(ctx, mil); err != nil {
+		return errors.Wrap(err, "pvc")
+	}
+
 	milvusComsReconcilers := []Func{
 		r.ReconcileDeployments,
 		r.ReconcileServices,
