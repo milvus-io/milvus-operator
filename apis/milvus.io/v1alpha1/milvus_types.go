@@ -33,6 +33,9 @@ type MilvusSpec struct {
 	ComponentSpec `json:",inline"`
 
 	// +kubebuilder:validation:Optional
+	Persistence Persistence `json:"persistence,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum={"ClusterIP", "NodePort", "LoadBalancer"}
 	// +kubebuilder:default="ClusterIP"
 	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`

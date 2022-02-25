@@ -21,6 +21,7 @@ type deploymentUpdater interface {
 	GetMergedComponentSpec() ComponentSpec
 	GetArgs() []string
 	GetSecretRef() string
+	GetPersistenceConfig() *v1alpha1.Persistence
 }
 
 // milvusDeploymentUpdater implements deploymentUpdater for milvus
@@ -77,6 +78,10 @@ func (m milvusDeploymentUpdater) GetSecretRef() string {
 	return m.Spec.Dep.Storage.SecretRef
 }
 
+func (m milvusDeploymentUpdater) GetPersistenceConfig() *v1alpha1.Persistence {
+	return &m.Spec.Persistence
+}
+
 func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) error {
 	appLabels := NewComponentAppLabels(updater.GetIntanceName(), updater.GetComponentName())
 	deployment.Labels = MergeLabels(deployment.Labels, appLabels)
@@ -108,6 +113,13 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	volumes := &template.Spec.Volumes
 	addVolume(volumes, configVolumeByName(updater.GetIntanceName()))
 	addVolume(volumes, toolVolume)
+	if persistence := updater.GetPersistenceConfig(); persistence != nil && persistence.Enabled {
+		if len(persistence.PersistentVolumeClaim.ExistingClaim) > 0 {
+			addVolume(volumes, persisentVolumeByName(persistence.PersistentVolumeClaim.ExistingClaim))
+		} else {
+			addVolume(volumes, persisentVolumeByName(getPVCNameByInstName(updater.GetIntanceName())))
+		}
+	}
 
 	mergedComSpec := updater.GetMergedComponentSpec()
 	template.Spec.Affinity = mergedComSpec.Affinity
@@ -144,6 +156,9 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 
 	addVolumeMount(&container.VolumeMounts, configVolumeMount)
 	addVolumeMount(&container.VolumeMounts, toolVolumeMount)
+	if persistence := updater.GetPersistenceConfig(); persistence != nil && persistence.Enabled {
+		addVolumeMount(&container.VolumeMounts, persistentVolumeMount(*persistence))
+	}
 
 	container.ImagePullPolicy = *mergedComSpec.ImagePullPolicy
 	container.Image = mergedComSpec.Image
@@ -167,6 +182,10 @@ func newMilvusclusterDeploymentUpdater(m v1alpha1.MilvusCluster, scheme *runtime
 		scheme:        scheme,
 		component:     component,
 	}
+}
+
+func (m milvusclusterDeploymentUpdater) GetPersistenceConfig() *v1alpha1.Persistence {
+	return nil
 }
 
 func (m milvusclusterDeploymentUpdater) GetIntanceName() string {

@@ -19,7 +19,9 @@ package v1alpha1
 import (
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -42,6 +44,10 @@ func (r *Milvus) SetupWebhookWithManager(mgr ctrl.Manager) error {
 //+kubebuilder:webhook:path=/mutate-milvus-io-v1alpha1-milvus,mutating=true,failurePolicy=fail,sideEffects=None,groups=milvus.io,resources=milvus,verbs=create;update,versions=v1alpha1,name=mmilvus.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &Milvus{}
+
+const defaultPersistPath = "/var/lib/milvus"
+
+var defaultPersistSize = resource.MustParse("5Gi")
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Milvus) Default() {
@@ -93,6 +99,22 @@ func (r *Milvus) Default() {
 			r.Spec.Dep.Storage.InCluster.DeletionPolicy = DeletionPolicyRetain
 		}
 		r.Spec.Dep.Storage.SecretRef = r.Name + "-minio"
+	}
+
+	if len(r.Spec.Persistence.MountPath) < 1 {
+		r.Spec.Persistence.MountPath = defaultPersistPath
+	}
+
+	if len(r.Spec.Persistence.PersistentVolumeClaim.Spec.Resources.Requests) < 1 {
+		r.Spec.Persistence.PersistentVolumeClaim.Spec.Resources.Requests = corev1.ResourceList{
+			corev1.ResourceStorage: defaultPersistSize,
+		}
+	}
+
+	if len(r.Spec.Persistence.PersistentVolumeClaim.Spec.AccessModes) < 1 {
+		r.Spec.Persistence.PersistentVolumeClaim.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteOnce,
+		}
 	}
 }
 

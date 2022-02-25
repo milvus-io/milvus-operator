@@ -3,9 +3,9 @@ package v1alpha1
 import (
 	"testing"
 
-	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -19,6 +19,8 @@ func TestMilvus_Default(t *testing.T) {
 	assert.Equal(t, "-minio", r.Spec.Dep.Storage.SecretRef)
 	assert.Equal(t, DeletionPolicyRetain, r.Spec.Dep.Etcd.InCluster.DeletionPolicy)
 	assert.Equal(t, DeletionPolicyRetain, r.Spec.Dep.Storage.InCluster.DeletionPolicy)
+	assert.Equal(t, defaultPersistPath, r.Spec.Persistence.MountPath)
+	assert.Equal(t, defaultPersistSize, r.Spec.Persistence.PersistentVolumeClaim.Spec.Resources.Requests[corev1.ResourceStorage])
 }
 
 func TestMilvus_Default_NotExternalOK(t *testing.T) {
@@ -51,17 +53,11 @@ func TestMilvus_Default_NotExternalOK(t *testing.T) {
 				InCluster: &storageIC,
 			},
 		},
-		ComponentSpec: ComponentSpec{
-			Image: config.DefaultMilvusImage,
-		},
-		Conf: Values{
-			Data: map[string]interface{}{},
-		},
 	}
 
 	mc := Milvus{ObjectMeta: metav1.ObjectMeta{Name: crName}}
 	mc.Default()
-	assert.Equal(t, defaultSpec, mc.Spec)
+	assert.Equal(t, defaultSpec.Dep, mc.Spec.Dep)
 }
 
 func TestMilvus_Default_DeleteUnSetableOK(t *testing.T) {
