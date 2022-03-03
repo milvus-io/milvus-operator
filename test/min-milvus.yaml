@@ -12,6 +12,10 @@ metadata:
   labels:
     app: milvus
 spec:
+  serviceLabels:
+    myLabel: value
+  serviceAnnotations:
+    myAnnotation: value
   dependencies:
     etcd:
       inCluster:

@@ -12,6 +12,12 @@ metadata:
   labels:
     app: milvus
 spec:
+  components:
+    proxy:
+      serviceLabels:
+        myLabel: value
+      serviceAnnotations:
+        myAnnotation: value
   dependencies:
     etcd:
       inCluster:
@@ -29,6 +35,11 @@ spec:
             wsproxy: no
             autoRecovery: no
           proxy:
+            serviceType: ClusterIP
+            serviceLabels:
+              myLabel: value
+            serviceAnnotations:
+              myAnnotation: value
             replicaCount: 1
             resources:
               requests:

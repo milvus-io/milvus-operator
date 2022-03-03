@@ -100,12 +100,12 @@ func getCertManifest(namespace, name string) string {
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: ` + name + `-serving-cert
+  name: milvus-operator-serving-cert
   namespace: ` + namespace + `
 spec:
   dnsNames:
-  - ` + name + `-webhook-service.` + namespace + `.svc
-  - ` + name + `-webhook-service.` + namespace + `.svc.cluster.local
+  - milvus-operator-webhook-service.` + namespace + `.svc
+  - milvus-operator-webhook-service.` + namespace + `.svc.cluster.local
   issuerRef:
     kind: Issuer
     name: ` + name + `-selfsigned-issuer
@@ -126,7 +126,7 @@ spec:
 }
 
 func (c CertManager) IssueCertIfNotExist() error {
-	issueCertName := strings.TrimSuffix(config.OperatorName, "-controller-manager")
+	issueCertName := config.OperatorName
 	namespace := config.OperatorNamespace
 	gv := schema.GroupVersion{
 		Group:   "cert-manager.io",
