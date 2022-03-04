@@ -627,6 +627,14 @@ spec:
                       x-kubernetes-int-or-string: true
                     type: object
                 type: object
+              serviceAnnotations:
+                additionalProperties:
+                  type: string
+                type: object
+              serviceLabels:
+                additionalProperties:
+                  type: string
+                type: object
               serviceType:
                 default: ClusterIP
                 enum:
@@ -3522,6 +3530,14 @@ spec:
                               pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                               x-kubernetes-int-or-string: true
                             type: object
+                        type: object
+                      serviceAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      serviceLabels:
+                        additionalProperties:
+                          type: string
                         type: object
                       serviceType:
                         default: ClusterIP

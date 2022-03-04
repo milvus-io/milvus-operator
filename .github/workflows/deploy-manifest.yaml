@@ -30,5 +30,6 @@ jobs:
           make deploy-by-manifest
       - name: Test Webhook
         run : |
+          set -ex
           kubectl create -f ./config/samples/milvus_minimum.yaml
           kubectl create -f ./config/samples/milvuscluster_minimum.yaml

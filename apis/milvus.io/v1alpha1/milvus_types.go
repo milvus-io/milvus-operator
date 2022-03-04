@@ -41,6 +41,12 @@ type MilvusSpec struct {
 	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	ServiceLabels map[string]string `json:"serviceLabels,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	Dep MilvusDependencies `json:"dependencies,omitempty"`
 
 	// +kubebuilder:validation:Optional

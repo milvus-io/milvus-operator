@@ -2830,6 +2830,14 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      serviceLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
                       serviceType:
                         default: ClusterIP
                         enum:

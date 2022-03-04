@@ -62,13 +62,13 @@ func TestCertManager_IssueCertIfNotExist(t *testing.T) {
 		Group:    "cert-manager.io",
 		Version:  "v1",
 		Resource: "certificates",
-	}, config.OperatorNamespace, "milvus-operator-serving-cert").Return(true, nil)
+	}, config.OperatorNamespace, config.OperatorName+"-serving-cert").Return(true, nil)
 
 	mockCli.EXPECT().Exist(gomock.Any(), schema.GroupVersionResource{
 		Group:    "cert-manager.io",
 		Version:  "v1",
 		Resource: "issuers",
-	}, config.OperatorNamespace, "milvus-operator-selfsigned-issuer").Return(true, nil)
+	}, config.OperatorNamespace, config.OperatorName+"-selfsigned-issuer").Return(true, nil)
 
 	err = provider.IssueCertIfNotExist()
 	assert.NoError(t, err)
@@ -78,13 +78,13 @@ func TestCertManager_IssueCertIfNotExist(t *testing.T) {
 		Group:    "cert-manager.io",
 		Version:  "v1",
 		Resource: "certificates",
-	}, config.OperatorNamespace, "milvus-operator-serving-cert").Return(false, nil)
+	}, config.OperatorNamespace, config.OperatorName+"-serving-cert").Return(false, nil)
 
 	mockCli.EXPECT().Exist(gomock.Any(), schema.GroupVersionResource{
 		Group:    "cert-manager.io",
 		Version:  "v1",
 		Resource: "issuers",
-	}, config.OperatorNamespace, "milvus-operator-selfsigned-issuer").Return(false, nil)
+	}, config.OperatorNamespace, config.OperatorName+"-selfsigned-issuer").Return(false, nil)
 
 	mockCli.EXPECT().Create(gomock.Any(), gomock.Any()).Times(2)
 	err = provider.IssueCertIfNotExist()

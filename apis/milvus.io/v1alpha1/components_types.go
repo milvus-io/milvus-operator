@@ -117,6 +117,12 @@ type MilvusProxy struct {
 	// +kubebuilder:validation:Enum={"ClusterIP", "NodePort", "LoadBalancer"}
 	// +kubebuilder:default="ClusterIP"
 	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	ServiceLabels map[string]string `json:"serviceLabels,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
 }
 
 type MilvusRootCoord struct {

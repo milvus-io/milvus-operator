@@ -23,6 +23,12 @@ func (r *MilvusClusterReconciler) updateService(
 		return err
 	}
 
+	// we only have proxy service now
+	// if component.Name == Proxy.Name {
+	service.Labels = MergeLabels(service.Labels, mc.Spec.Com.Proxy.ServiceLabels)
+	service.Annotations = MergeLabels(service.Annotations, mc.Spec.Com.Proxy.ServiceAnnotations)
+	// }
+
 	service.Spec.Ports = MergeServicePort(service.Spec.Ports, component.GetServicePorts(mc.Spec))
 	service.Spec.Selector = appLabels
 	service.Spec.Type = component.GetServiceType(mc.Spec)
@@ -124,6 +130,9 @@ func (r *MilvusReconciler) updateService(
 	if err := ctrl.SetControllerReference(&mc, service, r.Scheme); err != nil {
 		return err
 	}
+
+	service.Labels = MergeLabels(service.Labels, mc.Spec.ServiceLabels)
+	service.Annotations = MergeLabels(service.Annotations, mc.Spec.ServiceAnnotations)
 
 	service.Spec.Ports = MergeServicePort(service.Spec.Ports, []corev1.ServicePort{
 		{

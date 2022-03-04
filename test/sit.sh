@@ -17,6 +17,12 @@ check_milvus_available(){
     fi
     kubectl -n $1 create cm hello-milvus --from-file=test/hello-milvus.py
     kubectl -n $1 create -f test/hello-milvus-job.yaml
+    kubectl -n $1 get -l myLabel=value service |wc -l 
+    if [ $? -ne 0 ]; then
+        log "kubectl check label failed"
+        return 1
+    fi
+
     kubectl -n $1 wait --for=condition=complete job/hello-milvus --timeout 3m
     # if return 1, log
     if [ $? -eq 1 ]; then
