@@ -8,6 +8,8 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -127,16 +129,42 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 	err = s.UpdateStatus(ctx, m)
 	assert.Error(t, err)
 
-	// update status success
-	mockRunner.EXPECT().RunWithResult(gomock.Len(2), gomock.Any(), gomock.Any()).
-		Return([]Result{
-			{Data: v1alpha1.MilvusCondition{}},
-		})
-	mockCli.EXPECT().Status().Return(mockCli)
-	mockCli.EXPECT().Update(gomock.Any(), gomock.Any())
-	m.Status.Status = v1alpha1.StatusCreating
-	err = s.UpdateStatus(ctx, m)
-	assert.NoError(t, err)
+	t.Run("update ingress status failed", func(t *testing.T) {
+		mockRunner.EXPECT().RunWithResult(gomock.Len(2), gomock.Any(), gomock.Any()).
+			Return([]Result{
+				{Data: v1alpha1.MilvusCondition{}},
+			})
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
+		m.Status.Status = v1alpha1.StatusCreating
+		err = s.UpdateStatus(ctx, m)
+		assert.Error(t, err)
+	})
+
+	t.Run("update ingress status nil", func(t *testing.T) {
+		mockRunner.EXPECT().RunWithResult(gomock.Len(2), gomock.Any(), gomock.Any()).
+			Return([]Result{
+				{Data: v1alpha1.MilvusCondition{}},
+			})
+		mockCli.EXPECT().Status().Return(mockCli)
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(kerrors.NewNotFound(schema.GroupResource{}, ""))
+		mockCli.EXPECT().Update(gomock.Any(), gomock.Any())
+		m.Status.Status = v1alpha1.StatusCreating
+		err = s.UpdateStatus(ctx, m)
+		assert.NoError(t, err)
+	})
+
+	t.Run("update status success", func(t *testing.T) {
+		mockRunner.EXPECT().RunWithResult(gomock.Len(2), gomock.Any(), gomock.Any()).
+			Return([]Result{
+				{Data: v1alpha1.MilvusCondition{}},
+			})
+		mockCli.EXPECT().Status().Return(mockCli)
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		mockCli.EXPECT().Update(gomock.Any(), gomock.Any())
+		m.Status.Status = v1alpha1.StatusCreating
+		err = s.UpdateStatus(ctx, m)
+		assert.NoError(t, err)
+	})
 }
 
 func TestMilvusClusterStatusSyncer_GetMinioCondition_S3Ready(t *testing.T) {

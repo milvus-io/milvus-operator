@@ -123,6 +123,9 @@ type MilvusProxy struct {
 
 	// +kubebuilder:validation:Optional
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Ingress *MilvusIngress `json:"ingress,omitempty"`
 }
 
 type MilvusRootCoord struct {

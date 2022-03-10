@@ -18,6 +18,12 @@ spec:
         myLabel: value
       serviceAnnotations:
         myAnnotation: value
+      ingress:
+        labels:
+          ingressLabel: value
+        annotations:
+          ingressAnnotation: value
+        hosts: ["mc-sit.milvus.io"]
   dependencies:
     etcd:
       inCluster:

@@ -47,6 +47,12 @@ func (r *MilvusReconciler) syncUpdatePVC(ctx context.Context, namespacedName typ
 	new := old.DeepCopy()
 
 	r.syncPVC(ctx, milvusPVC, new)
+	// volume name set by pvc controller
+	new.Spec.VolumeName = old.Spec.VolumeName
+	if milvusPVC.Spec.StorageClassName == nil {
+		// if nil, default storage class name set by pvc controller
+		new.Spec.StorageClassName = old.Spec.StorageClassName
+	}
 
 	if IsEqual(old, new) {
 		return nil

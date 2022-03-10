@@ -18,6 +18,7 @@ package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,6 +35,9 @@ type MilvusSpec struct {
 
 	// +kubebuilder:validation:Optional
 	Persistence Persistence `json:"persistence,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Ingress *MilvusIngress `json:"ingress,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum={"ClusterIP", "NodePort", "LoadBalancer"}
@@ -69,12 +73,15 @@ type MilvusStatus struct {
 
 	// Endpoint of milvus cluster
 	Endpoint string `json:"endpoint,omitempty"`
+
+	IngressStatus networkv1.IngressStatus `json:"ingress,omitempty"`
 }
 
 // +genclient
 // +genclient:noStatus
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:path=milvuses,singular=milvus,shortName=mi
 // Milvus is the Schema for the milvus API
 type Milvus struct {
 	metav1.TypeMeta   `json:",inline"`

@@ -248,7 +248,7 @@ type MilvusEndpointInfo struct {
 func GetMilvusEndpoint(ctx context.Context, logger logr.Logger, client client.Client, info MilvusEndpointInfo) string {
 	if info.ServiceType == corev1.ServiceTypeLoadBalancer {
 		proxy := &corev1.Service{}
-		key := NamespacedName(info.Namespace, Proxy.GetServiceInstanceName(info.Name))
+		key := NamespacedName(info.Namespace, GetServiceInstanceName(info.Name))
 		if err := client.Get(ctx, key, proxy); err != nil {
 			logger.Error(err, "Get Milvus endpoint error")
 			return ""

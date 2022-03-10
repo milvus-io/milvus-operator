@@ -208,7 +208,7 @@ func TestCluster_ReconcileMilvus(t *testing.T) {
 			Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")),
 		mockClient.EXPECT().
 			Create(gomock.Any(), gomock.Any()).Return(nil),
-		mockGroup.EXPECT().Run(gomock.Len(3), gomock.Any(), m),
+		mockGroup.EXPECT().Run(gomock.Len(4), gomock.Any(), m),
 	)
 
 	err = r.ReconcileMilvus(ctx, m)

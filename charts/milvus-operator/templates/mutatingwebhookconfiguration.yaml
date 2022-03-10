@@ -47,5 +47,5 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - milvus
+    - milvuses
   sideEffects: None

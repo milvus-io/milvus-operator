@@ -12,6 +12,12 @@ metadata:
   labels:
     app: milvus
 spec:
+  ingress:
+    labels:
+      ingressLabel: value
+    annotations:
+      ingressAnnotation: value
+    hosts: ["mc-sit.milvus.io"]
   serviceLabels:
     myLabel: value
   serviceAnnotations:

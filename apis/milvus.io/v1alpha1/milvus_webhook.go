@@ -41,7 +41,7 @@ func (r *Milvus) SetupWebhookWithManager(mgr ctrl.Manager) error {
 
 // TODO(user): EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 
-//+kubebuilder:webhook:path=/mutate-milvus-io-v1alpha1-milvus,mutating=true,failurePolicy=fail,sideEffects=None,groups=milvus.io,resources=milvus,verbs=create;update,versions=v1alpha1,name=mmilvus.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/mutate-milvus-io-v1alpha1-milvus,mutating=true,failurePolicy=fail,sideEffects=None,groups=milvus.io,resources=milvuses,verbs=create;update,versions=v1alpha1,name=mmilvus.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Defaulter = &Milvus{}
 
@@ -119,7 +119,7 @@ func (r *Milvus) Default() {
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
-//+kubebuilder:webhook:path=/validate-milvus-io-v1alpha1-milvus,mutating=false,failurePolicy=fail,sideEffects=None,groups=milvus.io,resources=milvus,verbs=create;update,versions=v1alpha1,name=vmilvus.kb.io,admissionReviewVersions=v1
+//+kubebuilder:webhook:path=/validate-milvus-io-v1alpha1-milvus,mutating=false,failurePolicy=fail,sideEffects=None,groups=milvus.io,resources=milvuses,verbs=create;update,versions=v1alpha1,name=vmilvus.kb.io,admissionReviewVersions=v1
 
 var _ webhook.Validator = &Milvus{}
 

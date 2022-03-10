@@ -42,6 +42,26 @@ type MilvusClusterSpec struct {
 	Conf Values `json:"config,omitempty"`
 }
 
+// MilvusIngress defines the ingress of MilvusCluster
+// TODO: add docs
+type MilvusIngress struct {
+	// +kubebuilder:validation:Optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	IngressClassName *string `json:"ingressClassName,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Hosts []string `json:"hosts"`
+
+	// TLSSecretRefs is a map of TLS secret to hosts
+	// +kubebuilder:validation:Optional
+	TLSSecretRefs map[string][]string `json:"tlsSecretRefs,omitempty"`
+}
+
 // MiluvsConditionType is a valid value for MiluvsConditionType.Type.
 type MiluvsConditionType string
 
@@ -88,29 +108,6 @@ const (
 	ReasonDependencyNotReady = "DependencyNotReady"
 )
 
-// MilvusClusterStatus defines the observed state of MilvusCluster
-type MilvusClusterStatus struct {
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Status indicates the overall status of the Milvus
-	// Status can be "Creating", "Healthy" and "Unhealthy"
-	// +kubebuilder:default:="Creating"
-	Status MilvusHealthStatus `json:"status"`
-
-	// Conditions of each components
-	Conditions []MilvusCondition `json:"conditions,omitempty"`
-
-	// Endpoint of milvus cluster
-	Endpoint string `json:"endpoint,omitempty"`
-
-	// Status of each etcd endpoint
-	//EtcdStatus []MilvusEtcdStatus `json:"etcdStatus,omitempty"`
-
-	// Status of each storage endpoint
-	//StorageStatus []MilvusStorageStatus `json:"storageStatus,omitempty"`
-}
-
 // MilvusEtcdStatus contains a list of all etcd endpoints status
 type MilvusEtcdStatus struct {
 	Endpoint string `json:"endpoint"`
@@ -149,14 +146,14 @@ type MilvusCondition struct {
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
-//+kubebuilder:resource:shortName=mc;mic
+//+kubebuilder:resource:path=milvusclusters,singular=milvuscluster,shortName=mc;mic
 // MilvusCluster is the Schema for the milvusclusters API
 type MilvusCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MilvusClusterSpec   `json:"spec,omitempty"`
-	Status MilvusClusterStatus `json:"status,omitempty"`
+	Spec   MilvusClusterSpec `json:"spec,omitempty"`
+	Status MilvusStatus      `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true

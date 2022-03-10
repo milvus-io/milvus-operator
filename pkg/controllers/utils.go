@@ -286,7 +286,7 @@ func GetConditionStatus(b bool) corev1.ConditionStatus {
 	return corev1.ConditionFalse
 }
 
-func IsClusterDependencyReady(status v1alpha1.MilvusClusterStatus) bool {
+func IsClusterDependencyReady(status v1alpha1.MilvusStatus) bool {
 	return IsDependencyReady(status.Conditions, true)
 }
 
@@ -311,7 +311,7 @@ func IsDependencyReady(conditions []v1alpha1.MilvusCondition, isCluster bool) bo
 	return ready == 2
 }
 
-func UpdateClusterCondition(status *v1alpha1.MilvusClusterStatus, c v1alpha1.MilvusCondition) {
+func UpdateClusterCondition(status *v1alpha1.MilvusStatus, c v1alpha1.MilvusCondition) {
 	for i := range status.Conditions {
 		cp := &status.Conditions[i]
 		if cp.Type == c.Type {

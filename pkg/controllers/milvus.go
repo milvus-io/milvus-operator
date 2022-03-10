@@ -130,6 +130,7 @@ func (r *MilvusReconciler) ReconcileMilvus(ctx context.Context, mil v1alpha1.Mil
 		r.ReconcileDeployments,
 		r.ReconcileServices,
 		r.ReconcilePodMonitor,
+		r.ReconcileIngress,
 	}
 	err := defaultGroupRunner.Run(milvusComsReconcilers, ctx, mil)
 	return errors.Wrap(err, "reconcile components")

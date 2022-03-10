@@ -45,9 +45,9 @@ type MilvusReconciler struct {
 	statusSyncer   *MilvusStatusSyncer
 }
 
-//+kubebuilder:rbac:groups=milvus.io,resources=milvus,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=milvus.io,resources=milvus/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=milvus.io,resources=milvus/finalizers,verbs=update
+//+kubebuilder:rbac:groups=milvus.io,resources=milvuses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=milvus.io,resources=milvuses/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=milvus.io,resources=milvuses/finalizers,verbs=update
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.

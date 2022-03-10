@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 )
@@ -43,7 +44,7 @@ func (r *MilvusClusterReconciler) ReconcileComponentService(
 		return nil
 	}
 
-	namespacedName := NamespacedName(mc.Namespace, component.GetServiceInstanceName(mc.Name))
+	namespacedName := NamespacedName(mc.Namespace, GetServiceInstanceName(mc.Name))
 	old := &corev1.Service{}
 	err := r.Get(ctx, namespacedName, old)
 	if errors.IsNotFound(err) {
@@ -89,14 +90,17 @@ func (r *MilvusClusterReconciler) ReconcileServices(ctx context.Context, mc v1al
 }
 
 func (r *MilvusReconciler) ReconcileServices(ctx context.Context, mil v1alpha1.Milvus) error {
-	namespacedName := NamespacedName(mil.Namespace, mil.Name)
 	old := &corev1.Service{}
-	err := r.Get(ctx, namespacedName, old)
+	key := client.ObjectKey{
+		Namespace: mil.Namespace,
+		Name:      GetServiceInstanceName(mil.Name),
+	}
+	err := r.Get(ctx, key, old)
 	if errors.IsNotFound(err) {
 		new := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      namespacedName.Name,
-				Namespace: namespacedName.Namespace,
+				Name:      GetServiceInstanceName(mil.Name),
+				Namespace: mil.Namespace,
 			},
 		}
 		if err := r.updateService(mil, new); err != nil {

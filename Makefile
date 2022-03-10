@@ -52,7 +52,9 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role  webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 generate: controller-gen go-generate ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) crd:maxDescLen=20 object:headerFile="hack/boilerplate.go.txt" paths="./..."
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
+
+generate-all: generate deploy-manifests helm-generate
 
 go-generate:
 	go install github.com/golang/mock/mockgen@v1.6.0

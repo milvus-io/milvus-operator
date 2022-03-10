@@ -48,7 +48,8 @@ const (
 	QueryNodePort  = 21123
 	DataNodePort   = 21124
 	ProxyPort      = 19530
-	MilvusPort     = ProxyPort
+	// TODO: use configurable port?
+	MilvusPort = ProxyPort
 )
 
 // MilvusComponent contains basic info of a milvus cluster component
@@ -116,11 +117,8 @@ func (c MilvusComponent) GetDeploymentInstanceName(instance string) string {
 }
 
 // GetServiceInstanceName returns the name of the component service
-func (c MilvusComponent) GetServiceInstanceName(instance string) string {
-	if c == Proxy {
-		return instance + "-milvus"
-	}
-	return c.GetInstanceName(instance)
+func GetServiceInstanceName(instance string) string {
+	return instance + "-milvus"
 }
 
 // GetContainerName returns the name of the component container

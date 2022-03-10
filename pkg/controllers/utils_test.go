@@ -332,7 +332,7 @@ func TestGetConditionStatus(t *testing.T) {
 
 func TestIsClusterDependencyReady(t *testing.T) {
 	// 1 not ready -> not ready
-	status := v1alpha1.MilvusClusterStatus{
+	status := v1alpha1.MilvusStatus{
 		Conditions: []v1alpha1.MilvusCondition{
 			{
 				Type:   v1alpha1.EtcdReady,
@@ -376,7 +376,7 @@ func TestIsDependencyReady(t *testing.T) {
 
 func TestUpdateClusterCondition(t *testing.T) {
 	// append if not existed
-	status := v1alpha1.MilvusClusterStatus{
+	status := v1alpha1.MilvusStatus{
 		Conditions: []v1alpha1.MilvusCondition{
 			{
 				Type:   v1alpha1.StorageReady,

@@ -22,6 +22,7 @@ func TestNewCertManager(t *testing.T) {
 	assert.NotNil(t, ret)
 }
 
+// TODO: make re-runnable
 func TestCertManager_InstallIfNotExist(t *testing.T) {
 	kubeconfig := filepath.Join(os.Getenv("HOME"), ".kube", "config")
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)

@@ -68,6 +68,7 @@ func (r *MilvusClusterReconciler) ReconcileMilvus(ctx context.Context, mc v1alph
 	comReconcilers := []Func{
 		r.ReconcileDeployments,
 		r.ReconcileServices,
+		r.ReconcileIngress,
 		r.ReconcilePodMonitor,
 	}
 	err := defaultGroupRunner.Run(comReconcilers, ctx, mc)
