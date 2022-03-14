@@ -119,8 +119,26 @@ func (r *MilvusStatusSyncer) UpdateStatus(ctx context.Context, mil *v1alpha1.Mil
 		mil.Status.Status = v1alpha1.StatusHealthy
 	}
 
+	err = r.UpdateIngressStatus(ctx, mil)
+	if err != nil {
+		return errors.Wrap(err, "update ingress status failed")
+	}
+
 	mil.Status.Endpoint = r.GetMilvusEndpoint(ctx, *mil)
 	return r.Status().Update(ctx, mil)
+}
+
+func (r *MilvusStatusSyncer) UpdateIngressStatus(ctx context.Context, mc *v1alpha1.Milvus) error {
+	key := client.ObjectKeyFromObject(mc)
+	key.Name = key.Name + "-milvus"
+	status, err := getIngressStatus(ctx, r.Client, key)
+	if err != nil {
+		return errors.Wrap(err, "get ingress status failed")
+	}
+	if status != nil {
+		mc.Status.IngressStatus = *status.DeepCopy()
+	}
+	return nil
 }
 
 func (r *MilvusStatusSyncer) GetMilvusEndpoint(ctx context.Context, mil v1alpha1.Milvus) string {

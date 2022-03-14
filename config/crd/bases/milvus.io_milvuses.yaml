@@ -6,13 +6,15 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.6.0
   creationTimestamp: null
-  name: milvus.milvus.io
+  name: milvuses.milvus.io
 spec:
   group: milvus.io
   names:
     kind: Milvus
     listKind: MilvusList
-    plural: milvus
+    plural: milvuses
+    shortNames:
+    - mi
     singular: milvus
   scope: Namespaced
   versions:
@@ -513,6 +515,29 @@ spec:
                       type: string
                   type: object
                 type: array
+              ingress:
+                properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  hosts:
+                    items:
+                      type: string
+                    type: array
+                  ingressClassName:
+                    type: string
+                  labels:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  tlsSecretRefs:
+                    additionalProperties:
+                      items:
+                        type: string
+                      type: array
+                    type: object
+                type: object
               nodeSelector:
                 additionalProperties:
                   type: string
@@ -681,6 +706,40 @@ spec:
                 type: array
               endpoint:
                 type: string
+              ingress:
+                properties:
+                  loadBalancer:
+                    properties:
+                      ingress:
+                        items:
+                          properties:
+                            hostname:
+                              type: string
+                            ip:
+                              type: string
+                            ports:
+                              items:
+                                properties:
+                                  error:
+                                    maxLength: 316
+                                    pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                                    type: string
+                                  port:
+                                    format: int32
+                                    type: integer
+                                  protocol:
+                                    default: TCP
+                                    type: string
+                                required:
+                                - port
+                                - protocol
+                                type: object
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          type: object
+                        type: array
+                    type: object
+                type: object
               status:
                 default: Creating
                 type: string

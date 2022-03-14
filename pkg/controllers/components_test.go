@@ -179,12 +179,8 @@ func TestMilvusComponent_GetDeploymentInstanceName(t *testing.T) {
 	assert.Equal(t, "inst1-milvus-querynode", com.GetDeploymentInstanceName("inst1"))
 }
 
-func TestMilvusComponent_GetServiceInstanceName(t *testing.T) {
-	com := QueryNode
-	assert.Equal(t, "inst1-milvus-querynode", com.GetServiceInstanceName("inst1"))
-
-	com = Proxy
-	assert.Equal(t, "inst1-milvus", com.GetServiceInstanceName("inst1"))
+func TestMilvusComponent_GetSerfviceInstanceName(t *testing.T) {
+	assert.Equal(t, "inst1-milvus", GetServiceInstanceName("inst1"))
 }
 
 func TestMilvusComponent_GetContainerName(t *testing.T) {

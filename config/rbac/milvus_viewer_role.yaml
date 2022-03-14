@@ -7,7 +7,7 @@ rules:
 - apiGroups:
   - milvus.io
   resources:
-  - milvus
+  - milvuses
   verbs:
   - get
   - list

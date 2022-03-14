@@ -10,6 +10,8 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	networkv1 "k8s.io/api/networking/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
@@ -146,8 +148,38 @@ func (r *MilvusClusterStatusSyncer) UpdateStatus(ctx context.Context, mc *v1alph
 		mc.Status.Status = v1alpha1.StatusHealthy
 	}
 
+	err = r.UpdateIngressStatus(ctx, mc)
+	if err != nil {
+		return errors.Wrap(err, "update ingress status failed")
+	}
+
 	mc.Status.Endpoint = r.GetMilvusEndpoint(ctx, *mc)
 	return r.Status().Update(ctx, mc)
+}
+
+func (r *MilvusClusterStatusSyncer) UpdateIngressStatus(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
+	key := client.ObjectKeyFromObject(mc)
+	key.Name = key.Name + "-milvus"
+	status, err := getIngressStatus(ctx, r.Client, client.ObjectKeyFromObject(mc))
+	if err != nil {
+		return errors.Wrap(err, "get ingress status failed")
+	}
+	if status != nil {
+		mc.Status.IngressStatus = *status.DeepCopy()
+	}
+	return nil
+}
+
+func getIngressStatus(ctx context.Context, client client.Client, key client.ObjectKey) (*networkv1.IngressStatus, error) {
+	ingress := &networkv1.Ingress{}
+	err := client.Get(ctx, key, ingress)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return ingress.Status.DeepCopy(), nil
 }
 
 func (r *MilvusClusterStatusSyncer) GetMilvusEndpoint(ctx context.Context, mc v1alpha1.MilvusCluster) string {

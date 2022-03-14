@@ -24,7 +24,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - milvus
+    - milvuses
   sideEffects: None
 - admissionReviewVersions:
   - v1
@@ -73,7 +73,7 @@ webhooks:
     - CREATE
     - UPDATE
     resources:
-    - milvus
+    - milvuses
   sideEffects: None
 - admissionReviewVersions:
   - v1

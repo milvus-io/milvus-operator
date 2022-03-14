@@ -10,16 +10,20 @@ log() {
 
 check_milvus_available(){
     # if $1 equals milvus-sit
-    if [ "$1" == "milvus-sit" ]; then
-        sed -i 's/host="milvus-milvus"/host="milvus"/g' test/hello-milvus.py
-    else
-        sed -i 's/host=host/host="milvus-milvus"/g' test/hello-milvus.py
-    fi
+    sed -i 's/host=host/host="milvus-milvus"/g' test/hello-milvus.py
     kubectl -n $1 create cm hello-milvus --from-file=test/hello-milvus.py
     kubectl -n $1 create -f test/hello-milvus-job.yaml
     kubectl -n $1 get -l myLabel=value service |wc -l 
     if [ $? -ne 0 ]; then
         log "kubectl check label failed"
+        return 1
+    fi
+
+    # check ingress created
+    kubectl -n $1 get ingress/milvus-milvus
+    if [ $? -ne 0 ]; then
+        kubectl -n $1 get ingress
+        log "kubectl check ingress failed"
         return 1
     fi
 
@@ -67,7 +71,6 @@ case_create_delete_cluster(){
         log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit mc/milvus -o yaml)"
         log "MilvusCluster helm values: \n $(helm -n mc-sit get values milvus-pulsar)"
         log "MilvusCluster describe pods: \n $(kubectl -n mc-sit describe pods)"
-        log "OperatorLog: $(kubectl -n milvus-operator logs deploy/milvus-operator)"
         delete_milvus_cluster
         return 1
     fi
@@ -76,6 +79,7 @@ case_create_delete_cluster(){
         delete_milvus_cluster
         return 1
     fi
+
     delete_milvus_cluster
 }
 
@@ -157,5 +161,6 @@ if [ $success -eq $count ]; then
     exit 0
 else
     echo "$success of $count tests passed"
+    log "OperatorLog: $(kubectl -n milvus-operator logs deploy/milvus-operator)"
     exit 1
 fi
