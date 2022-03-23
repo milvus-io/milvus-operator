@@ -24,10 +24,12 @@ const (
 	EtcdChart   = "config/assets/charts/etcd"
 	MinioChart  = "config/assets/charts/minio"
 	PulsarChart = "config/assets/charts/pulsar"
+	KafkaChart  = "config/assets/charts/kafka"
 
 	Etcd   = "etcd"
 	Minio  = "minio"
 	Pulsar = "pulsar"
+	Kafka  = "kafka"
 )
 
 var (
@@ -78,6 +80,7 @@ func MustNewLocalHelmReconciler(helmSettings *cli.EnvSettings, logger logr.Logge
 			Etcd:   values[Etcd].(Values),
 			Minio:  values[Minio].(Values),
 			Pulsar: values[Pulsar].(Values),
+			Kafka:  values[Kafka].(Values),
 		},
 	}
 }
@@ -192,6 +195,30 @@ func (r *MilvusClusterReconciler) ReconcileEtcd(ctx context.Context, mc v1alpha1
 		Namespace:   mc.Namespace,
 		Chart:       EtcdChart,
 		Values:      mc.Spec.Dep.Etcd.InCluster.Values.Data,
+	}
+
+	return r.helmReconciler.Reconcile(ctx, request)
+}
+
+func (r *MilvusClusterReconciler) ReconcileMsgStream(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+	switch mc.Spec.Dep.MsgStreamType {
+	case v1alpha1.MsgStreamTypeKafka:
+		return r.ReconcileKafka(ctx, mc)
+	default:
+		return r.ReconcilePulsar(ctx, mc)
+	}
+}
+
+func (r *MilvusClusterReconciler) ReconcileKafka(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+	if mc.Spec.Dep.Kafka.External {
+		return nil
+	}
+
+	request := helm.ChartRequest{
+		ReleaseName: mc.Name + "-kafka",
+		Namespace:   mc.Namespace,
+		Chart:       KafkaChart,
+		Values:      mc.Spec.Dep.Kafka.InCluster.Values.Data,
 	}
 
 	return r.helmReconciler.Reconcile(ctx, request)

@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Shopify/sarama"
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/go-logr/logr"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
@@ -37,6 +38,9 @@ func GetCondition(getter func() v1alpha1.MilvusCondition, eps []string) v1alpha1
 }
 
 var (
+	wrapKafkaConditonGetter = func(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusKafka) func() v1alpha1.MilvusCondition {
+		return func() v1alpha1.MilvusCondition { return GetKafkaCondition(ctx, logger, p) }
+	}
 	wrapPulsarConditonGetter = func(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusPulsar) func() v1alpha1.MilvusCondition {
 		return func() v1alpha1.MilvusCondition { return GetPulsarCondition(ctx, logger, p) }
 	}
@@ -58,7 +62,7 @@ func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.Milv
 	})
 
 	if err != nil {
-		return newErrPulsarCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
+		return newErrMsgStreamCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
 	}
 	defer client.Close()
 
@@ -67,12 +71,31 @@ func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.Milv
 		StartMessageID: pulsar.EarliestMessageID(),
 	})
 	if err != nil {
-		return newErrPulsarCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
+		return newErrMsgStreamCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
 	}
 	defer reader.Close()
 
 	return v1alpha1.MilvusCondition{
-		Type:    v1alpha1.PulsarReady,
+		Type:    v1alpha1.MsgStreamReady,
+		Status:  GetConditionStatus(true),
+		Reason:  v1alpha1.ReasonPulsarReady,
+		Message: MessagePulsarReady,
+	}
+}
+
+func GetKafkaCondition(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusKafka) v1alpha1.MilvusCondition {
+	config := sarama.NewConfig()
+	config.Net.DialTimeout = time.Second * 2
+	config.Net.ReadTimeout = time.Second * 3
+	const group = "milvus-operator-group"
+	cli, err := sarama.NewClient(p.BrokerList, config)
+	if err != nil {
+		return newErrMsgStreamCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
+	}
+	cli.Close()
+
+	return v1alpha1.MilvusCondition{
+		Type:    v1alpha1.MsgStreamReady,
 		Status:  GetConditionStatus(true),
 		Reason:  v1alpha1.ReasonPulsarReady,
 		Message: MessagePulsarReady,
@@ -249,9 +272,9 @@ func newErrStorageCondResult(reason, message string) v1alpha1.MilvusCondition {
 	}
 }
 
-func newErrPulsarCondResult(reason, message string) v1alpha1.MilvusCondition {
+func newErrMsgStreamCondResult(reason, message string) v1alpha1.MilvusCondition {
 	return v1alpha1.MilvusCondition{
-		Type:    v1alpha1.PulsarReady,
+		Type:    v1alpha1.MsgStreamReady,
 		Status:  corev1.ConditionFalse,
 		Reason:  reason,
 		Message: message,

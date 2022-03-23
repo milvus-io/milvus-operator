@@ -55,7 +55,7 @@ type MilvusIngress struct {
 	IngressClassName *string `json:"ingressClassName,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	Hosts []string `json:"hosts"`
+	Hosts []string `json:"hosts,omitempty"`
 
 	// TLSSecretRefs is a map of TLS secret to hosts
 	// +kubebuilder:validation:Optional
@@ -80,8 +80,8 @@ const (
 	EtcdReady MiluvsConditionType = "EtcdReady"
 	// StorageReady means the Storage is ready.
 	StorageReady MiluvsConditionType = "StorageReady"
-	// PulsarReady means the Pulsar is ready.
-	PulsarReady MiluvsConditionType = "PulsarReady"
+	// MsgStreamReady means the MsgStream is ready.
+	MsgStreamReady MiluvsConditionType = "MsgStreamReady"
 	// MilvusReady means all components of Milvus are ready.
 	MilvusReady MiluvsConditionType = "MilvusReady"
 

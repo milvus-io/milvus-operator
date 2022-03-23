@@ -4384,6 +4384,36 @@ spec:
                             x-kubernetes-preserve-unknown-fields: true
                         type: object
                     type: object
+                  kafka:
+                    properties:
+                      brokerList:
+                        items:
+                          type: string
+                        type: array
+                      external:
+                        default: false
+                        type: boolean
+                      inCluster:
+                        properties:
+                          deletionPolicy:
+                            default: Retain
+                            enum:
+                            - Delete
+                            - Retain
+                            type: string
+                          pvcDeletion:
+                            type: boolean
+                          values:
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                        type: object
+                    type: object
+                  msgStreamType:
+                    default: pulsar
+                    enum:
+                    - pulsar
+                    - kafka
+                    type: string
                   pulsar:
                     properties:
                       endpoint:
@@ -5507,7 +5537,7 @@ rules:
 - apiGroups:
   - milvus.io
   resources:
-  - milvus
+  - milvuses
   verbs:
   - create
   - delete
@@ -5525,7 +5555,7 @@ rules:
 - apiGroups:
   - milvus.io
   resources:
-  - milvus/status
+  - milvuses/status
   verbs:
   - get
   - patch

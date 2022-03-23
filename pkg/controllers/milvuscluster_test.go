@@ -189,7 +189,7 @@ func TestCluster_ReconcileMilvus(t *testing.T) {
 			Status: corev1.ConditionTrue,
 		},
 		{
-			Type:   v1alpha1.PulsarReady,
+			Type:   v1alpha1.MsgStreamReady,
 			Status: corev1.ConditionTrue,
 		},
 		{

@@ -299,7 +299,7 @@ func IsDependencyReady(conditions []v1alpha1.MilvusCondition, isCluster bool) bo
 		switch c.Type {
 		case v1alpha1.EtcdReady, v1alpha1.StorageReady:
 			ready++
-		case v1alpha1.PulsarReady:
+		case v1alpha1.MsgStreamReady:
 			if isCluster {
 				ready++
 			}

@@ -347,7 +347,7 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 		Conditions: []v1alpha1.MilvusCondition{
 			{Type: v1alpha1.EtcdReady, Status: corev1.ConditionTrue},
 			{Type: v1alpha1.StorageReady, Status: corev1.ConditionTrue},
-			{Type: v1alpha1.PulsarReady, Status: corev1.ConditionTrue},
+			{Type: v1alpha1.MsgStreamReady, Status: corev1.ConditionTrue},
 		},
 		IsCluster: true,
 	}
