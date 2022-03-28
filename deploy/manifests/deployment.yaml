@@ -4495,6 +4495,27 @@ spec:
                         type: array
                     type: object
                 type: object
+              replicas:
+                properties:
+                  dataCoord:
+                    type: integer
+                  dataNode:
+                    type: integer
+                  indexCoord:
+                    type: integer
+                  indexNode:
+                    type: integer
+                  proxy:
+                    type: integer
+                  queryCoord:
+                    type: integer
+                  queryNode:
+                    type: integer
+                  rootCoord:
+                    type: integer
+                  standalone:
+                    type: integer
+                type: object
               status:
                 default: Creating
                 type: string
@@ -5145,6 +5166,9 @@ spec:
                   pvcDeletion:
                     type: boolean
                 type: object
+              replicas:
+                format: int32
+                type: integer
               resources:
                 properties:
                   limits:
@@ -5252,6 +5276,27 @@ spec:
                           type: object
                         type: array
                     type: object
+                type: object
+              replicas:
+                properties:
+                  dataCoord:
+                    type: integer
+                  dataNode:
+                    type: integer
+                  indexCoord:
+                    type: integer
+                  indexNode:
+                    type: integer
+                  proxy:
+                    type: integer
+                  queryCoord:
+                    type: integer
+                  queryNode:
+                    type: integer
+                  rootCoord:
+                    type: integer
+                  standalone:
+                    type: integer
                 type: object
               status:
                 default: Creating

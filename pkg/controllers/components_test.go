@@ -302,3 +302,15 @@ func TestMilvusComponent_GetDeploymentStrategy(t *testing.T) {
 	com = DataCoord
 	assert.Equal(t, appsv1.RecreateDeploymentStrategyType, com.GetDeploymentStrategy().Type)
 }
+
+func TestMilvusComponent_SetStatusReplica(t *testing.T) {
+	com := QueryNode
+	status := v1alpha1.MilvusReplicas{}
+	com.SetStatusReplicas(&status, 1)
+	assert.Equal(t, 1, status.QueryNode)
+}
+
+func TestGetInstanceName_GetInstance(t *testing.T) {
+	assert.Equal(t, "a", MilvusStandalone.GetDeploymentInstanceName("a"))
+	assert.Equal(t, "a-milvus-proxy", Proxy.GetDeploymentInstanceName("a"))
+}

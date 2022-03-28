@@ -87,6 +87,9 @@ func (r *MilvusReconciler) SetDefault(ctx context.Context, mc *v1alpha1.Milvus) 
 	if !mc.Spec.Dep.Storage.External && len(mc.Spec.Dep.Storage.Endpoint) == 0 {
 		mc.Spec.Dep.Storage.Endpoint = fmt.Sprintf("%s-minio.%s:9000", mc.Name, mc.Namespace)
 	}
+	if mc.Spec.Replicas == nil {
+		mc.Spec.Replicas = int32Ptr(1)
+	}
 	return nil
 }
 
