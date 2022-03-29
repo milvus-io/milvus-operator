@@ -8,8 +8,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/stretchr/testify/assert"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -130,6 +128,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 	assert.Error(t, err)
 
 	t.Run("update ingress status failed", func(t *testing.T) {
+		defer ctrl.Finish()
 		mockRunner.EXPECT().RunWithResult(gomock.Len(2), gomock.Any(), gomock.Any()).
 			Return([]Result{
 				{Data: v1alpha1.MilvusCondition{}},
@@ -140,20 +139,28 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("update ingress status nil", func(t *testing.T) {
+	mockReplicaUpdater := NewMockreplicaUpdaterInterface(ctrl)
+	backup := replicaUpdater
+	replicaUpdater = mockReplicaUpdater
+	defer func() {
+		replicaUpdater = backup
+	}()
+	t.Run("update ingress status nil, update replicas failed", func(t *testing.T) {
+		defer ctrl.Finish()
 		mockRunner.EXPECT().RunWithResult(gomock.Len(2), gomock.Any(), gomock.Any()).
 			Return([]Result{
 				{Data: v1alpha1.MilvusCondition{}},
 			})
-		mockCli.EXPECT().Status().Return(mockCli)
-		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(kerrors.NewNotFound(schema.GroupResource{}, ""))
-		mockCli.EXPECT().Update(gomock.Any(), gomock.Any())
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		mockReplicaUpdater.EXPECT().UpdateReplicas(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
 		m.Status.Status = v1alpha1.StatusCreating
 		err = s.UpdateStatus(ctx, m)
-		assert.NoError(t, err)
+		assert.Error(t, err)
 	})
 
 	t.Run("update status success", func(t *testing.T) {
+		defer ctrl.Finish()
+		mockReplicaUpdater.EXPECT().UpdateReplicas(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockRunner.EXPECT().RunWithResult(gomock.Len(2), gomock.Any(), gomock.Any()).
 			Return([]Result{
 				{Data: v1alpha1.MilvusCondition{}},

@@ -8,6 +8,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	appsv1 "k8s.io/api/apps/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -130,6 +131,7 @@ func TestClusterStatusSyncer_UpdateStatus(t *testing.T) {
 	assert.Error(t, err)
 
 	t.Run("update ingress status failed", func(t *testing.T) {
+		defer ctrl.Finish()
 		mockRunner.EXPECT().RunWithResult(gomock.Len(3), gomock.Any(), gomock.Any()).
 			Return([]Result{
 				{Data: v1alpha1.MilvusCondition{}},
@@ -140,20 +142,28 @@ func TestClusterStatusSyncer_UpdateStatus(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("update ingress status nil", func(t *testing.T) {
+	mockReplicaUpdater := NewMockreplicaUpdaterInterface(ctrl)
+	backup := replicaUpdater
+	replicaUpdater = mockReplicaUpdater
+	defer func() {
+		replicaUpdater = backup
+	}()
+	t.Run("update ingress status nil, update replica failed", func(t *testing.T) {
+		defer ctrl.Finish()
 		mockRunner.EXPECT().RunWithResult(gomock.Len(3), gomock.Any(), gomock.Any()).
 			Return([]Result{
 				{Data: v1alpha1.MilvusCondition{}},
 			})
-		mockCli.EXPECT().Status().Return(mockCli)
-		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(kerrors.NewNotFound(schema.GroupResource{}, ""))
-		mockCli.EXPECT().Update(gomock.Any(), gomock.Any())
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		mockReplicaUpdater.EXPECT().UpdateReplicas(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
 		m.Status.Status = v1alpha1.StatusCreating
 		err = s.UpdateStatus(ctx, m)
-		assert.NoError(t, err)
+		assert.Error(t, err)
 	})
 
 	t.Run("update status success", func(t *testing.T) {
+		defer ctrl.Finish()
+		mockReplicaUpdater.EXPECT().UpdateReplicas(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockRunner.EXPECT().RunWithResult(gomock.Len(3), gomock.Any(), gomock.Any()).
 			Return([]Result{
 				{Data: v1alpha1.MilvusCondition{}},
@@ -164,6 +174,39 @@ func TestClusterStatusSyncer_UpdateStatus(t *testing.T) {
 		m.Status.Status = v1alpha1.StatusCreating
 		err = s.UpdateStatus(ctx, m)
 		assert.NoError(t, err)
+	})
+}
+
+func TestClusterStatusSyncer_UpdateReplicas(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockCli := NewMockK8sClient(ctrl)
+	ctx := context.Background()
+	m := &v1alpha1.MilvusCluster{}
+	s := new(replicaUpdaterImpl)
+
+	t.Run("all ok", func(t *testing.T) {
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, _, deploy interface{}) {
+			deploy.(*appsv1.Deployment).Status.Replicas = 2
+		}).Return(nil).Times(len(MilvusComponents))
+		err := s.UpdateReplicas(ctx, m, mockCli)
+		assert.NoError(t, err)
+		assert.Equal(t, 2, m.Status.Replicas.Proxy)
+		assert.Equal(t, 2, m.Status.Replicas.DataNode)
+	})
+
+	t.Run("components not found ok", func(t *testing.T) {
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(kerrors.NewNotFound(schema.GroupResource{}, "")).Times(len(MilvusComponents))
+		err := s.UpdateReplicas(ctx, m, mockCli)
+		assert.NoError(t, err)
+		assert.Equal(t, 0, m.Status.Replicas.Proxy)
+		assert.Equal(t, 0, m.Status.Replicas.DataNode)
+	})
+	t.Run("get deploy err", func(t *testing.T) {
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(kerrors.NewServiceUnavailable("")).Times(1)
+		err := s.UpdateReplicas(ctx, m, mockCli)
+		assert.Error(t, err)
 	})
 }
 

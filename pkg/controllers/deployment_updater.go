@@ -52,7 +52,7 @@ func (m milvusDeploymentUpdater) GetScheme() *runtime.Scheme {
 }
 
 func (m milvusDeploymentUpdater) GetReplicas() *int32 {
-	return int32Ptr(1)
+	return m.Spec.Replicas
 }
 
 func (m milvusDeploymentUpdater) GetDeploymentStrategy() appsv1.DeploymentStrategy {

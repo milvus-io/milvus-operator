@@ -38,6 +38,7 @@ const (
 	QueryNodeFieldName  = "QueryNode"
 	IndexNodeFieldName  = "IndexNode"
 	ProxyFieldName      = "Proxy"
+	StandaloneFieldName = "Standalone"
 
 	MetricPort     = 9091
 	RootCoordPort  = 53100
@@ -71,10 +72,14 @@ var (
 	Proxy      = MilvusComponent{ProxyName, ProxyFieldName, ProxyPort}
 
 	// Milvus standalone
-	MilvusStandalone = MilvusComponent{MilvusName, "", MilvusPort}
+	MilvusStandalone = MilvusComponent{MilvusName, StandaloneFieldName, MilvusPort}
 
 	MilvusComponents = []MilvusComponent{
 		RootCoord, DataCoord, QueryCoord, IndexCoord, DataNode, QueryNode, IndexNode, Proxy,
+	}
+
+	StandaloneComponents = []MilvusComponent{
+		MilvusStandalone,
 	}
 
 	MilvusCoords = []MilvusComponent{
@@ -108,6 +113,9 @@ func (c MilvusComponent) String() string {
 
 // GetInstanceName returns the name of the component instance
 func (c MilvusComponent) GetInstanceName(instance string) string {
+	if c == MilvusStandalone {
+		return instance
+	}
 	return fmt.Sprintf("%s-milvus-%s", instance, c.Name)
 }
 
@@ -124,6 +132,11 @@ func GetServiceInstanceName(instance string) string {
 // GetContainerName returns the name of the component container
 func (c MilvusComponent) GetContainerName() string {
 	return c.Name
+}
+
+// SetStatusReplica sets the replica status of the component, input status should not be nil
+func (c MilvusComponent) SetStatusReplicas(status *v1alpha1.MilvusReplicas, replicas int) {
+	reflect.ValueOf(status).Elem().FieldByName(c.FieldName).SetInt(int64(replicas))
 }
 
 // GetContainerPorts returns the ports of the component container

@@ -3,15 +3,18 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
@@ -42,11 +45,6 @@ type EtcdEndPointHealth struct {
 	Ep     string `json:"endpoint"`
 	Health bool   `json:"health"`
 	Error  string `json:"error,omitempty"`
-}
-
-type condResult struct {
-	cond v1alpha1.MilvusCondition
-	err  error
 }
 
 type MilvusClusterStatusSyncer struct {
@@ -153,8 +151,59 @@ func (r *MilvusClusterStatusSyncer) UpdateStatus(ctx context.Context, mc *v1alph
 		return errors.Wrap(err, "update ingress status failed")
 	}
 
+	err = replicaUpdater.UpdateReplicas(ctx, mc, r.Client)
+	if err != nil {
+		return errors.Wrap(err, "update replica status failed")
+	}
+
 	mc.Status.Endpoint = r.GetMilvusEndpoint(ctx, *mc)
 	return r.Status().Update(ctx, mc)
+}
+
+var replicaUpdater replicaUpdaterInterface = new(replicaUpdaterImpl)
+
+//go:generate mockgen -package=controllers -source=status_cluster.go -destination=status_cluster_mock.go
+
+type replicaUpdaterInterface interface {
+	UpdateReplicas(ctx context.Context, obj client.Object, cli client.Client) error
+}
+
+type replicaUpdaterImpl struct{}
+
+func (r replicaUpdaterImpl) UpdateReplicas(ctx context.Context, obj client.Object, cli client.Client) error {
+	components := MilvusComponents
+	if reflect.TypeOf(obj).String() != reflect.TypeOf(&v1alpha1.MilvusCluster{}).String() {
+		components = StandaloneComponents
+	}
+	status := reflect.ValueOf(obj).Elem().FieldByName("Status").Addr().Interface().(*v1alpha1.MilvusStatus)
+	return updateReplicas(ctx, client.ObjectKeyFromObject(obj), status, components, cli)
+}
+
+func updateReplicas(ctx context.Context, key client.ObjectKey, status *v1alpha1.MilvusStatus, components []MilvusComponent, client client.Client) error {
+	for _, component := range components {
+		deploy, err := getComponentDeployment(ctx, key, component, client)
+		if err != nil {
+			return errors.Wrap(err, "get component deployment failed")
+		}
+		replica := 0
+		if deploy != nil {
+			replica = int(deploy.Status.Replicas)
+		}
+		component.SetStatusReplicas(&status.Replicas, replica)
+	}
+	return nil
+}
+
+func getComponentDeployment(ctx context.Context, key client.ObjectKey, component MilvusComponent, cli client.Client) (*appsv1.Deployment, error) {
+	deployment := &appsv1.Deployment{}
+	err := cli.Get(ctx, types.NamespacedName{Name: component.GetDeploymentInstanceName(key.Name), Namespace: key.Namespace}, deployment)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return deployment, nil
 }
 
 func (r *MilvusClusterStatusSyncer) UpdateIngressStatus(ctx context.Context, mc *v1alpha1.MilvusCluster) error {

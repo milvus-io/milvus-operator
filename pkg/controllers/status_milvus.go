@@ -119,6 +119,11 @@ func (r *MilvusStatusSyncer) UpdateStatus(ctx context.Context, mil *v1alpha1.Mil
 		mil.Status.Status = v1alpha1.StatusHealthy
 	}
 
+	err = replicaUpdater.UpdateReplicas(ctx, mil, r.Client)
+	if err != nil {
+		return errors.Wrap(err, "update replica status failed")
+	}
+
 	err = r.UpdateIngressStatus(ctx, mil)
 	if err != nil {
 		return errors.Wrap(err, "update ingress status failed")

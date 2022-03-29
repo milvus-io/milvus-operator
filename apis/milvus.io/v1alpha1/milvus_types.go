@@ -34,6 +34,9 @@ type MilvusSpec struct {
 	ComponentSpec `json:",inline"`
 
 	// +kubebuilder:validation:Optional
+	Replicas *int32 `json:"replicas,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	Persistence Persistence `json:"persistence,omitempty"`
 
 	// +kubebuilder:validation:Optional
@@ -75,6 +78,31 @@ type MilvusStatus struct {
 	Endpoint string `json:"endpoint,omitempty"`
 
 	IngressStatus networkv1.IngressStatus `json:"ingress,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Replicas MilvusReplicas `json:"replicas,omitempty"`
+}
+
+// MilvusReplicas is the replicas of milvus components
+type MilvusReplicas struct {
+	//+kubebuilder:validation:Optional
+	Proxy int `json:"proxy,omitempty"`
+	//+kubebuilder:validation:Optional
+	RootCoord int `json:"rootCoord,omitempty"`
+	//+kubebuilder:validation:Optional
+	DataCoord int `json:"dataCoord,omitempty"`
+	//+kubebuilder:validation:Optional
+	IndexCoord int `json:"indexCoord,omitempty"`
+	//+kubebuilder:validation:Optional
+	QueryCoord int `json:"queryCoord,omitempty"`
+	//+kubebuilder:validation:Optional
+	DataNode int `json:"dataNode,omitempty"`
+	//+kubebuilder:validation:Optional
+	IndexNode int `json:"indexNode,omitempty"`
+	//+kubebuilder:validation:Optional
+	QueryNode int `json:"queryNode,omitempty"`
+	//+kubebuilder:validation:Optional
+	Standalone int `json:"standalone,omitempty"`
 }
 
 // +genclient
