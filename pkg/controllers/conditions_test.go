@@ -38,8 +38,7 @@ func TestGetPulsarCondition(t *testing.T) {
 
 	// new client failed, no err
 	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, errTest)
-	ret, err := GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
-	assert.NoError(t, err)
+	ret := GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
 	assert.Equal(t, v1alpha1.ReasonPulsarNotReady, ret.Reason)
 
@@ -49,8 +48,7 @@ func TestGetPulsarCondition(t *testing.T) {
 		mockPulsarNewClient.EXPECT().Close(),
 	)
 	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, nil)
-	ret, err = GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
-	assert.NoError(t, err)
+	ret = GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
 	assert.Equal(t, v1alpha1.ReasonPulsarNotReady, ret.Reason)
 
@@ -62,8 +60,7 @@ func TestGetPulsarCondition(t *testing.T) {
 		mockPulsarNewClient.EXPECT().Close(),
 	)
 	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, nil)
-	ret, err = GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
-	assert.NoError(t, err)
+	ret = GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
 	assert.Equal(t, corev1.ConditionTrue, ret.Status)
 	assert.Equal(t, v1alpha1.ReasonPulsarReady, ret.Reason)
 }
@@ -86,28 +83,30 @@ func TestGetMinioCondition(t *testing.T) {
 	errNotFound := k8sErrors.NewNotFound(schema.GroupResource{}, "")
 
 	t.Run(`get secret failed`, func(t *testing.T) {
+		defer ctrl.Finish()
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errTest)
-		_, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-		assert.Error(t, err)
+		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
+		assert.Equal(t, v1alpha1.ReasonClientErr, ret.Reason)
 	})
 
 	t.Run(`secret not found`, func(t *testing.T) {
+		defer ctrl.Finish()
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
-		ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-		assert.NoError(t, err)
+		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
 		assert.Equal(t, v1alpha1.ReasonSecretNotExist, ret.Reason)
 	})
 
 	t.Run(`secrets keys not found`, func(t *testing.T) {
+		defer ctrl.Finish()
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-		ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-		assert.NoError(t, err)
+		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
 		assert.Equal(t, v1alpha1.ReasonSecretNotExist, ret.Reason)
 	})
 
 	t.Run("new client failed", func(t *testing.T) {
+		defer ctrl.Finish()
 		newMinioClientFunc = getMockNewMinioClientFunc(nil, errTest)
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
 			Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
@@ -116,8 +115,7 @@ func TestGetMinioCondition(t *testing.T) {
 					SecretKey: []byte("secretAccessKey"),
 				}
 			})
-		ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-		assert.NoError(t, err)
+		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
 		assert.Equal(t, v1alpha1.ReasonClientErr, ret.Reason)
 
@@ -133,8 +131,7 @@ func TestGetMinioCondition(t *testing.T) {
 				}
 			})
 		mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{}, errTest)
-		ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-		assert.NoError(t, err)
+		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
 		assert.Equal(t, v1alpha1.ReasonClientErr, ret.Reason)
 
@@ -149,8 +146,7 @@ func TestGetMinioCondition(t *testing.T) {
 				}
 			})
 		mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{}, nil)
-		ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-		assert.NoError(t, err)
+		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
 		assert.Equal(t, v1alpha1.ReasonStorageNotReady, ret.Reason)
 	})
@@ -170,8 +166,7 @@ func TestGetMinioCondition(t *testing.T) {
 				{State: "not ok"},
 			},
 		}, nil)
-		ret, err := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-		assert.NoError(t, err)
+		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionTrue, ret.Status)
 		assert.Equal(t, v1alpha1.ReasonStorageReady, ret.Reason)
 	})
@@ -191,15 +186,13 @@ func TestGetEtcdCondition(t *testing.T) {
 	errTest := errors.New("test")
 
 	// no endpoint
-	ret, err := GetEtcdCondition(ctx, []string{})
-	assert.NoError(t, err)
+	ret := GetEtcdCondition(ctx, []string{})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
 	assert.Equal(t, v1alpha1.ReasonEtcdNotReady, ret.Reason)
 
 	// new client failed
 	etcdNewClient = getMockNewEtcdClient(nil, errTest)
-	ret, err = GetEtcdCondition(ctx, []string{"etcd:2379"})
-	assert.NoError(t, err)
+	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
 	assert.Equal(t, v1alpha1.ReasonEtcdNotReady, ret.Reason)
 
@@ -210,8 +203,7 @@ func TestGetEtcdCondition(t *testing.T) {
 		mockEtcdCli.EXPECT().Get(gomock.Any(), gomock.Any()).Return(nil, errTest),
 		mockEtcdCli.EXPECT().Close(),
 	)
-	ret, err = GetEtcdCondition(ctx, []string{"etcd:2379"})
-	assert.NoError(t, err)
+	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
 	assert.Equal(t, v1alpha1.ReasonEtcdNotReady, ret.Reason)
 
@@ -222,8 +214,7 @@ func TestGetEtcdCondition(t *testing.T) {
 		mockEtcdCli.EXPECT().AlarmList(gomock.Any()).Return(nil, errTest),
 		mockEtcdCli.EXPECT().Close(),
 	)
-	ret, err = GetEtcdCondition(ctx, []string{"etcd:2379"})
-	assert.NoError(t, err)
+	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
 	assert.Equal(t, v1alpha1.ReasonEtcdNotReady, ret.Reason)
 
@@ -238,8 +229,7 @@ func TestGetEtcdCondition(t *testing.T) {
 		}, nil),
 		mockEtcdCli.EXPECT().Close(),
 	)
-	ret, err = GetEtcdCondition(ctx, []string{"etcd:2379"})
-	assert.NoError(t, err)
+	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
 	assert.Equal(t, v1alpha1.ReasonEtcdNotReady, ret.Reason)
 

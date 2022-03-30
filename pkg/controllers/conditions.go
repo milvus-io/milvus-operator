@@ -25,7 +25,30 @@ import (
 // pulsarNewClient wraps pulsar.NewClient for test mock convenience
 var pulsarNewClient = pulsar.NewClient
 
-func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusPulsar) (v1alpha1.MilvusCondition, error) {
+func GetCondition(getter func() v1alpha1.MilvusCondition, eps []string) v1alpha1.MilvusCondition {
+	// check cache
+	condition, uptodate := endpointCheckCache.Get(eps)
+	if uptodate {
+		return *condition
+	}
+	ret := getter()
+	endpointCheckCache.Set(eps, &ret)
+	return ret
+}
+
+var (
+	wrapPulsarConditonGetter = func(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusPulsar) func() v1alpha1.MilvusCondition {
+		return func() v1alpha1.MilvusCondition { return GetPulsarCondition(ctx, logger, p) }
+	}
+	wrapEtcdConditionGetter = func(ctx context.Context, endpoints []string) func() v1alpha1.MilvusCondition {
+		return func() v1alpha1.MilvusCondition { return GetEtcdCondition(ctx, endpoints) }
+	}
+	wrapMinioConditionGetter = func(ctx context.Context, logger logr.Logger, cli client.Client, info StorageConditionInfo) func() v1alpha1.MilvusCondition {
+		return func() v1alpha1.MilvusCondition { return GetMinioCondition(ctx, logger, cli, info) }
+	}
+)
+
+func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusPulsar) v1alpha1.MilvusCondition {
 
 	client, err := pulsarNewClient(pulsar.ClientOptions{
 		URL:               "pulsar://" + p.Endpoint,
@@ -35,7 +58,7 @@ func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.Milv
 	})
 
 	if err != nil {
-		return newErrPulsarCondResult(v1alpha1.ReasonPulsarNotReady, err.Error()), nil
+		return newErrPulsarCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
 	}
 	defer client.Close()
 
@@ -44,7 +67,7 @@ func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.Milv
 		StartMessageID: pulsar.EarliestMessageID(),
 	})
 	if err != nil {
-		return newErrPulsarCondResult(v1alpha1.ReasonPulsarNotReady, err.Error()), nil
+		return newErrPulsarCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
 	}
 	defer reader.Close()
 
@@ -53,7 +76,7 @@ func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.Milv
 		Status:  GetConditionStatus(true),
 		Reason:  v1alpha1.ReasonPulsarReady,
 		Message: MessagePulsarReady,
-	}, nil
+	}
 }
 
 // StorageConditionInfo is info for acquiring storage condition
@@ -71,23 +94,22 @@ var newMinioClientFunc NewMinioClientFunc = func(endpoint string, accessKeyID, s
 	return madmin.New(endpoint, accessKeyID, secretAccessKey, secure)
 }
 
-func GetMinioCondition(
-	ctx context.Context, logger logr.Logger, cli client.Client, info StorageConditionInfo) (v1alpha1.MilvusCondition, error) {
+func GetMinioCondition(ctx context.Context, logger logr.Logger, cli client.Client, info StorageConditionInfo) v1alpha1.MilvusCondition {
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: info.Namespace, Name: info.Storage.SecretRef}
 	err := cli.Get(ctx, key, secret)
 	if err != nil && !k8sErrors.IsNotFound(err) {
-		return v1alpha1.MilvusCondition{}, err
+		return newErrStorageCondResult(v1alpha1.ReasonClientErr, err.Error())
 	}
 
 	if k8sErrors.IsNotFound(err) {
-		return newErrStorageCondResult(v1alpha1.ReasonSecretNotExist, MessageSecretNotExist), nil
+		return newErrStorageCondResult(v1alpha1.ReasonSecretNotExist, MessageSecretNotExist)
 	}
 
 	accesskey, exist1 := secret.Data[AccessKey]
 	secretkey, exist2 := secret.Data[SecretKey]
 	if !exist1 || !exist2 {
-		return newErrStorageCondResult(v1alpha1.ReasonSecretNotExist, MessageKeyNotExist), nil
+		return newErrStorageCondResult(v1alpha1.ReasonSecretNotExist, MessageKeyNotExist)
 	}
 
 	mdmClnt, err := newMinioClientFunc(
@@ -97,14 +119,14 @@ func GetMinioCondition(
 	)
 
 	if err != nil {
-		return newErrStorageCondResult(v1alpha1.ReasonClientErr, err.Error()), nil
+		return newErrStorageCondResult(v1alpha1.ReasonClientErr, err.Error())
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	st, err := mdmClnt.ServerInfo(ctx)
 	if err != nil {
-		return newErrStorageCondResult(v1alpha1.ReasonClientErr, err.Error()), nil
+		return newErrStorageCondResult(v1alpha1.ReasonClientErr, err.Error())
 	}
 	ready := false
 	for _, server := range st.Servers {
@@ -125,14 +147,14 @@ func GetMinioCondition(
 		cond.Message = MessageStorageNotReady
 	}
 
-	return cond, nil
+	return cond
 }
 
 type EtcdConditionInfo struct {
 	Endpoints []string
 }
 
-func GetEtcdCondition(ctx context.Context, endpoints []string) (v1alpha1.MilvusCondition, error) {
+func GetEtcdCondition(ctx context.Context, endpoints []string) v1alpha1.MilvusCondition {
 	health := GetEndpointsHealth(endpoints)
 	etcdReady := false
 	for _, ep := range endpoints {
@@ -152,8 +174,7 @@ func GetEtcdCondition(ctx context.Context, endpoints []string) (v1alpha1.MilvusC
 		cond.Reason = v1alpha1.ReasonEtcdNotReady
 		cond.Message = MessageEtcdNotReady // TODO: @shaoyue add detail err msg
 	}
-
-	return cond, nil
+	return cond
 }
 
 type NewEtcdClientFunc func(cfg clientv3.Config) (EtcdClient, error)

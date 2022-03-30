@@ -217,3 +217,48 @@ func TestMilvusStatusSyncer_GetMinioCondition_S3Ready(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, S3ReadyCondition, ret)
 }
+
+// mockEndpointCheckCache is for test
+type mockEndpointCheckCache struct {
+	isUpToDate bool
+	condition  *v1alpha1.MilvusCondition
+}
+
+func (m *mockEndpointCheckCache) Get(endpoint []string) (condition *v1alpha1.MilvusCondition, isUpToDate bool) {
+	return m.condition, m.isUpToDate
+}
+
+func (m *mockEndpointCheckCache) Set(endpoints []string, condition *v1alpha1.MilvusCondition) {
+	m.condition = condition
+}
+
+func mockConditionGetter() v1alpha1.MilvusCondition {
+	return v1alpha1.MilvusCondition{Reason: "update"}
+}
+
+func TestGetCondition(t *testing.T) {
+	bak := endpointCheckCache
+	defer func() { endpointCheckCache = bak }()
+
+	t.Run("use cache", func(t *testing.T) {
+		condition := v1alpha1.MilvusCondition{Reason: "test"}
+		endpointCheckCache = &mockEndpointCheckCache{condition: &condition, isUpToDate: true}
+		ret := GetCondition(mockConditionGetter, []string{})
+		assert.Equal(t, condition, ret)
+	})
+	t.Run("not use cache", func(t *testing.T) {
+		endpointCheckCache = &mockEndpointCheckCache{condition: nil, isUpToDate: false}
+		ret := GetCondition(mockConditionGetter, []string{})
+		assert.Equal(t, v1alpha1.MilvusCondition{Reason: "update"}, ret)
+	})
+}
+
+func TestWrapGetter(t *testing.T) {
+	var getter func() v1alpha1.MilvusCondition
+	getter = wrapPulsarConditonGetter(nil, nil, v1alpha1.MilvusPulsar{})
+	assert.NotNil(t, getter)
+	getter = wrapEtcdConditionGetter(nil, []string{})
+	assert.NotNil(t, getter)
+	getter = wrapMinioConditionGetter(nil, nil, nil, StorageConditionInfo{})
+	assert.NotNil(t, getter)
+}
