@@ -63,10 +63,12 @@ func NewMilvusClusterStatusSyncer(ctx context.Context, client client.Client, log
 	}
 }
 
+var unhealthySyncInterval = 30 * time.Second
+
 func (r *MilvusClusterStatusSyncer) RunIfNot() {
 	r.Once.Do(func() {
-		go LoopWithInterval(r.ctx, r.syncUnhealthy, 30*time.Second, r.logger)
-		go LoopWithInterval(r.ctx, r.syncHealthy, 1*time.Minute, r.logger)
+		go LoopWithInterval(r.ctx, r.syncUnhealthy, unhealthySyncInterval, r.logger)
+		go LoopWithInterval(r.ctx, r.syncHealthy, unhealthySyncInterval*2, r.logger)
 	})
 }
 
@@ -252,7 +254,8 @@ func (r *MilvusClusterStatusSyncer) GetMilvusClusterCondition(ctx context.Contex
 
 func (r *MilvusClusterStatusSyncer) GetPulsarCondition(
 	ctx context.Context, mc v1alpha1.MilvusCluster) (v1alpha1.MilvusCondition, error) {
-	return GetPulsarCondition(ctx, r.logger, mc.Spec.Dep.Pulsar)
+	getter := wrapPulsarConditonGetter(ctx, r.logger, mc.Spec.Dep.Pulsar)
+	return GetCondition(getter, []string{mc.Spec.Dep.Pulsar.Endpoint}), nil
 }
 
 // TODO: rename as GetStorageCondition
@@ -267,9 +270,11 @@ func (r *MilvusClusterStatusSyncer) GetMinioCondition(
 		EndPoint:  mc.Spec.Dep.Storage.Endpoint,
 		UseSSL:    GetMinioSecure(mc.Spec.Conf.Data),
 	}
-	return GetMinioCondition(ctx, r.logger, r.Client, info)
+	getter := wrapMinioConditionGetter(ctx, r.logger, r.Client, info)
+	return GetCondition(getter, []string{mc.Spec.Dep.Storage.Endpoint}), nil
 }
 
 func (r *MilvusClusterStatusSyncer) GetEtcdCondition(ctx context.Context, mc v1alpha1.MilvusCluster) (v1alpha1.MilvusCondition, error) {
-	return GetEtcdCondition(ctx, mc.Spec.Dep.Etcd.Endpoints)
+	getter := wrapEtcdConditionGetter(ctx, mc.Spec.Dep.Etcd.Endpoints)
+	return GetCondition(getter, mc.Spec.Dep.Etcd.Endpoints), nil
 }

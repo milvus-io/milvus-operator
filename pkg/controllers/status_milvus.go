@@ -176,9 +176,11 @@ func (r *MilvusStatusSyncer) GetMinioCondition(
 		EndPoint:  mil.Spec.Dep.Storage.Endpoint,
 		UseSSL:    GetMinioSecure(mil.Spec.Conf.Data),
 	}
-	return GetMinioCondition(ctx, r.logger, r.Client, info)
+	getter := wrapMinioConditionGetter(ctx, r.logger, r.Client, info)
+	return GetCondition(getter, []string{mil.Spec.Dep.Storage.Endpoint}), nil
 }
 
 func (r *MilvusStatusSyncer) GetEtcdCondition(ctx context.Context, mil v1alpha1.Milvus) (v1alpha1.MilvusCondition, error) {
-	return GetEtcdCondition(ctx, mil.Spec.Dep.Etcd.Endpoints)
+	getter := wrapEtcdConditionGetter(ctx, mil.Spec.Dep.Etcd.Endpoints)
+	return GetCondition(getter, mil.Spec.Dep.Etcd.Endpoints), nil
 }
