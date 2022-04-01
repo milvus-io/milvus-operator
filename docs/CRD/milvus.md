@@ -14,7 +14,7 @@ metadata:
   namespace: sample-ns
 spec:
   # Global image name for milvus components. It will override the default one. Default is determined by operator version
-  image: milvusdb/milvus:v2.0.1 # Optional
+  image: milvusdb/milvus:latest # Optional
 
   # Global image pull policy. It will override the the default one.
   imagePullPolicy: IfNotPresent # Optional, default = IfNotPresent

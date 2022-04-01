@@ -3,8 +3,8 @@
 IMG ?= milvusdb/milvus-operator:dev-latest
 RELEASE_IMG ?= milvusdb/milvus-operator:latest
 SIT_IMG ?= milvus-operator:sit
-VERSION ?= 0.3.6
-MILVUS_HELM_VERSION ?= milvus-3.0.6
+VERSION ?= 0.4.0
+MILVUS_HELM_VERSION ?= milvus-3.0.16
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false,maxDescLen=0"
@@ -90,6 +90,14 @@ build: generate fmt vet ## Build manager binary.
 build-only:
 	go build -o bin/manager main.go
 
+build-release:
+	mkdir -p out
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o out/manager main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -a -o out/checker ./tool/checker
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -a -o out/merge ./tool/merge
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -a -o out/cp ./tool/cp
+
+
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
@@ -98,6 +106,24 @@ docker-build: test build ## Build docker image with the manager.
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
+
+out/config/assets/templates:
+	mkdir -p out/config/assets
+	cp -r config/assets/templates out/config/assets/templates
+
+docker-local-prepare: build-release out/config/assets/templates
+	mkdir -p ./out/config/assets/charts/
+	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/etcd-6.3.3.tgz -O ./etcd.tgz
+	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/minio-8.0.11.tgz -O ./minio.tgz
+	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/pulsar-2.7.8.tgz -O ./pulsar.tgz
+	tar -xf ./etcd.tgz -C ./out/config/assets/charts/
+	tar -xf ./minio.tgz -C ./out/config/assets/charts/
+	tar -xf ./pulsar.tgz -C ./out/config/assets/charts/
+	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/values.yaml -O ./out/config/assets/charts/values.yaml
+	scripts/run.sh out/run.sh
+
+docker-local-build:
+	docker build --build-arg MILVUS_HELM_VERSION=$(MILVUS_HELM_VERSION) -t ${IMG} -f local.Dockerfile . 
 
 ##@ Deployment
 
@@ -178,7 +204,7 @@ sit-prepare-operator-images:
 
 sit-prepare-images: sit-prepare-operator-images
 	@echo "Preparing images"
-	docker pull -q milvusdb/milvus:v2.0.1
+	docker pull -q milvusdb/milvus:v2.0.2
 	docker pull -q apachepulsar/pulsar:2.8.2
 	docker pull -q bitnami/etcd:3.5.0-debian-10-r24
 	docker pull -q minio/minio:RELEASE.2021-02-14T04-01-33Z
@@ -194,7 +220,7 @@ sit-load-operator-images:
 
 sit-load-images: sit-load-operator-images
 	@echo "Loading images"
-	kind load docker-image milvusdb/milvus:v2.0.1
+	kind load docker-image milvusdb/milvus:v2.0.2
 	kind load docker-image apachepulsar/pulsar:2.8.2
 	kind load docker-image bitnami/etcd:3.5.0-debian-10-r24
 	kind load docker-image minio/minio:RELEASE.2021-02-14T04-01-33Z

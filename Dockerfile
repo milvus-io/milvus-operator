@@ -1,7 +1,7 @@
 FROM golang:1.16 as builder
 
 # milvus-operator use https://github.com/milvus-io/milvus-helm's charts & values as its built dependencies
-ARG MILVUS_HELM_VERSION=master
+ARG MILVUS_HELM_VERSION=milvus-3.0.16
 
 WORKDIR /workspace
 # ENV GOPROXY https://goproxy.cn
@@ -22,7 +22,7 @@ COPY tool/ tool/
 COPY config/assets/templates out/config/assets/templates
 RUN wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/etcd-6.3.3.tgz -O ./etcd.tgz
 RUN wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/minio-8.0.11.tgz -O ./minio.tgz
-RUN wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/pulsar-1.0.31.tgz -O ./pulsar.tgz
+RUN wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/pulsar-2.7.8.tgz -O ./pulsar.tgz
 RUN mkdir -p ./out/config/assets/charts/
 RUN wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/values.yaml -O ./out/config/assets/charts/values.yaml
 RUN tar -xf ./etcd.tgz -C ./out/config/assets/charts/

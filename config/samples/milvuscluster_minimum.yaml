@@ -13,10 +13,16 @@ spec:
     pulsar:
       inCluster:
         values:
-          extra:
-            bastion: no
-            wsproxy: no
-            autoRecovery: no
+          components: 
+            autorecovery: false
+            functions: false
+            toolset: false
+            pulsar_manager: false
+          monitoring:
+            prometheus: false
+            grafana: false
+            node_exporter: false
+            alert_manager: false
           proxy:
             replicaCount: 1
             resources:
