@@ -21,7 +21,7 @@ Install with helm:
 ```shell
 helm install milvus-operator \
   -n milvus-operator --create-namespace \
-  https://github.com/milvus-io/milvus-operator/releases/download/v0.3.6/milvus-operator-0.3.6.tgz
+  https://github.com/milvus-io/milvus-operator/releases/download/v0.4.0/milvus-operator-0.4.0.tgz
 ```
 
 Or install with kubectl & raw manifests:
@@ -43,11 +43,11 @@ Versions of the underlying components are listed below:
 
 <!-- source csv for table
 Components, Milvus, Pulsar, Etcd, MinIO
-Versions, v2.0.1 `[1]`, 2.8.2, 3.5.0,2021.2.14 -->
+Versions, v2.0.2 `[1]`, 2.8.2, 3.5.0,2021.2.14 -->
 
 |Components| Milvus| Pulsar| Etcd| MinIO|
 |---|---|---|---|---|
-|Versions| v2.0.1 `[1]`| 2.8.2| 3.5.0|2021.2.14|
+|Versions| v2.0.2 `[1]`| 2.8.2| 3.5.0|2021.2.14|
 
 
 **NOTES:**
@@ -57,22 +57,22 @@ Versions, v2.0.1 `[1]`, 2.8.2, 3.5.0,2021.2.14 -->
 ## Compatibility With Milvus Releases
 
 <!-- source csv for table
-Milvus Versions, <=v2.0.0-rc8, v2.0.0-pre-ga, v2.0.0~v2.0.1
+Milvus Versions, <=v2.0.0-rc8, v2.0.0-pre-ga, v2.0.0~v2.0.2
 Compatibility, :heavy_multiplication_x:, :heavy_check_mark:, :heavy_check_mark:  -->
 
-|Milvus Versions| <=v2.0.0-rc8| v2.0.0-pre-ga| v2.0.0~v2.0.1|
+|Milvus Versions| <=v2.0.0-rc8| v2.0.0-pre-ga| v2.0.0~v2.0.2|
 |---|---|---|---|
 |Compatibility| :heavy_multiplication_x:| :heavy_check_mark:| :heavy_check_mark:|
 
 ## Compatibility With Milvus-Operator Earlier Releases
 
 <!-- source csv for table
-Milvus Operator Versions, 0.1.x, 0.2.x, 0.3.x
-Compatibility, :heavy_multiplication_x:, :heavy_multiplication_x:, :heavy_check_mark:  -->
+Milvus Operator Versions, <0.4.0, 0.4.x
+Compatibility, :heavy_multiplication_x:, :heavy_check_mark:  -->
 
-|Milvus Operator Versions| 0.1.x | 0.2.x | 0.3.x |
-|---|---|---|---|
-|Compatibility| :heavy_multiplication_x:| :heavy_multiplication_x:| :heavy_check_mark: |
+|Milvus Operator Versions| <0.4.0| 0.4.x|
+|---|---|---|
+|Compatibility| :heavy_multiplication_x:| :heavy_check_mark:|
 
 **NOTES:**
 
@@ -84,9 +84,6 @@ Compatibility, :heavy_multiplication_x:, :heavy_multiplication_x:, :heavy_check_
 - [How it works](docs/arch/arch.md)
 - [Installation](docs/installation/installation.md)
 - [How to configure the MilvusCluster](docs/CRD/milvus-cluster.md)
-- How to configure dependencies:
-    - [etcd](config/assets/charts/etcd/README.md)
-    - [minio](config/assets/charts/minio/README.md)
-    - [pulsar](config/assets/charts/pulsar/README.md)
+- [How to configure the standalone Milvus](docs/CRD/milvu.md)
 - [Install KinD for development](docs/installation/kind-installation.md)
 
