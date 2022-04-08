@@ -86,10 +86,17 @@ func TestMilvusClusterReconciler_ReconcileIngress(t *testing.T) {
 	rendered.Spec.IngressClassName = &icn
 	t.Run("ingress found, update", func(t *testing.T) {
 		defer env.checkMocks()
+		finalizers := []string{"finalizer"}
 		mockRenderer.EXPECT().Render(gomock.Any(), gomock.Any()).Return(&rendered)
-		mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Do(
+			func(any1, any2, input interface{}) {
+				ingress := input.(*networkingv1.Ingress)
+				ingress.ObjectMeta.Finalizers = finalizers
+				ingress.Status.LoadBalancer.Ingress = make([]corev1.LoadBalancerIngress, 2)
+			}).Return(nil)
 		mockClient.EXPECT().Update(gomock.Any(), &rendered).Return(mockErr)
 		err := r.ReconcileIngress(ctx, mc)
+		assert.Equal(t, finalizers, rendered.ObjectMeta.Finalizers)
 		assert.Error(t, err)
 	})
 }
