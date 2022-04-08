@@ -51,6 +51,11 @@ func reconcileIngress(ctx context.Context, logger logr.Logger,
 	}
 	// we don't change status & type
 	new.TypeMeta = old.TypeMeta
+	// merge metadata
+	meta := old.ObjectMeta.DeepCopy()
+	meta.Labels = MergeLabels(old.Labels, new.Labels)
+	meta.Annotations = MergeLabels(old.Annotations, new.Annotations)
+	new.ObjectMeta = *meta
 	new.Status = *old.Status.DeepCopy()
 
 	logger.Info("Update Ingress")
