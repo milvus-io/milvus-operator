@@ -3,8 +3,8 @@
 IMG ?= milvusdb/milvus-operator:dev-latest
 RELEASE_IMG ?= milvusdb/milvus-operator:latest
 SIT_IMG ?= milvus-operator:sit
-VERSION ?= 0.4.0
-MILVUS_HELM_VERSION ?= milvus-3.0.16
+VERSION ?= 0.4.1
+MILVUS_HELM_VERSION ?= milvus-3.0.19
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false,maxDescLen=0"
@@ -120,7 +120,7 @@ docker-local-prepare: build-release out/config/assets/templates
 	tar -xf ./minio.tgz -C ./out/config/assets/charts/
 	tar -xf ./pulsar.tgz -C ./out/config/assets/charts/
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/values.yaml -O ./out/config/assets/charts/values.yaml
-	scripts/run.sh out/run.sh
+	cp -f scripts/run.sh out/run.sh
 
 docker-local-build:
 	docker build --build-arg MILVUS_HELM_VERSION=$(MILVUS_HELM_VERSION) -t ${IMG} -f local.Dockerfile . 
