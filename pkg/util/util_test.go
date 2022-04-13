@@ -188,3 +188,16 @@ func TestHTTPGetBytes(t *testing.T) {
 	_, err = HTTPGetBytes("https://httpbin.org/post")
 	assert.Error(t, err)
 }
+
+func TestDeepCopyValues(t *testing.T) {
+	v1 := map[string]interface{}{
+		"1": map[string]interface{}{
+			"1.1": "v1",
+		},
+	}
+	v1Copy := DeepCopyValues(v1)
+	v2 := v1["1"].(map[string]interface{})
+	v2["1.1"] = "v2"
+	assert.Equal(t, v1["1"].(map[string]interface{})["1.1"], "v2")
+	assert.Equal(t, v1Copy["1"].(map[string]interface{})["1.1"], "v1")
+}

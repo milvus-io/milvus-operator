@@ -129,7 +129,8 @@ func getChartNameByPath(chart string) string {
 func (l LocalHelmReconciler) MergeWithDefaultValues(chartPath string, values Values) Values {
 	chart := getChartNameByPath(chartPath)
 	ret := Values{}
-	util.MergeValues(ret, l.chartDefaultValues[chart])
+	defaults := util.DeepCopyValues(l.chartDefaultValues[chart])
+	util.MergeValues(ret, defaults)
 	util.MergeValues(ret, values)
 	return ret
 }

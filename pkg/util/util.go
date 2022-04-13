@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -123,4 +124,22 @@ func HTTPGetBytes(url string) ([]byte, error) {
 		return nil, errors.Wrap(err, "failed to read response body")
 	}
 	return ret, nil
+}
+
+func DeepCopyValues(input map[string]interface{}) map[string]interface{} {
+	b, err := json.Marshal(input)
+	if err != nil {
+		// The marshal should have been performed cleanly as otherwise
+		// the resource would not have been created by the API server.
+		panic(err)
+	}
+
+	var out map[string]interface{}
+
+	err = json.Unmarshal(b, &out)
+	if err != nil {
+		panic(err)
+	}
+
+	return out
 }
