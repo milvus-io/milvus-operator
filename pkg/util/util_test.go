@@ -188,3 +188,57 @@ func TestHTTPGetBytes(t *testing.T) {
 	_, err = HTTPGetBytes("https://httpbin.org/post")
 	assert.Error(t, err)
 }
+
+func TestDeepCopyValues(t *testing.T) {
+	t.Run("origin value not changed", func(t *testing.T) {
+		v1 := map[string]interface{}{
+			"1": map[string]interface{}{
+				"1.1": "v1",
+			},
+		}
+		v1Copy := DeepCopyValues(v1)
+		v2 := v1["1"].(map[string]interface{})
+		v2["1.1"] = "v2"
+		assert.Equal(t, v1["1"].(map[string]interface{})["1.1"], "v2")
+		assert.Equal(t, v1Copy["1"].(map[string]interface{})["1.1"], "v1")
+	})
+
+	t.Run("panic marshal failed", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			assert.NotNil(t, r)
+		}()
+		v1 := map[string]interface{}{
+			"s1": mockMarshal{
+				marshalFail: true,
+			},
+		}
+		DeepCopyValues(v1)
+	})
+
+	t.Run("panic unmarshal failed", func(t *testing.T) {
+		defer func() {
+			r := recover()
+			assert.NotNil(t, r)
+		}()
+		v1 := map[string]interface{}{
+			"s1": mockMarshal{},
+		}
+		DeepCopyValues(v1)
+	})
+}
+
+type mockMarshal struct {
+	marshalFail bool
+}
+
+func (v mockMarshal) MarshalJSON() ([]byte, error) {
+	if v.marshalFail {
+		return nil, errors.New("")
+	}
+	return []byte(""), nil
+}
+
+func (v mockMarshal) UnmarshalJSON(data []byte) error {
+	return errors.New("")
+}
