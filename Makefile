@@ -204,7 +204,9 @@ sit-prepare-operator-images:
 
 sit-prepare-images: sit-prepare-operator-images
 	@echo "Preparing images"
-	docker pull -q milvusdb/milvus:v2.0.2
+	docker pull milvusdb/milvus-dev:master-latest
+	docker tag milvusdb/milvus-dev:master-latest milvusdb/milvus:v2.0.2
+	
 	docker pull -q apachepulsar/pulsar:2.8.2
 	docker pull -q bitnami/etcd:3.5.0-debian-10-r24
 	docker pull -q minio/minio:RELEASE.2021-02-14T04-01-33Z
