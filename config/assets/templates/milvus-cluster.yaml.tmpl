@@ -16,6 +16,12 @@ pulsar:
   port: 6650
   maxMessageSize: 5242880 # 5 * 1024 * 1024 Bytes
 
+kafka:
+  {{- range .Spec.Dep.Kafka.BrokerList }}
+  brokerList:
+    - {{ .}}
+  {{- end }}
+
 rootCoord:
   port: {{ .Spec.Com.RootCoord.Port | default 53100 }}
 

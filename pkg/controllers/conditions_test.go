@@ -40,7 +40,7 @@ func TestGetPulsarCondition(t *testing.T) {
 	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, errTest)
 	ret := GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonPulsarNotReady, ret.Reason)
+	assert.Equal(t, v1alpha1.ReasonMsgStreamNotReady, ret.Reason)
 
 	// new client ok, create read failed, no err
 	gomock.InOrder(
@@ -50,7 +50,7 @@ func TestGetPulsarCondition(t *testing.T) {
 	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, nil)
 	ret = GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonPulsarNotReady, ret.Reason)
+	assert.Equal(t, v1alpha1.ReasonMsgStreamNotReady, ret.Reason)
 
 	// new client ok, create read ok, no err
 	mockReader := NewMockPulsarReader(ctrl)
@@ -62,7 +62,7 @@ func TestGetPulsarCondition(t *testing.T) {
 	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, nil)
 	ret = GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
 	assert.Equal(t, corev1.ConditionTrue, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonPulsarReady, ret.Reason)
+	assert.Equal(t, v1alpha1.ReasonMsgStreamReady, ret.Reason)
 }
 
 func getMockNewMinioClientFunc(cli MinioClient, err error) NewMinioClientFunc {

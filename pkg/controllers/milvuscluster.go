@@ -109,9 +109,17 @@ func (r *MilvusClusterReconciler) Finalize(ctx context.Context, mc v1alpha1.Milv
 	if !mc.Spec.Dep.Etcd.External && mc.Spec.Dep.Etcd.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
 		deletingReleases[mc.Name+"-etcd"] = mc.Spec.Dep.Etcd.InCluster.PVCDeletion
 	}
-	if !mc.Spec.Dep.Pulsar.External && mc.Spec.Dep.Pulsar.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
-		deletingReleases[mc.Name+"-pulsar"] = mc.Spec.Dep.Pulsar.InCluster.PVCDeletion
+
+	if mc.Spec.Dep.MsgStreamType == v1alpha1.MsgStreamTypeKafka {
+		if !mc.Spec.Dep.Kafka.External && mc.Spec.Dep.Kafka.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
+			deletingReleases[mc.Name+"-kafka"] = mc.Spec.Dep.Kafka.InCluster.PVCDeletion
+		}
+	} else {
+		if !mc.Spec.Dep.Pulsar.External && mc.Spec.Dep.Pulsar.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
+			deletingReleases[mc.Name+"-pulsar"] = mc.Spec.Dep.Pulsar.InCluster.PVCDeletion
+		}
 	}
+
 	if !mc.Spec.Dep.Storage.External && mc.Spec.Dep.Storage.InCluster.DeletionPolicy == v1alpha1.DeletionPolicyDelete {
 		deletingReleases[mc.Name+"-minio"] = mc.Spec.Dep.Storage.InCluster.PVCDeletion
 	}

@@ -1,6 +1,14 @@
 #!/bin/bash
 
 # System Integration Test
+testType=$1
+msgStream="pulsar"
+mcManifest="test/min-mc.yaml"
+if [ "$testType" == "kafka" ]; then
+    mcManifest="test/min-mc-kafka.yaml"
+    msgStream="kafka"
+fi
+
 
 # utils
 export LOG_PATH=/tmp/sit.log
@@ -39,10 +47,10 @@ check_milvus_available(){
 delete_milvus_cluster(){
     # Delete CR
     log "Deleting MilvusCluster ..."
-    kubectl delete -f test/min-mc.yaml
+    kubectl delete -f $mcManifest
     log "Checking PVC deleted ..."
     kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l release=mc-sit-minio
-    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l release=mc-sit-pulsar
+    kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l release=mc-sit-$msgStream
     kubectl wait --timeout=1m pvc -n mc-sit --for=delete -l app.kubernetes.io/instance=mc-sit-etcd
 }
 
@@ -50,7 +58,7 @@ delete_milvus_cluster(){
 case_create_delete_cluster(){
     # create MilvusCluster CR
     log "Creating MilvusCluster..."
-    kubectl apply -f test/min-mc.yaml
+    kubectl apply -f $mcManifest
 
     # Check CR status every 10 seconds (max 10 minutes) until complete.
     ATTEMPTS=0
@@ -69,7 +77,7 @@ case_create_delete_cluster(){
     if [ "$CR_STATUS" != "Healthy" ]; then
         log "MilvusCluster creation failed"
         log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit mc/milvus -o yaml)"
-        log "MilvusCluster helm values: \n $(helm -n mc-sit get values milvus-pulsar)"
+        log "MilvusCluster helm values: \n $(helm -n mc-sit get values milvus-$msgStream)"
         log "MilvusCluster describe pods: \n $(kubectl -n mc-sit describe pods)"
         delete_milvus_cluster
         return 1

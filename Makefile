@@ -208,6 +208,7 @@ sit-prepare-images: sit-prepare-operator-images
 	docker tag milvusdb/milvus-dev:master-latest milvusdb/milvus:v2.0.2
 	
 	docker pull -q apachepulsar/pulsar:2.8.2
+	docker pull -q bitnami/kafka:3.1.0-debian-10-r52
 	docker pull -q bitnami/etcd:3.5.0-debian-10-r24
 	docker pull -q minio/minio:RELEASE.2021-02-14T04-01-33Z
 	docker pull -q minio/mc:RELEASE.2021-02-14T04-28-06Z
@@ -224,6 +225,7 @@ sit-load-images: sit-load-operator-images
 	@echo "Loading images"
 	kind load docker-image milvusdb/milvus:v2.0.2
 	kind load docker-image apachepulsar/pulsar:2.8.2
+	kind load docker-image bitnami/kafka:3.1.0-debian-10-r52
 	kind load docker-image bitnami/etcd:3.5.0-debian-10-r24
 	kind load docker-image minio/minio:RELEASE.2021-02-14T04-01-33Z
 	kind load docker-image minio/mc:RELEASE.2021-02-14T04-28-06Z
@@ -244,6 +246,9 @@ sit-deploy: sit-load-images
 
 sit-test: 
 	./test/sit.sh
+
+sit-test-kafka: 
+	./test/sit.sh kafka
 
 cleanup-sit:
 	kubectl delete -f test/test_gen.yaml

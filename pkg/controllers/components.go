@@ -212,6 +212,7 @@ func GetConfCheckSum(spec v1alpha1.MilvusClusterSpec) string {
 	conf["conf"] = spec.Conf.Data
 	conf["etcd-endpoints"] = spec.Dep.Etcd.Endpoints
 	conf["pulsar-endpoint"] = spec.Dep.Pulsar.Endpoint
+	conf["kafka-brokerList"] = spec.Dep.Kafka.BrokerList
 	conf["storage-endpoint"] = spec.Dep.Storage.Endpoint
 
 	b, err := json.Marshal(conf)

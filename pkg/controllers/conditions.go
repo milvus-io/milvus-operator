@@ -62,7 +62,7 @@ func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.Milv
 	})
 
 	if err != nil {
-		return newErrMsgStreamCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
+		return newErrMsgStreamCondResult(v1alpha1.ReasonMsgStreamNotReady, err.Error())
 	}
 	defer client.Close()
 
@@ -71,15 +71,15 @@ func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.Milv
 		StartMessageID: pulsar.EarliestMessageID(),
 	})
 	if err != nil {
-		return newErrMsgStreamCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
+		return newErrMsgStreamCondResult(v1alpha1.ReasonMsgStreamNotReady, err.Error())
 	}
 	defer reader.Close()
 
 	return v1alpha1.MilvusCondition{
 		Type:    v1alpha1.MsgStreamReady,
 		Status:  GetConditionStatus(true),
-		Reason:  v1alpha1.ReasonPulsarReady,
-		Message: MessagePulsarReady,
+		Reason:  v1alpha1.ReasonMsgStreamReady,
+		Message: MessageMsgStreamReady,
 	}
 }
 
@@ -90,15 +90,15 @@ func GetKafkaCondition(ctx context.Context, logger logr.Logger, p v1alpha1.Milvu
 	const group = "milvus-operator-group"
 	cli, err := sarama.NewClient(p.BrokerList, config)
 	if err != nil {
-		return newErrMsgStreamCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
+		return newErrMsgStreamCondResult(v1alpha1.ReasonMsgStreamNotReady, err.Error())
 	}
 	cli.Close()
 
 	return v1alpha1.MilvusCondition{
 		Type:    v1alpha1.MsgStreamReady,
 		Status:  GetConditionStatus(true),
-		Reason:  v1alpha1.ReasonPulsarReady,
-		Message: MessagePulsarReady,
+		Reason:  v1alpha1.ReasonMsgStreamReady,
+		Message: MessageMsgStreamReady,
 	}
 }
 

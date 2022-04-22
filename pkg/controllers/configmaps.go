@@ -51,9 +51,13 @@ func (r *MilvusClusterReconciler) updateConfigMap(ctx context.Context, mc v1alph
 	util.SetValue(conf, host, "minio", "address")
 	util.SetValue(conf, int64(port), "minio", "port")
 
-	host, port = util.GetHostPort(mc.Spec.Dep.Pulsar.Endpoint)
-	util.SetValue(conf, host, "pulsar", "address")
-	util.SetValue(conf, int64(port), "pulsar", "port")
+	if mc.Spec.Dep.MsgStreamType == v1alpha1.MsgStreamTypeKafka {
+		util.SetStringSlice(conf, mc.Spec.Dep.Kafka.BrokerList, "etcd", "brokerList")
+	} else {
+		host, port = util.GetHostPort(mc.Spec.Dep.Pulsar.Endpoint)
+		util.SetValue(conf, host, "pulsar", "address")
+		util.SetValue(conf, int64(port), "pulsar", "port")
+	}
 
 	milvusYaml, err := yaml.Marshal(conf)
 	if err != nil {

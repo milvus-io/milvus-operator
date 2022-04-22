@@ -21,16 +21,16 @@ import (
 )
 
 const (
-	MessageEtcdReady       = "Etcd endpoints is healthy"
-	MessageEtcdNotReady    = "All etcd endpoints are unhealthy"
-	MessageStorageReady    = "Storage endpoints is healthy"
-	MessageStorageNotReady = "All Storage endpoints are unhealthy"
-	MessagePulsarReady     = "Pulsar is ready"
-	MessagePulsarNotReady  = "Pulsar is not ready"
-	MessageSecretNotExist  = "Secret not exist"
-	MessageKeyNotExist     = "accesskey or secretkey not exist in secret"
-	MessageDecodeErr       = "accesskey or secretkey decode error"
-	MessageMilvusHealthy   = "All Milvus components are healthy"
+	MessageEtcdReady         = "Etcd endpoints is healthy"
+	MessageEtcdNotReady      = "All etcd endpoints are unhealthy"
+	MessageStorageReady      = "Storage endpoints is healthy"
+	MessageStorageNotReady   = "All Storage endpoints are unhealthy"
+	MessageMsgStreamReady    = "MsgStream is ready"
+	MessageMsgStreamNotReady = "MsgStream is not ready"
+	MessageSecretNotExist    = "Secret not exist"
+	MessageKeyNotExist       = "accesskey or secretkey not exist in secret"
+	MessageDecodeErr         = "accesskey or secretkey decode error"
+	MessageMilvusHealthy     = "All Milvus components are healthy"
 )
 
 var (
