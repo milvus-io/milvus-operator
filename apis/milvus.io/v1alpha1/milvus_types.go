@@ -48,6 +48,9 @@ type MilvusSpec struct {
 	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	DisableMetric bool `json:"disableMetric,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	ServiceLabels map[string]string `json:"serviceLabels,omitempty"`
 
 	// +kubebuilder:validation:Optional

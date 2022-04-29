@@ -13,6 +13,7 @@ metadata:
     app: milvus
 spec:
   components:
+    disableMetric: true
     proxy:
       serviceLabels:
         myLabel: value

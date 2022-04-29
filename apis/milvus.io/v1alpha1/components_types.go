@@ -60,6 +60,9 @@ type MilvusComponents struct {
 	ComponentSpec `json:",inline"`
 
 	// +kubebuilder:validation:Optional
+	DisableMetric bool `json:"disableMetric,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	Proxy MilvusProxy `json:"proxy,omitempty"`
 
 	// +kubebuilder:validation:Optional

@@ -444,6 +444,8 @@ spec:
                         type: string
                     type: object
                 type: object
+              disableMetric:
+                type: boolean
               env:
                 items:
                   properties:

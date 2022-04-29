@@ -12,6 +12,7 @@ metadata:
   labels:
     app: milvus
 spec:
+  disableMetric: true
   ingress:
     labels:
       ingressLabel: value
