@@ -1344,6 +1344,8 @@ spec:
                           type: object
                         type: array
                     type: object
+                  disableMetric:
+                    type: boolean
                   env:
                     items:
                       properties:
@@ -4978,6 +4980,8 @@ spec:
                         type: string
                     type: object
                 type: object
+              disableMetric:
+                type: boolean
               env:
                 items:
                   properties:

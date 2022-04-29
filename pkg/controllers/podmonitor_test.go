@@ -16,6 +16,24 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+func TestClusterReconciler_ReconcilePodMonitor_Disabled(t *testing.T) {
+	r := MilvusClusterReconciler{}
+	ctx := context.Background()
+	m := v1alpha1.MilvusCluster{}
+	m.Spec.Com.DisableMetric = true
+	err := r.ReconcilePodMonitor(ctx, m)
+	assert.NoError(t, err)
+}
+
+func TestReconciler_ReconcilePodMonitor_Disabled(t *testing.T) {
+	r := MilvusReconciler{}
+	ctx := context.Background()
+	m := v1alpha1.Milvus{}
+	m.Spec.DisableMetric = true
+	err := r.ReconcilePodMonitor(ctx, m)
+	assert.NoError(t, err)
+}
+
 func TestClusterReconciler_ReconcilePodMonitor_NoPodmonitorProvider(t *testing.T) {
 	config.Init(util.GetGitRepoRootDir())
 

@@ -3,7 +3,7 @@
 IMG ?= milvusdb/milvus-operator:dev-latest
 RELEASE_IMG ?= milvusdb/milvus-operator:latest
 SIT_IMG ?= milvus-operator:sit
-VERSION ?= 0.4.0
+VERSION ?= 0.4.1
 MILVUS_HELM_VERSION ?= milvus-3.0.16
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)

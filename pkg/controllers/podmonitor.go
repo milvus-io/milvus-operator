@@ -42,6 +42,9 @@ func (r *MilvusClusterReconciler) updatePodMonitor(
 }
 
 func (r *MilvusClusterReconciler) ReconcilePodMonitor(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+	if mc.Spec.Com.DisableMetric {
+		return nil
+	}
 	namespacedName := NamespacedName(mc.Namespace, mc.Name)
 	old := &monitoringv1.PodMonitor{}
 	err := r.Get(ctx, namespacedName, old)
@@ -85,6 +88,9 @@ func (r *MilvusClusterReconciler) ReconcilePodMonitor(ctx context.Context, mc v1
 }
 
 func (r *MilvusReconciler) ReconcilePodMonitor(ctx context.Context, mc v1alpha1.Milvus) error {
+	if mc.Spec.DisableMetric {
+		return nil
+	}
 	namespacedName := NamespacedName(mc.Namespace, mc.Name)
 	old := &monitoringv1.PodMonitor{}
 	err := r.Get(ctx, namespacedName, old)

@@ -21,7 +21,7 @@ Install with helm:
 ```shell
 helm install milvus-operator \
   -n milvus-operator --create-namespace \
-  https://github.com/milvus-io/milvus-operator/releases/download/v0.4.0/milvus-operator-0.4.0.tgz
+  https://github.com/milvus-io/milvus-operator/releases/download/v0.4.1/milvus-operator-0.4.1.tgz
 ```
 
 Or install with kubectl & raw manifests:
