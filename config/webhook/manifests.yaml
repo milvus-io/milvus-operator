@@ -47,6 +47,26 @@ webhooks:
     resources:
     - milvusclusters
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /mutate-milvus-io-v1alpha1-milvus
+  failurePolicy: Fail
+  name: mmilvus.kb.io
+  rules:
+  - apiGroups:
+    - milvus.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - milvuses
+  sideEffects: None
 
 ---
 apiVersion: admissionregistration.k8s.io/v1
@@ -95,4 +115,24 @@ webhooks:
     - UPDATE
     resources:
     - milvusclusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-milvus-io-v1alpha1-milvus
+  failurePolicy: Fail
+  name: vmilvus.kb.io
+  rules:
+  - apiGroups:
+    - milvus.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - milvuses
   sideEffects: None

@@ -187,6 +187,7 @@ const (
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
 //+kubebuilder:resource:path=milvuses,singular=milvus,shortName=mi
+//+kubebuilder:storageversion
 // Milvus is the Schema for the milvus API
 type Milvus struct {
 	metav1.TypeMeta   `json:",inline"`
