@@ -197,6 +197,9 @@ type Milvus struct {
 	Status MilvusStatus `json:"status,omitempty"`
 }
 
+// Hub marks this type as a conversion hub.
+func (*Milvus) Hub() {}
+
 //+kubebuilder:object:root=true
 // MilvusList contains a list of Milvus
 type MilvusList struct {
