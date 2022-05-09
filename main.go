@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	"github.com/milvus-io/milvus-operator/pkg/config"
-	"github.com/milvus-io/milvus-operator/pkg/controllers"
+	controllers "github.com/milvus-io/milvus-operator/pkg/controllers/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/manager"
 )
 

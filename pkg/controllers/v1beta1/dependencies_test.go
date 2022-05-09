@@ -138,7 +138,7 @@ func TestLocalHelmReconciler_Reconcile(t *testing.T) {
 }
 
 func TestClusterReconciler_ReconcileDeps(t *testing.T) {
-	env := newClusterTestEnv(t)
+	env := newTestEnv(t)
 	defer env.checkMocks()
 	r := env.Reconciler
 	ctx := env.ctx

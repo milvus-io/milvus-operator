@@ -15,7 +15,7 @@ import (
 )
 
 func TestReconcileConfigMaps_CreateIfNotfound(t *testing.T) {
-	env := newClusterTestEnv(t)
+	env := newTestEnv(t)
 	defer env.checkMocks()
 	r := env.Reconciler
 	mockClient := env.MockClient
@@ -53,7 +53,7 @@ func TestReconcileConfigMaps_CreateIfNotfound(t *testing.T) {
 }
 
 func TestReconcileConfigMaps_Existed(t *testing.T) {
-	env := newClusterTestEnv(t)
+	env := newTestEnv(t)
 	defer env.checkMocks()
 	r := env.Reconciler
 	mockClient := env.MockClient

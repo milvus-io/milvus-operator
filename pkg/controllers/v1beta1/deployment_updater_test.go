@@ -3,6 +3,7 @@ package controllers
 import (
 	"testing"
 
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 )
@@ -16,7 +17,8 @@ func TestMilvus_UpdateDeployment(t *testing.T) {
 		err := updateDeployment(deployment, updater)
 		assert.Error(t, err)
 	})
-
+	env.Inst.Spec.Mode = v1beta1.MilvusModeStandalone
+	env.Inst.Spec.Dep.MsgStreamType = v1beta1.MsgStreamTypeRocksMQ
 	t.Run("persistence disabled", func(t *testing.T) {
 		env.Inst.Spec.Dep.RocksMQ.Persistence.Enabled = false
 		updater := newMilvusDeploymentUpdater(env.Inst, env.Reconciler.Scheme, MilvusStandalone)

@@ -27,7 +27,7 @@ func mockSetCtrlRef(err error) {
 }
 
 func TestMilvusClusterReconciler_ReconcileIngress(t *testing.T) {
-	env := newClusterTestEnv(t)
+	env := newTestEnv(t)
 	defer env.checkMocks()
 	r := env.Reconciler
 	mockClient := env.MockClient
@@ -102,7 +102,7 @@ func TestMilvusClusterReconciler_ReconcileIngress(t *testing.T) {
 }
 
 func TestIngressRenderer_Render(t *testing.T) {
-	env := newClusterTestEnv(t)
+	env := newTestEnv(t)
 	mc := env.Inst
 	icn := "class1"
 	ingressSpec := v1beta1.MilvusIngress{
