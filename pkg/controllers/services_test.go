@@ -39,6 +39,24 @@ func TestReconciler_ReconcileServices_CreateIfNotExist(t *testing.T) {
 
 	err := r.ReconcileServices(ctx, m)
 	assert.NoError(t, err)
+
+	t.Run("cluster", func(t *testing.T) {
+		m := v1beta1.Milvus{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "ns",
+				Name:      "mc",
+			},
+		}
+		m.Default()
+		m.Spec.Mode = v1beta1.MilvusModeCluster
+		mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")).Times(1)
+
+		mockClient.EXPECT().Create(gomock.Any(), gomock.Any()).Times(1)
+
+		err := r.ReconcileServices(ctx, m)
+		assert.NoError(t, err)
+	})
 }
 
 func TestReconciler_ReconcileServices_UpdateIfExisted(t *testing.T) {
@@ -70,4 +88,28 @@ func TestReconciler_ReconcileServices_UpdateIfExisted(t *testing.T) {
 
 	err := r.ReconcileServices(ctx, m)
 	assert.NoError(t, err)
+
+	t.Run("cluster", func(t *testing.T) {
+		m := v1beta1.Milvus{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "ns",
+				Name:      "mc",
+			},
+		}
+		m.Spec.Mode = v1beta1.MilvusModeCluster
+		m.Default()
+
+		mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx, key, obj interface{}) error {
+				s := obj.(*corev1.Service)
+				s.Namespace = "ns"
+				s.Name = "cm1"
+				return nil
+			}).Times(1)
+
+		mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1)
+
+		err := r.ReconcileServices(ctx, m)
+		assert.NoError(t, err)
+	})
 }

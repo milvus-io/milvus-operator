@@ -38,6 +38,7 @@ func TestMilvusClusterReconciler_ReconcileIngress(t *testing.T) {
 	mockRenderer := NewMockingressRendererInterface(env.Ctrl)
 	ingressRenderer = mockRenderer
 
+	mc.Spec.Mode = v1beta1.MilvusModeCluster
 	t.Run("disabled", func(t *testing.T) {
 		err := r.ReconcileIngress(ctx, mc)
 		assert.NoError(t, err)

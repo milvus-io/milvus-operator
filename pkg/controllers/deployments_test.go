@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,7 +20,7 @@ func TestClusterReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
 	mockClient := env.MockClient
 	ctx := env.ctx
 	mc := env.Inst
-
+	mc.Spec.Mode = v1beta1.MilvusModeCluster
 	// all ok
 	mockClient.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
@@ -41,7 +42,7 @@ func TestClusterReconciler_ReconcileDeployments_Existed(t *testing.T) {
 	mockClient := env.MockClient
 	ctx := env.ctx
 	m := env.Inst
-
+	m.Spec.Mode = v1beta1.MilvusModeCluster
 	// call client.Update if changed
 	mockClient.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
