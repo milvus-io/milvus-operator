@@ -68,32 +68,36 @@ func (r *Milvus) Default() {
 		r.Spec.Com.Image = config.DefaultMilvusImage
 	}
 
-	// replicas
-	{
-		replicas := int32(1)
+	// defaultReplicas
+	defaultReplicas := int32(1)
+	if r.Spec.Mode == MilvusModeCluster {
 		if r.Spec.Com.Proxy.Replicas == nil {
-			r.Spec.Com.Proxy.Replicas = &replicas
+			r.Spec.Com.Proxy.Replicas = &defaultReplicas
 		}
 		if r.Spec.Com.RootCoord.Replicas == nil {
-			r.Spec.Com.RootCoord.Replicas = &replicas
+			r.Spec.Com.RootCoord.Replicas = &defaultReplicas
 		}
 		if r.Spec.Com.DataCoord.Replicas == nil {
-			r.Spec.Com.DataCoord.Replicas = &replicas
+			r.Spec.Com.DataCoord.Replicas = &defaultReplicas
 		}
 		if r.Spec.Com.IndexCoord.Replicas == nil {
-			r.Spec.Com.IndexCoord.Replicas = &replicas
+			r.Spec.Com.IndexCoord.Replicas = &defaultReplicas
 		}
 		if r.Spec.Com.QueryCoord.Replicas == nil {
-			r.Spec.Com.QueryCoord.Replicas = &replicas
+			r.Spec.Com.QueryCoord.Replicas = &defaultReplicas
 		}
 		if r.Spec.Com.DataNode.Replicas == nil {
-			r.Spec.Com.DataNode.Replicas = &replicas
+			r.Spec.Com.DataNode.Replicas = &defaultReplicas
 		}
 		if r.Spec.Com.IndexNode.Replicas == nil {
-			r.Spec.Com.IndexNode.Replicas = &replicas
+			r.Spec.Com.IndexNode.Replicas = &defaultReplicas
 		}
 		if r.Spec.Com.QueryNode.Replicas == nil {
-			r.Spec.Com.QueryNode.Replicas = &replicas
+			r.Spec.Com.QueryNode.Replicas = &defaultReplicas
+		}
+	} else {
+		if r.Spec.Com.Standalone.Replicas == nil {
+			r.Spec.Com.Standalone.Replicas = &defaultReplicas
 		}
 	}
 
