@@ -7,7 +7,7 @@ VERSION ?= 0.4.0
 MILVUS_HELM_VERSION ?= milvus-3.0.16
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false,maxDescLen=0"
+CRD_OPTIONS ?= "crd:preserveUnknownFields=false,maxDescLen=0"
 # cert-manager 
 CERT_MANAGER_MANIFEST ?= "https://github.com/jetstack/cert-manager/releases/download/v1.5.3/cert-manager.yaml"
 
@@ -80,7 +80,7 @@ code-check: go-generate fmt vet
 test-only: 
 	mkdir -p ${ENVTEST_ASSETS_DIR}
 	test -f ${ENVTEST_ASSETS_DIR}/setup-envtest.sh || curl -sSLo ${ENVTEST_ASSETS_DIR}/setup-envtest.sh https://raw.githubusercontent.com/kubernetes-sigs/controller-runtime/v0.8.3/hack/setup-envtest.sh
-	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./apis/milvus.io/v1beta1/... -run ^TestAPIs  -coverprofile tmp.out; cat tmp.out | sed '/zz_generated.deepcopy.go/d' | sed '/_mock.go/d'  > cover.out
+	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); go test ./... -coverprofile tmp.out; cat tmp.out | sed '/zz_generated.deepcopy.go/d' | sed '/_mock.go/d'  > cover.out
 
 ##@ Build
 
