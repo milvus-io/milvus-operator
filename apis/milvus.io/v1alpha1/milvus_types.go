@@ -105,6 +105,90 @@ type MilvusReplicas struct {
 	Standalone int `json:"standalone,omitempty"`
 }
 
+// MilvusIngress defines the ingress of MilvusCluster
+// TODO: add docs
+type MilvusIngress struct {
+	// +kubebuilder:validation:Optional
+	Labels map[string]string `json:"labels,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Annotations map[string]string `json:"annotations,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	IngressClassName *string `json:"ingressClassName,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Hosts []string `json:"hosts,omitempty"`
+
+	// TLSSecretRefs is a map of TLS secret to hosts
+	// +kubebuilder:validation:Optional
+	TLSSecretRefs map[string][]string `json:"tlsSecretRefs,omitempty"`
+}
+
+// MiluvsConditionType is a valid value for MiluvsConditionType.Type.
+type MiluvsConditionType string
+
+// MilvusHealthStatus is a type for milvus status.
+type MilvusHealthStatus string
+
+const (
+	// StatusCreating is the status of creating.
+	StatusCreating MilvusHealthStatus = "Creating"
+	// StatusHealthy is the status of healthy.
+	StatusHealthy MilvusHealthStatus = "Healthy"
+	// StatusUnHealthy is the status of unhealthy.
+	StatusUnHealthy MilvusHealthStatus = "Unhealthy"
+
+	// EtcdReady means the Etcd is ready.
+	EtcdReady MiluvsConditionType = "EtcdReady"
+	// StorageReady means the Storage is ready.
+	StorageReady MiluvsConditionType = "StorageReady"
+	// MsgStreamReady means the MsgStream is ready.
+	MsgStreamReady MiluvsConditionType = "MsgStreamReady"
+	// MilvusReady means all components of Milvus are ready.
+	MilvusReady MiluvsConditionType = "MilvusReady"
+
+	// ReasonEndpointsHealthy means the endpoint is healthy
+	ReasonEndpointsHealthy string = "EndpointsHealthy"
+	// ReasonMilvusHealthy means milvus cluster is healthy
+	ReasonMilvusHealthy string = "ReasonMilvusHealthy"
+	// ReasonMilvusClusterHealthy means milvus cluster is healthy
+	ReasonMilvusClusterHealthy string = "MilvusClusterHealthy"
+	// ReasonMilvusClusterNotHealthy means at least one of milvus component is not healthy
+	ReasonMilvusComponentNotHealthy string = "MilvusComponentNotHealthy"
+
+	ReasonEtcdReady          = "EtcdReady"
+	ReasonEtcdNotReady       = "EtcdNotReady"
+	ReasonS3Ready            = "S3StorageAssumeReady"
+	ReasonStorageReady       = "StorageReady"
+	ReasonStorageNotReady    = "StorageNotReady"
+	ReasonMsgStreamReady     = "MsgStreamReady"
+	ReasonMsgStreamNotReady  = "MsgStreamReady"
+	ReasonSecretNotExist     = "SecretNotExist"
+	ReasonSecretErr          = "SecretError"
+	ReasonSecretDecodeErr    = "SecretDecodeError"
+	ReasonClientErr          = "ClientError"
+	ReasonDependencyNotReady = "DependencyNotReady"
+)
+
+// MilvusCondition contains details for the current condition of this milvus/milvus cluster instance
+type MilvusCondition struct {
+	// Type is the type of the condition.
+	Type MiluvsConditionType `json:"type"`
+	// Status is the status of the condition.
+	// Can be True, False, Unknown.
+	Status corev1.ConditionStatus `json:"status"`
+	// Last time the condition transitioned from one status to another.
+	// +optional
+	LastTransitionTime *metav1.Time `json:"lastTransitionTime,omitempty"`
+	// Unique, one-word, CamelCase reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// Human-readable message indicating details about last transition.
+	// +optional
+	Message string `json:"message,omitempty"`
+}
+
 // +genclient
 // +genclient:noStatus
 //+kubebuilder:object:root=true

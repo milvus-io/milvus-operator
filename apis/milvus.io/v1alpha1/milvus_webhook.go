@@ -17,7 +17,10 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	"github.com/milvus-io/milvus-operator/pkg/config"
+	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -187,4 +190,23 @@ func (r *Milvus) validateExternal() field.ErrorList {
 	}
 
 	return allErrs
+}
+
+func required(mainPath *field.Path) *field.Error {
+	return field.Required(mainPath, fmt.Sprintf("%s should be configured", mainPath.String()))
+}
+
+func deleteUnsettableConf(conf map[string]interface{}) {
+	util.DeleteValue(conf, "minio", "address")
+	util.DeleteValue(conf, "minio", "port")
+	util.DeleteValue(conf, "pulsar", "address")
+	util.DeleteValue(conf, "pulsar", "port")
+	util.DeleteValue(conf, "etcd", "endpoints")
+
+	for _, t := range MilvusComponentTypes {
+		util.DeleteValue(conf, t.String(), "port")
+	}
+	for _, t := range MilvusCoordTypes {
+		util.DeleteValue(conf, t.String(), "address")
+	}
 }

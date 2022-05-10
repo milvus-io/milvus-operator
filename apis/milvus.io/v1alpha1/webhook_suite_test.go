@@ -103,9 +103,6 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = (&MilvusCluster{}).SetupWebhookWithManager(mgr)
-	Expect(err).NotTo(HaveOccurred())
-
 	err = (&Milvus{}).SetupWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
