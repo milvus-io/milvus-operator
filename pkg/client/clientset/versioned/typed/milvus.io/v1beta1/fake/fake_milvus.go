@@ -20,7 +20,7 @@ package fake
 import (
 	"context"
 
-	v1alpha1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	v1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -31,29 +31,29 @@ import (
 
 // FakeMilvuses implements MilvusInterface
 type FakeMilvuses struct {
-	Fake *FakeMilvusV1alpha1
+	Fake *FakeMilvusV1beta1
 	ns   string
 }
 
-var milvusesResource = schema.GroupVersionResource{Group: "milvus.io", Version: "v1alpha1", Resource: "milvuses"}
+var milvusesResource = schema.GroupVersionResource{Group: "milvus.io", Version: "v1beta1", Resource: "milvuses"}
 
-var milvusesKind = schema.GroupVersionKind{Group: "milvus.io", Version: "v1alpha1", Kind: "Milvus"}
+var milvusesKind = schema.GroupVersionKind{Group: "milvus.io", Version: "v1beta1", Kind: "Milvus"}
 
 // Get takes name of the milvus, and returns the corresponding milvus object, and an error if there is any.
-func (c *FakeMilvuses) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.Milvus, err error) {
+func (c *FakeMilvuses) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.Milvus, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewGetAction(milvusesResource, c.ns, name), &v1alpha1.Milvus{})
+		Invokes(testing.NewGetAction(milvusesResource, c.ns, name), &v1beta1.Milvus{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.Milvus), err
+	return obj.(*v1beta1.Milvus), err
 }
 
 // List takes label and field selectors, and returns the list of Milvuses that match those selectors.
-func (c *FakeMilvuses) List(ctx context.Context, opts v1.ListOptions) (result *v1alpha1.MilvusList, err error) {
+func (c *FakeMilvuses) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.MilvusList, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewListAction(milvusesResource, milvusesKind, c.ns, opts), &v1alpha1.MilvusList{})
+		Invokes(testing.NewListAction(milvusesResource, milvusesKind, c.ns, opts), &v1beta1.MilvusList{})
 
 	if obj == nil {
 		return nil, err
@@ -63,8 +63,8 @@ func (c *FakeMilvuses) List(ctx context.Context, opts v1.ListOptions) (result *v
 	if label == nil {
 		label = labels.Everything()
 	}
-	list := &v1alpha1.MilvusList{ListMeta: obj.(*v1alpha1.MilvusList).ListMeta}
-	for _, item := range obj.(*v1alpha1.MilvusList).Items {
+	list := &v1beta1.MilvusList{ListMeta: obj.(*v1beta1.MilvusList).ListMeta}
+	for _, item := range obj.(*v1beta1.MilvusList).Items {
 		if label.Matches(labels.Set(item.Labels)) {
 			list.Items = append(list.Items, item)
 		}
@@ -80,31 +80,31 @@ func (c *FakeMilvuses) Watch(ctx context.Context, opts v1.ListOptions) (watch.In
 }
 
 // Create takes the representation of a milvus and creates it.  Returns the server's representation of the milvus, and an error, if there is any.
-func (c *FakeMilvuses) Create(ctx context.Context, milvus *v1alpha1.Milvus, opts v1.CreateOptions) (result *v1alpha1.Milvus, err error) {
+func (c *FakeMilvuses) Create(ctx context.Context, milvus *v1beta1.Milvus, opts v1.CreateOptions) (result *v1beta1.Milvus, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewCreateAction(milvusesResource, c.ns, milvus), &v1alpha1.Milvus{})
+		Invokes(testing.NewCreateAction(milvusesResource, c.ns, milvus), &v1beta1.Milvus{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.Milvus), err
+	return obj.(*v1beta1.Milvus), err
 }
 
 // Update takes the representation of a milvus and updates it. Returns the server's representation of the milvus, and an error, if there is any.
-func (c *FakeMilvuses) Update(ctx context.Context, milvus *v1alpha1.Milvus, opts v1.UpdateOptions) (result *v1alpha1.Milvus, err error) {
+func (c *FakeMilvuses) Update(ctx context.Context, milvus *v1beta1.Milvus, opts v1.UpdateOptions) (result *v1beta1.Milvus, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewUpdateAction(milvusesResource, c.ns, milvus), &v1alpha1.Milvus{})
+		Invokes(testing.NewUpdateAction(milvusesResource, c.ns, milvus), &v1beta1.Milvus{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.Milvus), err
+	return obj.(*v1beta1.Milvus), err
 }
 
 // Delete takes name of the milvus and deletes it. Returns an error if one occurs.
 func (c *FakeMilvuses) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.
-		Invokes(testing.NewDeleteAction(milvusesResource, c.ns, name), &v1alpha1.Milvus{})
+		Invokes(testing.NewDeleteAction(milvusesResource, c.ns, name), &v1beta1.Milvus{})
 
 	return err
 }
@@ -113,17 +113,17 @@ func (c *FakeMilvuses) Delete(ctx context.Context, name string, opts v1.DeleteOp
 func (c *FakeMilvuses) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
 	action := testing.NewDeleteCollectionAction(milvusesResource, c.ns, listOpts)
 
-	_, err := c.Fake.Invokes(action, &v1alpha1.MilvusList{})
+	_, err := c.Fake.Invokes(action, &v1beta1.MilvusList{})
 	return err
 }
 
 // Patch applies the patch and returns the patched milvus.
-func (c *FakeMilvuses) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.Milvus, err error) {
+func (c *FakeMilvuses) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.Milvus, err error) {
 	obj, err := c.Fake.
-		Invokes(testing.NewPatchSubresourceAction(milvusesResource, c.ns, name, pt, data, subresources...), &v1alpha1.Milvus{})
+		Invokes(testing.NewPatchSubresourceAction(milvusesResource, c.ns, name, pt, data, subresources...), &v1beta1.Milvus{})
 
 	if obj == nil {
 		return nil, err
 	}
-	return obj.(*v1alpha1.Milvus), err
+	return obj.(*v1beta1.Milvus), err
 }

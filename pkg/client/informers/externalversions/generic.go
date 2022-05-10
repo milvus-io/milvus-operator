@@ -20,7 +20,7 @@ package externalversions
 import (
 	"fmt"
 
-	v1alpha1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	v1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -51,11 +51,9 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=milvus.io, Version=v1alpha1
-	case v1alpha1.SchemeGroupVersion.WithResource("milvuses"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Milvus().V1alpha1().Milvuses().Informer()}, nil
-	case v1alpha1.SchemeGroupVersion.WithResource("milvusclusters"):
-		return &genericInformer{resource: resource.GroupResource(), informer: f.Milvus().V1alpha1().MilvusClusters().Informer()}, nil
+	// Group=milvus.io, Version=v1beta1
+	case v1beta1.SchemeGroupVersion.WithResource("milvuses"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Milvus().V1beta1().Milvuses().Informer()}, nil
 
 	}
 
