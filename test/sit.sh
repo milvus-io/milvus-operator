@@ -65,7 +65,7 @@ case_create_delete_cluster(){
     CR_STATUS=""
     until [ $ATTEMPTS -eq 60 ]; 
     do
-        CR_STATUS=$(kubectl get -n mc-sit mc/milvus -o=jsonpath='{.status.status}')
+        CR_STATUS=$(kubectl get -n mc-sit milvus/milvus -o=jsonpath='{.status.status}')
         if [ "$CR_STATUS" = "Healthy" ]; then
             break
         fi
@@ -76,7 +76,7 @@ case_create_delete_cluster(){
 
     if [ "$CR_STATUS" != "Healthy" ]; then
         log "MilvusCluster creation failed"
-        log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit mc/milvus -o yaml)"
+        log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit milvus/milvus -o yaml)"
         log "MilvusCluster helm values: \n $(helm -n mc-sit get values milvus-$msgStream)"
         log "MilvusCluster describe pods: \n $(kubectl -n mc-sit describe pods)"
         delete_milvus_cluster
