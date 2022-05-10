@@ -26,7 +26,7 @@ import (
 
 var (
 	// GroupVersion is group version used to register these objects
-	GroupVersion = schema.GroupVersion{Group: "milvus.io", Version: "v1alpha1"}
+	GroupVersion = schema.GroupVersion{Group: "milvus.io", Version: "v1beta1"}
 
 	// for code-generator
 	SchemeGroupVersion = GroupVersion
