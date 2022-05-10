@@ -75,12 +75,14 @@ func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1beta1.Milvu
 	}
 	defer reader.Close()
 
-	return v1beta1.MilvusCondition{
-		Type:    v1beta1.MsgStreamReady,
-		Status:  GetConditionStatus(true),
-		Reason:  v1beta1.ReasonMsgStreamReady,
-		Message: MessageMsgStreamReady,
-	}
+	return msgStreamReadyCondition
+}
+
+var msgStreamReadyCondition = v1beta1.MilvusCondition{
+	Type:    v1beta1.MsgStreamReady,
+	Status:  GetConditionStatus(true),
+	Reason:  v1beta1.ReasonMsgStreamReady,
+	Message: MessageMsgStreamReady,
 }
 
 func GetKafkaCondition(ctx context.Context, logger logr.Logger, p v1beta1.MilvusKafka) v1beta1.MilvusCondition {
@@ -94,12 +96,7 @@ func GetKafkaCondition(ctx context.Context, logger logr.Logger, p v1beta1.Milvus
 	}
 	cli.Close()
 
-	return v1beta1.MilvusCondition{
-		Type:    v1beta1.MsgStreamReady,
-		Status:  GetConditionStatus(true),
-		Reason:  v1beta1.ReasonMsgStreamReady,
-		Message: MessageMsgStreamReady,
-	}
+	return msgStreamReadyCondition
 }
 
 // StorageConditionInfo is info for acquiring storage condition

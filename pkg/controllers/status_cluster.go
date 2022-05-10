@@ -256,6 +256,11 @@ func (r *MilvusStatusSyncer) GetMsgStreamCondition(
 	ctx context.Context, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
 	var eps = []string{}
 	var getter func() v1beta1.MilvusCondition
+	// rocksmq is built in, assume ok
+	if mc.Spec.Dep.MsgStreamType == v1beta1.MsgStreamTypeRocksMQ {
+		return msgStreamReadyCondition, nil
+	}
+
 	if mc.Spec.Dep.MsgStreamType == v1beta1.MsgStreamTypeKafka {
 		getter = wrapKafkaConditonGetter(ctx, r.logger, mc.Spec.Dep.Kafka)
 		eps = mc.Spec.Dep.Kafka.BrokerList

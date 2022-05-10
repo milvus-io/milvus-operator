@@ -28,6 +28,7 @@ const (
 	QueryNodeName  = "querynode"
 	IndexNodeName  = "indexnode"
 	ProxyName      = "proxy"
+	StandaloneName = "standalone"
 	MilvusName     = "milvus"
 
 	RootCoordFieldName  = "RootCoord"
