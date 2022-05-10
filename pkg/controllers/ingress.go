@@ -15,7 +15,11 @@ import (
 )
 
 func (r *MilvusReconciler) ReconcileIngress(ctx context.Context, mc v1beta1.Milvus) error {
-	return reconcileIngress(ctx, r.logger, r.Client, r.Scheme, &mc, mc.Spec.Com.Proxy.Ingress)
+	ingress := mc.Spec.Com.Standalone.Ingress
+	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
+		ingress = mc.Spec.Com.Proxy.Ingress
+	}
+	return reconcileIngress(ctx, r.logger, r.Client, r.Scheme, &mc, ingress)
 }
 
 func reconcileIngress(ctx context.Context, logger logr.Logger,

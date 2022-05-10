@@ -8,6 +8,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
@@ -16,21 +17,51 @@ import (
 func (r *MilvusReconciler) updateService(
 	mc v1beta1.Milvus, service *corev1.Service, component MilvusComponent,
 ) error {
-	appLabels := NewComponentAppLabels(mc.Name, component.String())
+	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
+		appLabels := NewComponentAppLabels(mc.Name, component.String())
+		service.Labels = MergeLabels(service.Labels, appLabels)
+		if err := ctrl.SetControllerReference(&mc, service, r.Scheme); err != nil {
+			return err
+		}
+
+		// we only have proxy service now
+		// if component.Name == Proxy.Name {
+		service.Labels = MergeLabels(service.Labels, mc.Spec.Com.Proxy.ServiceLabels)
+		service.Annotations = MergeLabels(service.Annotations, mc.Spec.Com.Proxy.ServiceAnnotations)
+		// }
+
+		service.Spec.Ports = MergeServicePort(service.Spec.Ports, component.GetServicePorts(mc.Spec))
+		service.Spec.Selector = appLabels
+		service.Spec.Type = component.GetServiceType(mc.Spec)
+		return nil
+	}
+
+	appLabels := NewComponentAppLabels(mc.Name, MilvusName)
 	service.Labels = MergeLabels(service.Labels, appLabels)
 	if err := ctrl.SetControllerReference(&mc, service, r.Scheme); err != nil {
 		return err
 	}
 
-	// we only have proxy service now
-	// if component.Name == Proxy.Name {
-	service.Labels = MergeLabels(service.Labels, mc.Spec.Com.Proxy.ServiceLabels)
-	service.Annotations = MergeLabels(service.Annotations, mc.Spec.Com.Proxy.ServiceAnnotations)
-	// }
+	service.Labels = MergeLabels(service.Labels, mc.Spec.Com.Standalone.ServiceLabels)
+	service.Annotations = MergeLabels(service.Annotations, mc.Spec.Com.Standalone.ServiceAnnotations)
 
-	service.Spec.Ports = MergeServicePort(service.Spec.Ports, component.GetServicePorts(mc.Spec))
+	service.Spec.Ports = MergeServicePort(service.Spec.Ports, []corev1.ServicePort{
+		{
+			Name:       MilvusName,
+			Protocol:   corev1.ProtocolTCP,
+			Port:       MilvusPort,
+			TargetPort: intstr.FromString(MilvusName),
+		},
+		{
+			Name:       MetricPortName,
+			Protocol:   corev1.ProtocolTCP,
+			Port:       MetricPort,
+			TargetPort: intstr.FromString(MetricPortName),
+		},
+	})
+
 	service.Spec.Selector = appLabels
-	service.Spec.Type = component.GetServiceType(mc.Spec)
+	service.Spec.Type = mc.Spec.Com.Standalone.ServiceType
 
 	return nil
 }

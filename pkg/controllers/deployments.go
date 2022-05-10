@@ -107,7 +107,11 @@ func (r *MilvusReconciler) ReconcileComponentDeployment(
 
 func (r *MilvusReconciler) ReconcileDeployments(ctx context.Context, mc v1beta1.Milvus) error {
 	g, gtx := NewGroup(ctx)
-	for _, component := range MilvusComponents {
+	components := StandaloneComponents
+	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
+		components = MilvusComponents
+	}
+	for _, component := range components {
 		g.Go(WarppedReconcileComponentFunc(r.ReconcileComponentDeployment, gtx, mc, component))
 	}
 
