@@ -13,6 +13,7 @@ webhooks:
       name: '{{ include "chart.fullname" . }}-webhook-service'
       namespace: {{ .Release.Namespace | quote }}
       path: /validate-milvus-io-v1beta1-milvus
+      port: 443
   failurePolicy: Fail
   name: vmilvus.kb.io
   rules:
