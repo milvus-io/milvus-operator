@@ -4,7 +4,7 @@ kind: Namespace
 metadata:
   name: mc-sit
 ---
-apiVersion: milvus.io/v1alpha1
+apiVersion: milvus.io/v1beta1
 kind: MilvusCluster
 metadata:
   name: milvus
@@ -12,6 +12,7 @@ metadata:
   labels:
     app: milvus
 spec:
+  mode: "cluster"
   components:
     proxy:
       serviceLabels:
