@@ -42,28 +42,7 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 			ComponentSpec: ComponentSpec{
 				Image: config.DefaultMilvusImage,
 			},
-			Proxy: MilvusProxy{
-				Component: defaultComponent,
-			},
-			RootCoord: MilvusRootCoord{
-				Component: defaultComponent,
-			},
-			DataCoord: MilvusDataCoord{
-				Component: defaultComponent,
-			},
-			IndexCoord: MilvusIndexCoord{
-				Component: defaultComponent,
-			},
-			QueryCoord: MilvusQueryCoord{
-				Component: defaultComponent,
-			},
-			DataNode: MilvusDataNode{
-				Component: defaultComponent,
-			},
-			IndexNode: MilvusIndexNode{
-				Component: defaultComponent,
-			},
-			QueryNode: MilvusQueryNode{
+			Standalone: MilvusStandalone{
 				Component: defaultComponent,
 			},
 		},
@@ -74,6 +53,7 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 
 	t.Run("standalone not external ok", func(t *testing.T) {
 		mc := Milvus{ObjectMeta: metav1.ObjectMeta{Name: crName}}
+		mc.Spec.Mode = MilvusModeStandalone
 		mc.Default()
 		assert.Equal(t, standaloneDefault, mc.Spec)
 	})
@@ -83,6 +63,35 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 	clusterDefault.Dep.MsgStreamType = MsgStreamTypePulsar
 	clusterDefault.Dep.Pulsar = MilvusPulsar{
 		InCluster: defaultInClusterConfig,
+	}
+	clusterDefault.Com = MilvusComponents{
+		ComponentSpec: ComponentSpec{
+			Image: config.DefaultMilvusImage,
+		},
+		Proxy: MilvusProxy{
+			Component: defaultComponent,
+		},
+		RootCoord: MilvusRootCoord{
+			Component: defaultComponent,
+		},
+		DataCoord: MilvusDataCoord{
+			Component: defaultComponent,
+		},
+		IndexCoord: MilvusIndexCoord{
+			Component: defaultComponent,
+		},
+		QueryCoord: MilvusQueryCoord{
+			Component: defaultComponent,
+		},
+		DataNode: MilvusDataNode{
+			Component: defaultComponent,
+		},
+		IndexNode: MilvusIndexNode{
+			Component: defaultComponent,
+		},
+		QueryNode: MilvusQueryNode{
+			Component: defaultComponent,
+		},
 	}
 	t.Run("standalone not external ok", func(t *testing.T) {
 		mc := Milvus{ObjectMeta: metav1.ObjectMeta{Name: crName}}
