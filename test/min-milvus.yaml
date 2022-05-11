@@ -30,10 +30,14 @@ spec:
       inCluster:
         deletionPolicy: Delete
         pvcDeletion: true
+        values:
+          replicaCount: 1
     storage:
       inCluster:
         deletionPolicy: Delete
         pvcDeletion: true
+        values:
+          mode: standalone
     rocksmq:
       persistence:
         enabled: true
