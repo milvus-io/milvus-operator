@@ -219,14 +219,14 @@ func TestMilvusComponent_GetServicePorts(t *testing.T) {
 	spec := v1beta1.MilvusSpec{}
 	ports := com.GetServicePorts(spec)
 	assert.Equal(t, 2, len(ports))
-	assert.Equal(t, spec.Com.Proxy.Component.Port, ports[0].Port)
+	assert.Equal(t, Proxy.DefaultPort, ports[0].Port)
 	assert.Equal(t, int32(MetricPort), ports[1].Port)
 
 	com = QueryNode
 	spec = v1beta1.MilvusSpec{}
 	ports = com.GetServicePorts(spec)
 	assert.Equal(t, 2, len(ports))
-	assert.Equal(t, spec.Com.QueryNode.Component.Port, ports[0].Port)
+	assert.Equal(t, QueryNode.DefaultPort, ports[0].Port)
 	assert.Equal(t, int32(MetricPort), ports[1].Port)
 
 	com = QueryCoord
