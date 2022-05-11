@@ -137,7 +137,7 @@ func (m milvusDeploymentUpdater) GetIntanceName() string {
 	return m.Name
 }
 func (m milvusDeploymentUpdater) GetComponentName() string {
-	return m.component.String()
+	return m.component.GetName()
 }
 func (m milvusDeploymentUpdater) GetControllerRef() metav1.Object {
 	return &m.Milvus
@@ -161,7 +161,7 @@ func (m milvusDeploymentUpdater) GetMergedComponentSpec() ComponentSpec {
 	)
 }
 func (m milvusDeploymentUpdater) GetArgs() []string {
-	return []string{RunScriptPath, "milvus", "run", m.component.String()}
+	return []string{RunScriptPath, "milvus", "run", m.component.GetName()}
 }
 func (m milvusDeploymentUpdater) GetSecretRef() string {
 	return m.Spec.Dep.Storage.SecretRef

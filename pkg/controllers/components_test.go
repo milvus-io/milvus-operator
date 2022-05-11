@@ -169,9 +169,15 @@ func TestMilvusComponent_GetReplicas(t *testing.T) {
 	assert.Equal(t, &replica, com.GetReplicas(spec))
 }
 
-func TestMilvusComponent_String(t *testing.T) {
+func TestMilvusComponent_GetName(t *testing.T) {
 	com := QueryNode
-	assert.Equal(t, com.Name, com.String())
+	assert.Equal(t, com.Name, com.GetName())
+}
+
+func TestMilvusComponent_GetPort(t *testing.T) {
+	assert.Equal(t, RootCoordName, RootCoord.GetPortName())
+	assert.Equal(t, MilvusName, Proxy.GetPortName())
+	assert.Equal(t, MilvusName, MilvusStandalone.GetPortName())
 }
 
 func TestMilvusComponent_GetDeploymentInstanceName(t *testing.T) {
@@ -209,11 +215,19 @@ func TestMilvusComponent_GetServiceType(t *testing.T) {
 }
 
 func TestMilvusComponent_GetServicePorts(t *testing.T) {
-	com := QueryNode
+	com := Proxy
 	spec := v1beta1.MilvusSpec{}
 	ports := com.GetServicePorts(spec)
-	assert.Equal(t, 1, len(ports))
-	assert.Equal(t, int32(MetricPort), ports[0].Port)
+	assert.Equal(t, 2, len(ports))
+	assert.Equal(t, spec.Com.Proxy.Component.Port, ports[0].Port)
+	assert.Equal(t, int32(MetricPort), ports[1].Port)
+
+	com = QueryNode
+	spec = v1beta1.MilvusSpec{}
+	ports = com.GetServicePorts(spec)
+	assert.Equal(t, 2, len(ports))
+	assert.Equal(t, spec.Com.QueryNode.Component.Port, ports[0].Port)
+	assert.Equal(t, int32(MetricPort), ports[1].Port)
 
 	com = QueryCoord
 	spec.Com.QueryCoord.Component.Port = 8080

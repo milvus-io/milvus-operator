@@ -51,7 +51,8 @@ const (
 	DataNodePort   = 21124
 	ProxyPort      = 19530
 	// TODO: use configurable port?
-	MilvusPort = ProxyPort
+	MilvusPort     = ProxyPort
+	StandalonePort = MilvusPort
 )
 
 // MilvusComponent contains basic info of a milvus cluster component
@@ -73,7 +74,7 @@ var (
 	Proxy      = MilvusComponent{ProxyName, ProxyFieldName, ProxyPort}
 
 	// Milvus standalone
-	MilvusStandalone = MilvusComponent{MilvusName, StandaloneFieldName, MilvusPort}
+	MilvusStandalone = MilvusComponent{StandaloneName, StandaloneFieldName, StandalonePort}
 
 	MilvusComponents = []MilvusComponent{
 		RootCoord, DataCoord, QueryCoord, IndexCoord, DataNode, QueryNode, IndexNode, Proxy,
@@ -108,7 +109,7 @@ func (c MilvusComponent) GetReplicas(spec v1beta1.MilvusSpec) *int32 {
 }
 
 // String returns the name of the component
-func (c MilvusComponent) String() string {
+func (c MilvusComponent) GetName() string {
 	return c.Name
 }
 
@@ -140,11 +141,19 @@ func (c MilvusComponent) SetStatusReplicas(status *v1beta1.MilvusReplicas, repli
 	reflect.ValueOf(status).Elem().FieldByName(c.FieldName).SetInt(int64(replicas))
 }
 
+// GetPortName returns the port name of the component container
+func (c MilvusComponent) GetPortName() string {
+	if c.Name == StandaloneName || c.Name == ProxyName {
+		return MilvusName
+	}
+	return c.Name
+}
+
 // GetContainerPorts returns the ports of the component container
 func (c MilvusComponent) GetContainerPorts(spec v1beta1.MilvusSpec) []corev1.ContainerPort {
 	return []corev1.ContainerPort{
 		{
-			Name:          c.String(),
+			Name:          c.GetPortName(),
 			ContainerPort: c.GetComponentPort(spec),
 			Protocol:      corev1.ProtocolTCP,
 		},
@@ -168,14 +177,12 @@ func (c MilvusComponent) GetServiceType(spec v1beta1.MilvusSpec) corev1.ServiceT
 // GetServicePorts returns the ports of the component service
 func (c MilvusComponent) GetServicePorts(spec v1beta1.MilvusSpec) []corev1.ServicePort {
 	servicePorts := []corev1.ServicePort{}
-	if !c.IsNode() {
-		servicePorts = append(servicePorts, corev1.ServicePort{
-			Name:       c.String(),
-			Protocol:   corev1.ProtocolTCP,
-			Port:       c.GetComponentPort(spec),
-			TargetPort: intstr.FromString(c.String()),
-		})
-	}
+	servicePorts = append(servicePorts, corev1.ServicePort{
+		Name:       c.GetName(),
+		Protocol:   corev1.ProtocolTCP,
+		Port:       c.GetComponentPort(spec),
+		TargetPort: intstr.FromString(c.GetPortName()),
+	})
 	servicePorts = append(servicePorts, corev1.ServicePort{
 		Name:       MetricPortName,
 		Protocol:   corev1.ProtocolTCP,
