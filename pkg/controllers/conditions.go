@@ -10,6 +10,7 @@ import (
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/go-logr/logr"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/pkg/external"
 	"github.com/minio/madmin-go"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -37,6 +38,9 @@ func GetCondition(getter func() v1alpha1.MilvusCondition, eps []string) v1alpha1
 }
 
 var (
+	wrapKafkaConditonGetter = func(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusKafka) func() v1alpha1.MilvusCondition {
+		return func() v1alpha1.MilvusCondition { return GetKafkaCondition(ctx, logger, p) }
+	}
 	wrapPulsarConditonGetter = func(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusPulsar) func() v1alpha1.MilvusCondition {
 		return func() v1alpha1.MilvusCondition { return GetPulsarCondition(ctx, logger, p) }
 	}
@@ -58,7 +62,7 @@ func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.Milv
 	})
 
 	if err != nil {
-		return newErrPulsarCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
+		return newErrMsgStreamCondResult(v1alpha1.ReasonMsgStreamNotReady, err.Error())
 	}
 	defer client.Close()
 
@@ -67,15 +71,31 @@ func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.Milv
 		StartMessageID: pulsar.EarliestMessageID(),
 	})
 	if err != nil {
-		return newErrPulsarCondResult(v1alpha1.ReasonPulsarNotReady, err.Error())
+		return newErrMsgStreamCondResult(v1alpha1.ReasonMsgStreamNotReady, err.Error())
 	}
 	defer reader.Close()
 
 	return v1alpha1.MilvusCondition{
-		Type:    v1alpha1.PulsarReady,
+		Type:    v1alpha1.MsgStreamReady,
 		Status:  GetConditionStatus(true),
-		Reason:  v1alpha1.ReasonPulsarReady,
-		Message: MessagePulsarReady,
+		Reason:  v1alpha1.ReasonMsgStreamReady,
+		Message: MessageMsgStreamReady,
+	}
+}
+
+var checkKafka = external.CheckKafka
+
+func GetKafkaCondition(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusKafka) v1alpha1.MilvusCondition {
+	err := checkKafka(p)
+	if err != nil {
+		return newErrMsgStreamCondResult(v1alpha1.ReasonMsgStreamNotReady, err.Error())
+	}
+
+	return v1alpha1.MilvusCondition{
+		Type:    v1alpha1.MsgStreamReady,
+		Status:  GetConditionStatus(true),
+		Reason:  v1alpha1.ReasonMsgStreamReady,
+		Message: MessageMsgStreamReady,
 	}
 }
 
@@ -249,9 +269,9 @@ func newErrStorageCondResult(reason, message string) v1alpha1.MilvusCondition {
 	}
 }
 
-func newErrPulsarCondResult(reason, message string) v1alpha1.MilvusCondition {
+func newErrMsgStreamCondResult(reason, message string) v1alpha1.MilvusCondition {
 	return v1alpha1.MilvusCondition{
-		Type:    v1alpha1.PulsarReady,
+		Type:    v1alpha1.MsgStreamReady,
 		Status:  corev1.ConditionFalse,
 		Reason:  reason,
 		Message: message,

@@ -9,18 +9,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestMilvusCluster_Default_NotExternalOK(t *testing.T) {
-	replica1 := int32(1)
-	defaultComponent := Component{
-		Replicas: &replica1,
-	}
-	defaultInClusterConfig := &InClusterConfig{
-		DeletionPolicy: DeletionPolicyRetain,
-		Values: Values{
-			Data: map[string]interface{}{},
-		},
-	}
+var replica1 = int32(1)
+var defaultComponent = Component{
+	Replicas: &replica1,
+}
+var defaultInClusterConfig = &InClusterConfig{
+	DeletionPolicy: DeletionPolicyRetain,
+	Values: Values{
+		Data: map[string]interface{}{},
+	},
+}
 
+func TestMilvusCluster_Default_NotExternalOK(t *testing.T) {
 	var crName = "mc"
 
 	var defaultSpec = MilvusClusterSpec{
@@ -140,9 +140,53 @@ func TestMilvusCluster_Default_DeleteUnSetableOK(t *testing.T) {
 	assert.Equal(t, conf, mc.Spec.Conf)
 }
 
+func TestMilvusCluster_Default_KafkaOK(t *testing.T) {
+	var crName = "mc"
+
+	var defaultSpec = MilvusClusterSpec{
+		Dep: MilvusClusterDependencies{
+			MsgStreamType: MsgStreamTypeKafka,
+			Etcd: MilvusEtcd{
+				External: true,
+			},
+			Kafka: MilvusKafka{
+				InCluster: defaultInClusterConfig,
+			},
+			Storage: MilvusStorage{
+				External: true,
+				Type:     "MinIO",
+			},
+		},
+	}
+
+	mc := MilvusCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: crName},
+		Spec: MilvusClusterSpec{
+			Dep: MilvusClusterDependencies{
+				MsgStreamType: MsgStreamTypeKafka,
+				Etcd: MilvusEtcd{
+					External: true,
+				},
+				Kafka: MilvusKafka{
+					External: false,
+				},
+				Storage: MilvusStorage{
+					External: true,
+				},
+			},
+		},
+	}
+	mc.Default()
+	assert.Equal(t, defaultSpec.Dep, mc.Spec.Dep)
+}
+
 func TestMilvusCluster_ValidateCreate_NoError(t *testing.T) {
 	mc := MilvusCluster{}
 	err := mc.ValidateCreate()
+	assert.NoError(t, err)
+
+	mc.Spec.Dep.MsgStreamType = MsgStreamTypeKafka
+	err = mc.ValidateCreate()
 	assert.NoError(t, err)
 }
 
@@ -177,6 +221,11 @@ func TestMilvusCluster_ValidateCreate_Invalid3(t *testing.T) {
 		},
 	}
 	err := mc.ValidateCreate()
+	assert.Error(t, err)
+
+	mc.Spec.Dep.MsgStreamType = MsgStreamTypeKafka
+	mc.Spec.Dep.Kafka.External = true
+	err = mc.ValidateCreate()
 	assert.Error(t, err)
 }
 

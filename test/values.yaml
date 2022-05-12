@@ -4,3 +4,5 @@ etcd:
   replicas: 3
 minio:
   replicas: 3
+kafka:
+  replcias: 3

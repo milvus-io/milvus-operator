@@ -180,7 +180,7 @@ status:
   # Contains details for the current condition of Milvus and its dependency
   conditions: 
     # Condition type
-    # It can be "EtcdReady", "StorageReady", "PulsarReady", "MilvusReady"
+    # It can be "EtcdReady", "StorageReady", "MsgStream", "MilvusReady"
   - type: "MilvusReady" 
     # Status is the status of the condition.
     # Can be True, False, Unknown.

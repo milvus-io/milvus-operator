@@ -141,7 +141,7 @@ rules:
 - apiGroups:
   - milvus.io
   resources:
-  - milvus
+  - milvuses
   verbs:
   - create
   - delete
@@ -159,7 +159,7 @@ rules:
 - apiGroups:
   - milvus.io
   resources:
-  - milvus/status
+  - milvuses/status
   verbs:
   - get
   - patch

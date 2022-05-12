@@ -4,4 +4,4 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     cert-manager.io/inject-ca-from: $(DEPLOYMENT_NAMESPACE)/$(DEPLOYMENT_NAME)-serving-cert
-  name: milvus.milvus.io
+  name: milvuses.milvus.io

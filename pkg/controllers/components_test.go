@@ -258,6 +258,11 @@ func TestMilvusComponent_GetConfCheckSum(t *testing.T) {
 	}
 	checksum3 := GetConfCheckSum(spec)
 	assert.Equal(t, checksum2, checksum3)
+
+	spec.Dep.Kafka.BrokerList = []string{"ep1"}
+	spec.Dep.Storage.Endpoint = "ep"
+	checksum4 := GetConfCheckSum(spec)
+	assert.NotEqual(t, checksum1, checksum4)
 }
 
 func TestMilvusComponent_GetMilvusConfCheckSumt(t *testing.T) {

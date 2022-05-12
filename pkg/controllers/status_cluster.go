@@ -21,16 +21,16 @@ import (
 )
 
 const (
-	MessageEtcdReady       = "Etcd endpoints is healthy"
-	MessageEtcdNotReady    = "All etcd endpoints are unhealthy"
-	MessageStorageReady    = "Storage endpoints is healthy"
-	MessageStorageNotReady = "All Storage endpoints are unhealthy"
-	MessagePulsarReady     = "Pulsar is ready"
-	MessagePulsarNotReady  = "Pulsar is not ready"
-	MessageSecretNotExist  = "Secret not exist"
-	MessageKeyNotExist     = "accesskey or secretkey not exist in secret"
-	MessageDecodeErr       = "accesskey or secretkey decode error"
-	MessageMilvusHealthy   = "All Milvus components are healthy"
+	MessageEtcdReady         = "Etcd endpoints is healthy"
+	MessageEtcdNotReady      = "All etcd endpoints are unhealthy"
+	MessageStorageReady      = "Storage endpoints is healthy"
+	MessageStorageNotReady   = "All Storage endpoints are unhealthy"
+	MessageMsgStreamReady    = "MsgStream is ready"
+	MessageMsgStreamNotReady = "MsgStream is not ready"
+	MessageSecretNotExist    = "Secret not exist"
+	MessageKeyNotExist       = "accesskey or secretkey not exist in secret"
+	MessageDecodeErr         = "accesskey or secretkey decode error"
+	MessageMilvusHealthy     = "All Milvus components are healthy"
 )
 
 var (
@@ -119,7 +119,7 @@ func (r *MilvusClusterStatusSyncer) UpdateStatus(ctx context.Context, mc *v1alph
 	funcs := []Func{
 		r.GetEtcdCondition,
 		r.GetMinioCondition,
-		r.GetPulsarCondition,
+		r.GetMsgStreamCondition,
 	}
 	ress := defaultGroupRunner.RunWithResult(funcs, ctx, *mc)
 
@@ -252,10 +252,18 @@ func (r *MilvusClusterStatusSyncer) GetMilvusClusterCondition(ctx context.Contex
 	return GetMilvusInstanceCondition(ctx, r.Client, info)
 }
 
-func (r *MilvusClusterStatusSyncer) GetPulsarCondition(
+func (r *MilvusClusterStatusSyncer) GetMsgStreamCondition(
 	ctx context.Context, mc v1alpha1.MilvusCluster) (v1alpha1.MilvusCondition, error) {
-	getter := wrapPulsarConditonGetter(ctx, r.logger, mc.Spec.Dep.Pulsar)
-	return GetCondition(getter, []string{mc.Spec.Dep.Pulsar.Endpoint}), nil
+	var eps = []string{}
+	var getter func() v1alpha1.MilvusCondition
+	if mc.Spec.Dep.MsgStreamType == v1alpha1.MsgStreamTypeKafka {
+		getter = wrapKafkaConditonGetter(ctx, r.logger, mc.Spec.Dep.Kafka)
+		eps = mc.Spec.Dep.Kafka.BrokerList
+	} else {
+		getter = wrapPulsarConditonGetter(ctx, r.logger, mc.Spec.Dep.Pulsar)
+		eps = []string{mc.Spec.Dep.Pulsar.Endpoint}
+	}
+	return GetCondition(getter, eps), nil
 }
 
 // TODO: rename as GetStorageCondition

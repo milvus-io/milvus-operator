@@ -339,7 +339,7 @@ func TestIsClusterDependencyReady(t *testing.T) {
 				Status: corev1.ConditionTrue,
 			},
 			{
-				Type:   v1alpha1.PulsarReady,
+				Type:   v1alpha1.MsgStreamReady,
 				Status: corev1.ConditionTrue,
 			},
 			{
@@ -385,7 +385,7 @@ func TestUpdateClusterCondition(t *testing.T) {
 		},
 	}
 	condition := v1alpha1.MilvusCondition{
-		Type:    v1alpha1.PulsarReady,
+		Type:    v1alpha1.MsgStreamReady,
 		Status:  corev1.ConditionFalse,
 		Reason:  "NotReady",
 		Message: "Pulsar is not ready",
@@ -397,7 +397,7 @@ func TestUpdateClusterCondition(t *testing.T) {
 
 	// update existed
 	condition2 := v1alpha1.MilvusCondition{
-		Type:    v1alpha1.PulsarReady,
+		Type:    v1alpha1.MsgStreamReady,
 		Status:  corev1.ConditionTrue,
 		Reason:  "Ready",
 		Message: "Pulsar is ready",
@@ -419,7 +419,7 @@ func TestUpdateCondition(t *testing.T) {
 		},
 	}
 	condition := v1alpha1.MilvusCondition{
-		Type:    v1alpha1.PulsarReady,
+		Type:    v1alpha1.MsgStreamReady,
 		Status:  corev1.ConditionFalse,
 		Reason:  "NotReady",
 		Message: "Pulsar is not ready",
@@ -431,7 +431,7 @@ func TestUpdateCondition(t *testing.T) {
 
 	// update existed
 	condition2 := v1alpha1.MilvusCondition{
-		Type:    v1alpha1.PulsarReady,
+		Type:    v1alpha1.MsgStreamReady,
 		Status:  corev1.ConditionTrue,
 		Reason:  "Ready",
 		Message: "Pulsar is ready",

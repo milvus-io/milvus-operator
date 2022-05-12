@@ -108,15 +108,29 @@ func (r *MilvusCluster) Default() {
 	}
 
 	// set in cluster pulsar endpoint
-	if !r.Spec.Dep.Pulsar.External {
-		if r.Spec.Dep.Pulsar.InCluster == nil {
-			r.Spec.Dep.Pulsar.InCluster = &InClusterConfig{}
+	if r.Spec.Dep.MsgStreamType == MsgStreamTypeKafka {
+		if !r.Spec.Dep.Kafka.External {
+			if r.Spec.Dep.Kafka.InCluster == nil {
+				r.Spec.Dep.Kafka.InCluster = &InClusterConfig{}
+			}
+			if r.Spec.Dep.Kafka.InCluster.Values.Data == nil {
+				r.Spec.Dep.Kafka.InCluster.Values.Data = map[string]interface{}{}
+			}
+			if r.Spec.Dep.Kafka.InCluster.DeletionPolicy == "" {
+				r.Spec.Dep.Kafka.InCluster.DeletionPolicy = DeletionPolicyRetain
+			}
 		}
-		if r.Spec.Dep.Pulsar.InCluster.Values.Data == nil {
-			r.Spec.Dep.Pulsar.InCluster.Values.Data = map[string]interface{}{}
-		}
-		if r.Spec.Dep.Pulsar.InCluster.DeletionPolicy == "" {
-			r.Spec.Dep.Pulsar.InCluster.DeletionPolicy = DeletionPolicyRetain
+	} else {
+		if !r.Spec.Dep.Pulsar.External {
+			if r.Spec.Dep.Pulsar.InCluster == nil {
+				r.Spec.Dep.Pulsar.InCluster = &InClusterConfig{}
+			}
+			if r.Spec.Dep.Pulsar.InCluster.Values.Data == nil {
+				r.Spec.Dep.Pulsar.InCluster.Values.Data = map[string]interface{}{}
+			}
+			if r.Spec.Dep.Pulsar.InCluster.DeletionPolicy == "" {
+				r.Spec.Dep.Pulsar.InCluster.DeletionPolicy = DeletionPolicyRetain
+			}
 		}
 	}
 
@@ -200,8 +214,14 @@ func (r *MilvusCluster) validateExternal() field.ErrorList {
 		allErrs = append(allErrs, required(fp.Child("storage").Child("endpoint")))
 	}
 
-	if r.Spec.Dep.Pulsar.External && len(r.Spec.Dep.Pulsar.Endpoint) == 0 {
-		allErrs = append(allErrs, required(fp.Child("pulsar").Child("endpoint")))
+	if r.Spec.Dep.MsgStreamType == MsgStreamTypeKafka {
+		if r.Spec.Dep.Kafka.External && len(r.Spec.Dep.Kafka.BrokerList) == 0 {
+			allErrs = append(allErrs, required(fp.Child("kafka").Child("brokerList")))
+		}
+	} else {
+		if r.Spec.Dep.Pulsar.External && len(r.Spec.Dep.Pulsar.Endpoint) == 0 {
+			allErrs = append(allErrs, required(fp.Child("pulsar").Child("endpoint")))
+		}
 	}
 
 	return allErrs

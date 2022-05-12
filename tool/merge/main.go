@@ -31,6 +31,10 @@ func main() {
 		log.Fatal("read destination yaml failed: ", err)
 	}
 	util.MergeValues(dst, src)
+	// adhoc to delete pulsar fields if not exist in src
+	if src["pulsar"] == nil {
+		delete(dst, "pulsar")
+	}
 
 	bs, err := yaml.Marshal(dst)
 	if err != nil {

@@ -27,6 +27,16 @@ func getMockPulsarNewClient(cli pulsar.Client, err error) func(options pulsar.Cl
 	}
 }
 
+func TestGetKafkaCondition(t *testing.T) {
+	checkKafka = func(p v1alpha1.MilvusKafka) error { return nil }
+	ret := GetKafkaCondition(context.TODO(), logf.Log.WithName("test"), v1alpha1.MilvusKafka{})
+	assert.Equal(t, corev1.ConditionTrue, ret.Status)
+
+	checkKafka = func(p v1alpha1.MilvusKafka) error { return errors.New("failed") }
+	ret = GetKafkaCondition(context.TODO(), logf.Log.WithName("test"), v1alpha1.MilvusKafka{})
+	assert.Equal(t, corev1.ConditionFalse, ret.Status)
+}
+
 func TestGetPulsarCondition(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -40,7 +50,7 @@ func TestGetPulsarCondition(t *testing.T) {
 	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, errTest)
 	ret := GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonPulsarNotReady, ret.Reason)
+	assert.Equal(t, v1alpha1.ReasonMsgStreamNotReady, ret.Reason)
 
 	// new client ok, create read failed, no err
 	gomock.InOrder(
@@ -50,7 +60,7 @@ func TestGetPulsarCondition(t *testing.T) {
 	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, nil)
 	ret = GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonPulsarNotReady, ret.Reason)
+	assert.Equal(t, v1alpha1.ReasonMsgStreamNotReady, ret.Reason)
 
 	// new client ok, create read ok, no err
 	mockReader := NewMockPulsarReader(ctrl)
@@ -62,7 +72,7 @@ func TestGetPulsarCondition(t *testing.T) {
 	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, nil)
 	ret = GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
 	assert.Equal(t, corev1.ConditionTrue, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonPulsarReady, ret.Reason)
+	assert.Equal(t, v1alpha1.ReasonMsgStreamReady, ret.Reason)
 }
 
 func getMockNewMinioClientFunc(cli MinioClient, err error) NewMinioClientFunc {
@@ -347,7 +357,7 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 		Conditions: []v1alpha1.MilvusCondition{
 			{Type: v1alpha1.EtcdReady, Status: corev1.ConditionTrue},
 			{Type: v1alpha1.StorageReady, Status: corev1.ConditionTrue},
-			{Type: v1alpha1.PulsarReady, Status: corev1.ConditionTrue},
+			{Type: v1alpha1.MsgStreamReady, Status: corev1.ConditionTrue},
 		},
 		IsCluster: true,
 	}
