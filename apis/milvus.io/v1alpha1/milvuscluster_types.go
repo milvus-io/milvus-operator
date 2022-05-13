@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -32,14 +33,14 @@ type MilvusClusterSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// +kubebuilder:validation:Optional
-	Com MilvusComponents `json:"components,omitempty"`
+	Com v1beta1.MilvusComponents `json:"components,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	Dep MilvusClusterDependencies `json:"dependencies,omitempty"`
+	Dep v1beta1.MilvusDependencies `json:"dependencies,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Conf Values `json:"config,omitempty"`
+	Conf v1beta1.Values `json:"config,omitempty"`
 }
 
 // MilvusIngress defines the ingress of MilvusCluster

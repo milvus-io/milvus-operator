@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,16 +32,16 @@ type MilvusSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// +kubebuilder:validation:Optional
-	ComponentSpec `json:",inline"`
+	v1beta1.ComponentSpec `json:",inline"`
 
 	// +kubebuilder:validation:Optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	Persistence Persistence `json:"persistence,omitempty"`
+	Persistence v1beta1.Persistence `json:"persistence,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	Ingress *MilvusIngress `json:"ingress,omitempty"`
+	Ingress *v1beta1.MilvusIngress `json:"ingress,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum={"ClusterIP", "NodePort", "LoadBalancer"}
@@ -57,11 +58,11 @@ type MilvusSpec struct {
 	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	Dep MilvusDependencies `json:"dependencies,omitempty"`
+	Dep v1beta1.MilvusDependencies `json:"dependencies,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Conf Values `json:"config,omitempty"`
+	Conf v1beta1.Values `json:"config,omitempty"`
 }
 
 // MilvusStatus defines the observed state of Milvus
