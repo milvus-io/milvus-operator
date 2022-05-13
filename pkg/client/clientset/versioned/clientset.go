@@ -20,7 +20,7 @@ package versioned
 import (
 	"fmt"
 
-	milvusv1alpha1 "github.com/milvus-io/milvus-operator/pkg/client/clientset/versioned/typed/milvus.io/v1alpha1"
+	milvusv1beta1 "github.com/milvus-io/milvus-operator/pkg/client/clientset/versioned/typed/milvus.io/v1beta1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"
@@ -28,19 +28,19 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	MilvusV1alpha1() milvusv1alpha1.MilvusV1alpha1Interface
+	MilvusV1beta1() milvusv1beta1.MilvusV1beta1Interface
 }
 
 // Clientset contains the clients for groups. Each group has exactly one
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	milvusV1alpha1 *milvusv1alpha1.MilvusV1alpha1Client
+	milvusV1beta1 *milvusv1beta1.MilvusV1beta1Client
 }
 
-// MilvusV1alpha1 retrieves the MilvusV1alpha1Client
-func (c *Clientset) MilvusV1alpha1() milvusv1alpha1.MilvusV1alpha1Interface {
-	return c.milvusV1alpha1
+// MilvusV1beta1 retrieves the MilvusV1beta1Client
+func (c *Clientset) MilvusV1beta1() milvusv1beta1.MilvusV1beta1Interface {
+	return c.milvusV1beta1
 }
 
 // Discovery retrieves the DiscoveryClient
@@ -64,7 +64,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 	}
 	var cs Clientset
 	var err error
-	cs.milvusV1alpha1, err = milvusv1alpha1.NewForConfig(&configShallowCopy)
+	cs.milvusV1beta1, err = milvusv1beta1.NewForConfig(&configShallowCopy)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func NewForConfig(c *rest.Config) (*Clientset, error) {
 // panics if there is an error in the config.
 func NewForConfigOrDie(c *rest.Config) *Clientset {
 	var cs Clientset
-	cs.milvusV1alpha1 = milvusv1alpha1.NewForConfigOrDie(c)
+	cs.milvusV1beta1 = milvusv1beta1.NewForConfigOrDie(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClientForConfigOrDie(c)
 	return &cs
@@ -89,7 +89,7 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.milvusV1alpha1 = milvusv1alpha1.New(c)
+	cs.milvusV1beta1 = milvusv1beta1.New(c)
 
 	cs.DiscoveryClient = discovery.NewDiscoveryClient(c)
 	return &cs

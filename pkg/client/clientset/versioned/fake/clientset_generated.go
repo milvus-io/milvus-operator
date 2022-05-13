@@ -19,8 +19,8 @@ package fake
 
 import (
 	clientset "github.com/milvus-io/milvus-operator/pkg/client/clientset/versioned"
-	milvusv1alpha1 "github.com/milvus-io/milvus-operator/pkg/client/clientset/versioned/typed/milvus.io/v1alpha1"
-	fakemilvusv1alpha1 "github.com/milvus-io/milvus-operator/pkg/client/clientset/versioned/typed/milvus.io/v1alpha1/fake"
+	milvusv1beta1 "github.com/milvus-io/milvus-operator/pkg/client/clientset/versioned/typed/milvus.io/v1beta1"
+	fakemilvusv1beta1 "github.com/milvus-io/milvus-operator/pkg/client/clientset/versioned/typed/milvus.io/v1beta1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -75,7 +75,7 @@ func (c *Clientset) Tracker() testing.ObjectTracker {
 
 var _ clientset.Interface = &Clientset{}
 
-// MilvusV1alpha1 retrieves the MilvusV1alpha1Client
-func (c *Clientset) MilvusV1alpha1() milvusv1alpha1.MilvusV1alpha1Interface {
-	return &fakemilvusv1alpha1.FakeMilvusV1alpha1{Fake: &c.Fake}
+// MilvusV1beta1 retrieves the MilvusV1beta1Client
+func (c *Clientset) MilvusV1beta1() milvusv1beta1.MilvusV1beta1Interface {
+	return &fakemilvusv1beta1.FakeMilvusV1beta1{Fake: &c.Fake}
 }
