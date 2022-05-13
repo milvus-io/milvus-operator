@@ -33,6 +33,12 @@ spec:
         pvcDeletion: true
         values:
           replicaCount: 1
+    msgStreamType: kafka
+    kafka:
+      inCluster:
+        deletionPolicy: Delete
+        pvcDeletion: true
+        values: {}
     storage:
       inCluster:
         deletionPolicy: Delete

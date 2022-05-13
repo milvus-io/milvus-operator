@@ -7,7 +7,7 @@ VERSION ?= 0.4.1
 MILVUS_HELM_VERSION ?= milvus-3.0.16
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
-CRD_OPTIONS ?= "crd:trivialVersions=true,preserveUnknownFields=false,maxDescLen=0"
+CRD_OPTIONS ?= "crd:preserveUnknownFields=false,maxDescLen=0"
 # cert-manager 
 CERT_MANAGER_MANIFEST ?= "https://github.com/jetstack/cert-manager/releases/download/v1.5.3/cert-manager.yaml"
 
@@ -204,6 +204,7 @@ sit-prepare-operator-images:
 
 sit-prepare-images: sit-prepare-operator-images
 	@echo "Preparing images"
+	# TODO: change back to milvus release image
 	docker pull milvusdb/milvus-dev:master-20220511-a8b81e21
 	docker tag milvusdb/milvus-dev:master-20220511-a8b81e21 milvusdb/milvus:v2.0.2
 	

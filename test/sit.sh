@@ -4,8 +4,10 @@
 testType=$1
 msgStream="pulsar"
 mcManifest="test/min-mc.yaml"
+milvusManifest="test/min-milvus.yaml"
 if [ "$testType" == "kafka" ]; then
     mcManifest="test/min-mc-kafka.yaml"
+    milvusManifest="test/min-milvus-kafka.yaml"
     msgStream="kafka"
 fi
 
@@ -18,7 +20,6 @@ log() {
 
 check_milvus_available(){
     # if $1 equals milvus-sit
-    sed -i 's/host=host/host="milvus-milvus"/g' test/hello-milvus.py
     kubectl -n $1 create cm hello-milvus --from-file=test/hello-milvus.py
     kubectl -n $1 create -f test/hello-milvus-job.yaml
     kubectl -n $1 get -l myLabel=value service |wc -l 
@@ -65,7 +66,7 @@ case_create_delete_cluster(){
     CR_STATUS=""
     until [ $ATTEMPTS -eq 60 ]; 
     do
-        CR_STATUS=$(kubectl get -n mc-sit mc/milvus -o=jsonpath='{.status.status}')
+        CR_STATUS=$(kubectl get -n mc-sit milvus/milvus -o=jsonpath='{.status.status}')
         if [ "$CR_STATUS" = "Healthy" ]; then
             break
         fi
@@ -76,7 +77,7 @@ case_create_delete_cluster(){
 
     if [ "$CR_STATUS" != "Healthy" ]; then
         log "MilvusCluster creation failed"
-        log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit mc/milvus -o yaml)"
+        log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit milvus/milvus -o yaml)"
         log "MilvusCluster helm values: \n $(helm -n mc-sit get values milvus-$msgStream)"
         log "MilvusCluster describe pods: \n $(kubectl -n mc-sit describe pods)"
         delete_milvus_cluster
@@ -94,7 +95,7 @@ case_create_delete_cluster(){
 delete_milvus(){
     # Delete CR
     log "Deleting Milvus ..."
-    kubectl delete -f test/min-milvus.yaml
+    kubectl delete -f $milvusManifest
     log "Checking PVC deleted ..."
     kubectl wait --timeout=1m pvc -n milvus-sit --for=delete -l release=milvus-sit-minio
     kubectl wait --timeout=1m pvc -n milvus-sit --for=delete -l app.kubernetes.io/instance=milvus-sit-etcd
@@ -104,7 +105,7 @@ delete_milvus(){
 case_create_delete_milvus(){
     # create Milvus CR
     log "Creating Milvus..."
-    kubectl apply -f test/min-milvus.yaml
+    kubectl apply -f $milvusManifest
 
     # Check CR status every 10 seconds (max 10 minutes) until complete.
     ATTEMPTS=0

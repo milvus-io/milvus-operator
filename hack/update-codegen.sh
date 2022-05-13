@@ -11,5 +11,5 @@ GOPATH=$(go env GOPATH)
 ${SCRIPT_ROOT}/hack/generate-groups.sh client,lister,informer \
   github.com/milvus-io/milvus-operator/pkg/client \
   github.com/milvus-io/milvus-operator/apis \
-  "milvus.io:v1alpha1" \
+  "milvus.io:v1beta1" \
   --go-header-file "${SCRIPT_ROOT}/hack/boilerplate.go.txt"
