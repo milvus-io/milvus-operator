@@ -170,6 +170,34 @@ func (r *Milvus) Default() {
 	}
 }
 
+func SetDefault(mc *Milvus) {
+	if !mc.Spec.Dep.Etcd.External && len(mc.Spec.Dep.Etcd.Endpoints) == 0 {
+		mc.Spec.Dep.Etcd.Endpoints = []string{fmt.Sprintf("%s-etcd.%s:2379", mc.Name, mc.Namespace)}
+	}
+	// mq
+	if mc.Spec.Dep.MsgStreamType == "" {
+		switch mc.Spec.Mode {
+		case MilvusModeStandalone:
+			mc.Spec.Dep.MsgStreamType = MsgStreamTypeRocksMQ
+		case MilvusModeCluster:
+			mc.Spec.Dep.MsgStreamType = MsgStreamTypePulsar
+		}
+	}
+	switch mc.Spec.Dep.MsgStreamType {
+	case MsgStreamTypePulsar:
+		if !mc.Spec.Dep.Pulsar.External && len(mc.Spec.Dep.Pulsar.Endpoint) == 0 {
+			mc.Spec.Dep.Pulsar.Endpoint = fmt.Sprintf("%s-pulsar-proxy.%s:6650", mc.Name, mc.Namespace)
+		}
+	case MsgStreamTypeKafka:
+		if !mc.Spec.Dep.Kafka.External && len(mc.Spec.Dep.Kafka.BrokerList) == 0 {
+			mc.Spec.Dep.Kafka.BrokerList = []string{fmt.Sprintf("%s-kafka.%s:9092", mc.Name, mc.Namespace)}
+		}
+	}
+	if !mc.Spec.Dep.Storage.External && len(mc.Spec.Dep.Storage.Endpoint) == 0 {
+		mc.Spec.Dep.Storage.Endpoint = fmt.Sprintf("%s-minio.%s:9000", mc.Name, mc.Namespace)
+	}
+}
+
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-milvus-io-v1beta1-milvus,mutating=false,failurePolicy=fail,sideEffects=None,groups=milvus.io,resources=milvuses,verbs=create;update,versions=v1beta1,name=vmilvus.kb.io,admissionReviewVersions=v1
 

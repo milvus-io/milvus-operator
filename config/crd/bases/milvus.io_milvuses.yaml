@@ -1724,7 +1724,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -2201,7 +2200,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -2751,7 +2749,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -3228,7 +3225,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -3732,7 +3728,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -4224,7 +4219,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -4701,7 +4695,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -5197,7 +5190,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -5697,7 +5689,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer

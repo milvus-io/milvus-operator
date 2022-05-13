@@ -251,6 +251,9 @@ sit-test:
 sit-test-kafka: 
 	./test/sit.sh kafka
 
+sit-test-alpha: 
+	./test/sit.sh alpha
+
 cleanup-sit:
 	kubectl delete -f test/test_gen.yaml
 

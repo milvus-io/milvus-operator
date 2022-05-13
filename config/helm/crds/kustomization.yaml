@@ -8,5 +8,8 @@ generatorOptions:
 commonAnnotations:
   cert-manager.io/inject-ca-from: '{{.Release.Namespace}}/{{. | include "chart.fullname"}}-serving-cert'
 
+patchesStrategicMerge:
+- webhook_patch.yaml
+
 bases:
 - ../../crd

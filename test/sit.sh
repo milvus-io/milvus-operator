@@ -10,6 +10,10 @@ if [ "$testType" == "kafka" ]; then
     milvusManifest="test/min-milvus-kafka.yaml"
     msgStream="kafka"
 fi
+if [ "$testType" == "alpha" ]; then
+    mcManifest="test/min-mc-alpha.yaml"
+    milvusManifest="test/min-milvus-alpha.yaml"
+fi
 
 
 # utils

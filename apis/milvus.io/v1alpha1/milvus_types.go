@@ -119,8 +119,8 @@ type Milvus struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MilvusSpec   `json:"spec,omitempty"`
-	Status MilvusStatus `json:"status,omitempty"`
+	Spec   MilvusSpec           `json:"spec,omitempty"`
+	Status v1beta1.MilvusStatus `json:"status,omitempty"`
 }
 
 //+kubebuilder:object:root=true

@@ -20,7 +20,10 @@ import (
 	v1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+var milvuslog = logf.Log.WithName("milvus-v1alpha1")
 
 func (r *Milvus) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
@@ -28,26 +31,35 @@ func (r *Milvus) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Complete()
 }
 
-// ConvertTo converts this CronJob to the Hub version (v1).
+// ConvertTo converts this Milvus to the Hub version (v1beta1).
 func (r *Milvus) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*v1beta1.Milvus)
-	dst.Spec.Mode = v1beta1.MilvusModeStandalone
-	dst.Spec.Conf = r.Spec.Conf
-	dst.Spec.Dep = r.Spec.Dep
-	dst.Spec.Com.DisableMetric = r.Spec.DisableMetric
-
-	dst.Spec.Com.Standalone = v1beta1.MilvusStandalone{
-		Component: v1beta1.Component{
-			ComponentSpec: r.Spec.ComponentSpec,
-			Replicas:      r.Spec.Replicas,
-			Port:          19530,
-		},
-		ServiceType:        r.Spec.ServiceType,
-		ServiceLabels:      r.Spec.ServiceLabels,
-		ServiceAnnotations: r.Spec.ServiceAnnotations,
-		Ingress:            r.Spec.Ingress,
-	}
+	dst.ObjectMeta = r.ObjectMeta
+	r.Spec.ConvertSpecTo(&dst.Spec)
+	dst.Status = r.Status
+	milvuslog.Info("convert-to", "Milvus", dst)
 	return nil
+}
+
+func (r *MilvusSpec) ConvertSpecTo(dst *v1beta1.MilvusSpec) {
+	dst.Mode = v1beta1.MilvusModeStandalone
+	dst.Conf = r.Conf
+	dst.Dep = r.Dep
+	dst.Dep.RocksMQ.Persistence = r.Persistence
+	dst.Com = v1beta1.MilvusComponents{
+		DisableMetric: r.DisableMetric,
+		Standalone: v1beta1.MilvusStandalone{
+			Component: v1beta1.Component{
+				ComponentSpec: r.ComponentSpec,
+				Replicas:      r.Replicas,
+				Port:          19530,
+			},
+			ServiceType:        r.ServiceType,
+			ServiceLabels:      r.ServiceLabels,
+			ServiceAnnotations: r.ServiceAnnotations,
+			Ingress:            r.Ingress,
+		},
+	}
 }
 
 // ConvertFrom converts from the Hub version to this version.
@@ -64,5 +76,8 @@ func (r *Milvus) ConvertFrom(srcRaw conversion.Hub) error {
 	r.Spec.ServiceAnnotations = src.Spec.Com.Standalone.ServiceAnnotations
 	r.Spec.Ingress = src.Spec.Com.Standalone.Ingress
 
+	r.ObjectMeta = src.ObjectMeta
+	r.Status = src.Status
+	milvuslog.Info("convert-from", "Milvus", src)
 	return nil
 }

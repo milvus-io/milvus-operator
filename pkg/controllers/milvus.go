@@ -31,28 +31,6 @@ func (r *MilvusReconciler) SetDefaultStatus(ctx context.Context, mc *v1beta1.Mil
 	return false, nil
 }
 
-func SetDefault(ctx context.Context, mc *v1beta1.Milvus) error {
-	if !mc.Spec.Dep.Etcd.External && len(mc.Spec.Dep.Etcd.Endpoints) == 0 {
-		mc.Spec.Dep.Etcd.Endpoints = []string{fmt.Sprintf("%s-etcd.%s:2379", mc.Name, mc.Namespace)}
-	}
-	if mc.Spec.Dep.MsgStreamType != v1beta1.MsgStreamTypeKafka {
-		// pulsar
-		if !mc.Spec.Dep.Pulsar.External && len(mc.Spec.Dep.Pulsar.Endpoint) == 0 {
-			mc.Spec.Dep.Pulsar.Endpoint = fmt.Sprintf("%s-pulsar-proxy.%s:6650", mc.Name, mc.Namespace)
-		}
-	} else {
-		// kafka
-		if !mc.Spec.Dep.Kafka.External && len(mc.Spec.Dep.Kafka.BrokerList) == 0 {
-			mc.Spec.Dep.Kafka.BrokerList = []string{fmt.Sprintf("%s-kafka.%s:9092", mc.Name, mc.Namespace)}
-		}
-	}
-	if !mc.Spec.Dep.Storage.External && len(mc.Spec.Dep.Storage.Endpoint) == 0 {
-		mc.Spec.Dep.Storage.Endpoint = fmt.Sprintf("%s-minio.%s:9000", mc.Name, mc.Namespace)
-	}
-
-	return nil
-}
-
 func (r *MilvusReconciler) ReconcileAll(ctx context.Context, mc v1beta1.Milvus) error {
 	reconcilers := []Func{
 		r.ReconcileEtcd,

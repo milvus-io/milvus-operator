@@ -54,7 +54,7 @@ var _ = Describe("Milvus controller", func() {
 				return err == nil
 			}, time.Second*10, interval).Should(BeTrue())
 			// Let's make sure our Schedule string value was properly converted/handled.
-			Expect(*createdMC.Spec.Com.DataNode.Replicas).Should(Equal(int32(1)))
+			Expect(*createdMC.Spec.Com.Standalone.Replicas).Should(Equal(int32(1)))
 
 			/* ss := &appsv1.StatefulSetList{}
 			Eventually(func() bool {

@@ -153,8 +153,30 @@ type MilvusCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MilvusClusterSpec `json:"spec,omitempty"`
-	Status MilvusStatus      `json:"status,omitempty"`
+	Spec   MilvusClusterSpec    `json:"spec,omitempty"`
+	Status v1beta1.MilvusStatus `json:"status,omitempty"`
+}
+
+// ConvertTo converts to v1beta1.Milvus
+func (r *MilvusCluster) ConvertToMilvus(dst *v1beta1.Milvus) {
+	dst.Namespace = r.Namespace
+	dst.Name = r.Name
+	dst.Labels = r.Labels
+	dst.Annotations = r.Annotations
+	dst.Spec.Mode = v1beta1.MilvusModeCluster
+	dst.Spec.Com = r.Spec.Com
+	dst.Spec.Conf = r.Spec.Conf
+	dst.Spec.Dep = r.Spec.Dep
+	dst.Default()
+	v1beta1.SetDefault(dst)
+}
+
+// UpdateStatusFrom updates status from v1beta1.Milvus
+func (r *MilvusCluster) UpdateStatusFrom(src *v1beta1.Milvus) {
+	r.Spec.Com = src.Spec.Com
+	r.Spec.Conf = src.Spec.Conf
+	r.Spec.Dep = src.Spec.Dep
+	r.Status = src.Status
 }
 
 //+kubebuilder:object:root=true

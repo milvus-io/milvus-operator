@@ -827,7 +827,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -1304,7 +1303,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -1854,7 +1852,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -2331,7 +2328,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -2835,7 +2831,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -3327,7 +3322,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -3804,7 +3798,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -4300,7 +4293,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -4800,7 +4792,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -5178,10 +5169,20 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: milvus-operator/milvus-operator-serving-cert
     controller-gen.kubebuilder.io/version: v0.6.0
-  creationTimestamp: null
   name: milvuses.milvus.io
 spec:
+  conversion:
+    strategy: Webhook
+    webhook:
+      clientConfig:
+        service:
+          name: milvus-operator-webhook-service
+          namespace: milvus-operator
+          path: /convert
+      conversionReviewVersions:
+      - v1
   group: milvus.io
   names:
     kind: Milvus
@@ -6898,7 +6899,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -7375,7 +7375,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -7925,7 +7924,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -8402,7 +8400,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -8906,7 +8903,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -9398,7 +9394,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -9875,7 +9870,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -10371,7 +10365,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
@@ -10871,7 +10864,6 @@ spec:
                         minimum: 0
                         type: integer
                       replicas:
-                        default: 1
                         format: int32
                         minimum: 0
                         type: integer
