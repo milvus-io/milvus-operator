@@ -21,14 +21,18 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	"github.com/go-logr/logr"
-	milvusv1alpha1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	milvusv1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 )
 
@@ -48,16 +52,30 @@ type MilvusReconciler struct {
 //+kubebuilder:rbac:groups=milvus.io,resources=milvuses,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=milvus.io,resources=milvuses/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=milvus.io,resources=milvuses/finalizers,verbs=update
+//+kubebuilder:rbac:groups=extensions,resources=statefulsets;deployments;pods;secrets;services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=statefulsets;deployments,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=apps,resources=pods;secrets;services,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=batch,resources=jobs,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=pods,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=services;configmaps;secrets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=serviceaccounts,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="",resources=deployments;statefulsets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="policy",resources=poddisruptionbudgets,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="policy",resources=podsecuritypolicies,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=rolebindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=roles,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterrolebindings,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="rbac.authorization.k8s.io",resources=clusterroles,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="networking.k8s.io",resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="extensions",resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups="monitoring.coreos.com",resources=servicemonitors;podmonitors,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is part of the main kubernetes reconciliation loop which aims to
 // move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the Milvus object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
 //
 // For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
+// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.8.3/pkg/reconcile
 func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.statusSyncer.RunIfNot()
 	globalCommonInfo.InitIfNot(r.Client)
@@ -70,7 +88,7 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}()
 	}
 
-	milvus := &milvusv1alpha1.Milvus{}
+	milvus := &milvusv1beta1.Milvus{}
 	if err := r.Get(ctx, req.NamespacedName, milvus); err != nil {
 		if errors.IsNotFound(err) {
 			// The resource may have be deleted after reconcile request coming in
@@ -78,7 +96,7 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, fmt.Errorf("error get milvus cluster: %w", err)
+		return ctrl.Result{}, fmt.Errorf("error get milvus : %w", err)
 	}
 
 	// Finalize
@@ -106,7 +124,7 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	r.logger.Info("start reconcile")
 	old := milvus.DeepCopy()
 
-	if err := r.SetDefault(ctx, milvus); err != nil {
+	if err := SetDefault(ctx, milvus); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -127,7 +145,7 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	// status will be updated by syncer
 
-	if milvus.Status.Status == milvusv1alpha1.StatusUnHealthy {
+	if milvus.Status.Status == milvusv1beta1.StatusUnHealthy {
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
@@ -143,7 +161,42 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *MilvusReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewControllerManagedBy(mgr).
-		For(&milvusv1alpha1.Milvus{}).
-		Complete(r)
+	builder := ctrl.NewControllerManagedBy(mgr).
+		For(&milvusv1beta1.Milvus{}).
+		// For(&milvusv1alpha1.MilvusCluster{}).
+		//Owns(&appsv1.Deployment{}).
+		//Owns(&corev1.ConfigMap{}).
+		//Owns(&corev1.Service{}).
+		//WithEventFilter(&MilvusPredicate{}).
+		WithOptions(controller.Options{MaxConcurrentReconciles: 1})
+
+	/* if config.IsDebug() {
+		builder.WithEventFilter(DebugPredicate())
+	} */
+
+	return builder.Complete(r)
+}
+
+var predicateLog = logf.Log.WithName("predicates").WithName("Milvus")
+
+type MilvusPredicate struct {
+	predicate.Funcs
+}
+
+func (*MilvusPredicate) Create(e event.CreateEvent) bool {
+	if _, ok := e.Object.(*milvusv1beta1.Milvus); !ok {
+		return false
+	}
+
+	return true
+}
+
+func (*MilvusPredicate) Update(e event.UpdateEvent) bool {
+	if IsEqual(e.ObjectOld, e.ObjectNew) {
+		obj := fmt.Sprintf("%s/%s", e.ObjectNew.GetNamespace(), e.ObjectNew.GetName())
+		predicateLog.Info("Update Equal", "obj", obj, "kind", e.ObjectNew.GetObjectKind())
+		return false
+	}
+
+	return true
 }

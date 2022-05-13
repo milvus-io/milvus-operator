@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/pkg/errors"
 	networkingv1 "k8s.io/api/networking/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -14,16 +14,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func (r *MilvusReconciler) ReconcileIngress(ctx context.Context, mc v1alpha1.Milvus) error {
-	return reconcileIngress(ctx, r.logger, r.Client, r.Scheme, &mc, mc.Spec.Ingress)
-}
-
-func (r *MilvusClusterReconciler) ReconcileIngress(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	return reconcileIngress(ctx, r.logger, r.Client, r.Scheme, &mc, mc.Spec.Com.Proxy.Ingress)
+func (r *MilvusReconciler) ReconcileIngress(ctx context.Context, mc v1beta1.Milvus) error {
+	ingress := mc.Spec.Com.Standalone.Ingress
+	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
+		ingress = mc.Spec.Com.Proxy.Ingress
+	}
+	return reconcileIngress(ctx, r.logger, r.Client, r.Scheme, &mc, ingress)
 }
 
 func reconcileIngress(ctx context.Context, logger logr.Logger,
-	cli client.Client, scheme *runtime.Scheme, crd client.Object, ingress *v1alpha1.MilvusIngress) error {
+	cli client.Client, scheme *runtime.Scheme, crd client.Object, ingress *v1beta1.MilvusIngress) error {
 	if ingress == nil {
 		return nil
 	}
@@ -65,7 +65,7 @@ func reconcileIngress(ctx context.Context, logger logr.Logger,
 
 //go:generate mockgen -package=controllers -source=ingress.go -destination=ingress_mock.go ingressRendererInterface
 type ingressRendererInterface interface {
-	Render(crd client.Object, spec v1alpha1.MilvusIngress) *networkingv1.Ingress
+	Render(crd client.Object, spec v1beta1.MilvusIngress) *networkingv1.Ingress
 }
 
 // ingressRender singleton
@@ -75,7 +75,7 @@ type ingressRendererImpl struct {
 }
 
 // Render implements ingressRenderInterface
-func (r *ingressRendererImpl) Render(crd client.Object, spec v1alpha1.MilvusIngress) *networkingv1.Ingress {
+func (r *ingressRendererImpl) Render(crd client.Object, spec v1beta1.MilvusIngress) *networkingv1.Ingress {
 	ingress := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      crd.GetName() + "-milvus",

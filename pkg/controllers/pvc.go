@@ -5,10 +5,11 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/pkg/errors"
 )
 
@@ -16,17 +17,18 @@ func getPVCNameByInstName(instName string) string {
 	return instName + "-data"
 }
 
-func (r *MilvusReconciler) ReconcilePVCs(ctx context.Context, mil v1alpha1.Milvus) error {
-	needPVC := mil.Spec.Persistence.Enabled && len(mil.Spec.Persistence.PersistentVolumeClaim.ExistingClaim) < 1
+func (r *MilvusReconciler) ReconcilePVCs(ctx context.Context, mil v1beta1.Milvus) error {
+	persistence := mil.Spec.Dep.RocksMQ.Persistence
+	needPVC := persistence.Enabled && len(persistence.PersistentVolumeClaim.ExistingClaim) < 1
 	if !needPVC {
 		return nil
 	}
 	// if needPVC
 	namespacedName := NamespacedName(mil.Namespace, getPVCNameByInstName(mil.Name))
-	return r.syncUpdatePVC(ctx, namespacedName, mil.Spec.Persistence.PersistentVolumeClaim)
+	return r.syncUpdatePVC(ctx, namespacedName, persistence.PersistentVolumeClaim)
 }
 
-func (r *MilvusReconciler) syncUpdatePVC(ctx context.Context, namespacedName types.NamespacedName, milvusPVC v1alpha1.PersistentVolumeClaim) error {
+func (r *MilvusReconciler) syncUpdatePVC(ctx context.Context, namespacedName types.NamespacedName, milvusPVC v1beta1.PersistentVolumeClaim) error {
 	old := &corev1.PersistentVolumeClaim{}
 	err := r.Client.Get(ctx, namespacedName, old)
 
@@ -62,8 +64,24 @@ func (r *MilvusReconciler) syncUpdatePVC(ctx context.Context, namespacedName typ
 	return errors.Wrap(err, "failed to update data pvc")
 }
 
-func (r *MilvusReconciler) syncPVC(ctx context.Context, milvusPVC v1alpha1.PersistentVolumeClaim, pvc *corev1.PersistentVolumeClaim) {
+func (r *MilvusReconciler) syncPVC(ctx context.Context, milvusPVC v1beta1.PersistentVolumeClaim, pvc *corev1.PersistentVolumeClaim) {
 	pvc.Labels = milvusPVC.Labels
 	pvc.Annotations = milvusPVC.Annotations
 	pvc.Spec = milvusPVC.Spec
+	if len(pvc.Spec.AccessModes) < 1 {
+		pvc.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{
+			corev1.ReadWriteOnce,
+		}
+	}
+	if pvc.Spec.Resources.Requests == nil {
+		pvc.Spec.Resources.Requests = corev1.ResourceList{}
+	}
+	if pvc.Spec.Resources.Requests.Storage().IsZero() {
+		q := resource.Quantity{}
+		q.Set(defaultPVCSize)
+		pvc.Spec.Resources.Requests[corev1.ResourceStorage] = q
+	}
 }
+
+// 5Gi
+var defaultPVCSize int64 = 5 * 1024 * 1024 * 1024

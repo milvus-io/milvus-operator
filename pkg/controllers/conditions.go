@@ -9,7 +9,7 @@ import (
 
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/go-logr/logr"
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/external"
 	"github.com/minio/madmin-go"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
@@ -26,7 +26,7 @@ import (
 // pulsarNewClient wraps pulsar.NewClient for test mock convenience
 var pulsarNewClient = pulsar.NewClient
 
-func GetCondition(getter func() v1alpha1.MilvusCondition, eps []string) v1alpha1.MilvusCondition {
+func GetCondition(getter func() v1beta1.MilvusCondition, eps []string) v1beta1.MilvusCondition {
 	// check cache
 	condition, uptodate := endpointCheckCache.Get(eps)
 	if uptodate {
@@ -38,21 +38,21 @@ func GetCondition(getter func() v1alpha1.MilvusCondition, eps []string) v1alpha1
 }
 
 var (
-	wrapKafkaConditonGetter = func(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusKafka) func() v1alpha1.MilvusCondition {
-		return func() v1alpha1.MilvusCondition { return GetKafkaCondition(ctx, logger, p) }
+	wrapKafkaConditonGetter = func(ctx context.Context, logger logr.Logger, p v1beta1.MilvusKafka) func() v1beta1.MilvusCondition {
+		return func() v1beta1.MilvusCondition { return GetKafkaCondition(ctx, logger, p) }
 	}
-	wrapPulsarConditonGetter = func(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusPulsar) func() v1alpha1.MilvusCondition {
-		return func() v1alpha1.MilvusCondition { return GetPulsarCondition(ctx, logger, p) }
+	wrapPulsarConditonGetter = func(ctx context.Context, logger logr.Logger, p v1beta1.MilvusPulsar) func() v1beta1.MilvusCondition {
+		return func() v1beta1.MilvusCondition { return GetPulsarCondition(ctx, logger, p) }
 	}
-	wrapEtcdConditionGetter = func(ctx context.Context, endpoints []string) func() v1alpha1.MilvusCondition {
-		return func() v1alpha1.MilvusCondition { return GetEtcdCondition(ctx, endpoints) }
+	wrapEtcdConditionGetter = func(ctx context.Context, endpoints []string) func() v1beta1.MilvusCondition {
+		return func() v1beta1.MilvusCondition { return GetEtcdCondition(ctx, endpoints) }
 	}
-	wrapMinioConditionGetter = func(ctx context.Context, logger logr.Logger, cli client.Client, info StorageConditionInfo) func() v1alpha1.MilvusCondition {
-		return func() v1alpha1.MilvusCondition { return GetMinioCondition(ctx, logger, cli, info) }
+	wrapMinioConditionGetter = func(ctx context.Context, logger logr.Logger, cli client.Client, info StorageConditionInfo) func() v1beta1.MilvusCondition {
+		return func() v1beta1.MilvusCondition { return GetMinioCondition(ctx, logger, cli, info) }
 	}
 )
 
-func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusPulsar) v1alpha1.MilvusCondition {
+func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1beta1.MilvusPulsar) v1beta1.MilvusCondition {
 
 	client, err := pulsarNewClient(pulsar.ClientOptions{
 		URL:               "pulsar://" + p.Endpoint,
@@ -62,7 +62,7 @@ func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.Milv
 	})
 
 	if err != nil {
-		return newErrMsgStreamCondResult(v1alpha1.ReasonMsgStreamNotReady, err.Error())
+		return newErrMsgStreamCondResult(v1beta1.ReasonMsgStreamNotReady, err.Error())
 	}
 	defer client.Close()
 
@@ -71,38 +71,35 @@ func GetPulsarCondition(ctx context.Context, logger logr.Logger, p v1alpha1.Milv
 		StartMessageID: pulsar.EarliestMessageID(),
 	})
 	if err != nil {
-		return newErrMsgStreamCondResult(v1alpha1.ReasonMsgStreamNotReady, err.Error())
+		return newErrMsgStreamCondResult(v1beta1.ReasonMsgStreamNotReady, err.Error())
 	}
 	defer reader.Close()
 
-	return v1alpha1.MilvusCondition{
-		Type:    v1alpha1.MsgStreamReady,
-		Status:  GetConditionStatus(true),
-		Reason:  v1alpha1.ReasonMsgStreamReady,
-		Message: MessageMsgStreamReady,
-	}
+	return msgStreamReadyCondition
+}
+
+var msgStreamReadyCondition = v1beta1.MilvusCondition{
+	Type:    v1beta1.MsgStreamReady,
+	Status:  GetConditionStatus(true),
+	Reason:  v1beta1.ReasonMsgStreamReady,
+	Message: MessageMsgStreamReady,
 }
 
 var checkKafka = external.CheckKafka
 
-func GetKafkaCondition(ctx context.Context, logger logr.Logger, p v1alpha1.MilvusKafka) v1alpha1.MilvusCondition {
+func GetKafkaCondition(ctx context.Context, logger logr.Logger, p v1beta1.MilvusKafka) v1beta1.MilvusCondition {
 	err := checkKafka(p)
 	if err != nil {
-		return newErrMsgStreamCondResult(v1alpha1.ReasonMsgStreamNotReady, err.Error())
+		return newErrMsgStreamCondResult(v1beta1.ReasonMsgStreamNotReady, err.Error())
 	}
 
-	return v1alpha1.MilvusCondition{
-		Type:    v1alpha1.MsgStreamReady,
-		Status:  GetConditionStatus(true),
-		Reason:  v1alpha1.ReasonMsgStreamReady,
-		Message: MessageMsgStreamReady,
-	}
+	return msgStreamReadyCondition
 }
 
 // StorageConditionInfo is info for acquiring storage condition
 type StorageConditionInfo struct {
 	Namespace string
-	Storage   v1alpha1.MilvusStorage
+	Storage   v1beta1.MilvusStorage
 	EndPoint  string
 	UseSSL    bool
 }
@@ -114,22 +111,22 @@ var newMinioClientFunc NewMinioClientFunc = func(endpoint string, accessKeyID, s
 	return madmin.New(endpoint, accessKeyID, secretAccessKey, secure)
 }
 
-func GetMinioCondition(ctx context.Context, logger logr.Logger, cli client.Client, info StorageConditionInfo) v1alpha1.MilvusCondition {
+func GetMinioCondition(ctx context.Context, logger logr.Logger, cli client.Client, info StorageConditionInfo) v1beta1.MilvusCondition {
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: info.Namespace, Name: info.Storage.SecretRef}
 	err := cli.Get(ctx, key, secret)
 	if err != nil && !k8sErrors.IsNotFound(err) {
-		return newErrStorageCondResult(v1alpha1.ReasonClientErr, err.Error())
+		return newErrStorageCondResult(v1beta1.ReasonClientErr, err.Error())
 	}
 
 	if k8sErrors.IsNotFound(err) {
-		return newErrStorageCondResult(v1alpha1.ReasonSecretNotExist, MessageSecretNotExist)
+		return newErrStorageCondResult(v1beta1.ReasonSecretNotExist, MessageSecretNotExist)
 	}
 
 	accesskey, exist1 := secret.Data[AccessKey]
 	secretkey, exist2 := secret.Data[SecretKey]
 	if !exist1 || !exist2 {
-		return newErrStorageCondResult(v1alpha1.ReasonSecretNotExist, MessageKeyNotExist)
+		return newErrStorageCondResult(v1beta1.ReasonSecretNotExist, MessageKeyNotExist)
 	}
 
 	mdmClnt, err := newMinioClientFunc(
@@ -139,14 +136,14 @@ func GetMinioCondition(ctx context.Context, logger logr.Logger, cli client.Clien
 	)
 
 	if err != nil {
-		return newErrStorageCondResult(v1alpha1.ReasonClientErr, err.Error())
+		return newErrStorageCondResult(v1beta1.ReasonClientErr, err.Error())
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	st, err := mdmClnt.ServerInfo(ctx)
 	if err != nil {
-		return newErrStorageCondResult(v1alpha1.ReasonClientErr, err.Error())
+		return newErrStorageCondResult(v1beta1.ReasonClientErr, err.Error())
 	}
 	ready := false
 	for _, server := range st.Servers {
@@ -156,14 +153,14 @@ func GetMinioCondition(ctx context.Context, logger logr.Logger, cli client.Clien
 		}
 	}
 
-	cond := v1alpha1.MilvusCondition{
-		Type:   v1alpha1.StorageReady,
+	cond := v1beta1.MilvusCondition{
+		Type:   v1beta1.StorageReady,
 		Status: GetConditionStatus(ready),
-		Reason: v1alpha1.ReasonStorageReady,
+		Reason: v1beta1.ReasonStorageReady,
 	}
 
 	if !ready {
-		cond.Reason = v1alpha1.ReasonStorageNotReady
+		cond.Reason = v1beta1.ReasonStorageNotReady
 		cond.Message = MessageStorageNotReady
 	}
 
@@ -174,7 +171,7 @@ type EtcdConditionInfo struct {
 	Endpoints []string
 }
 
-func GetEtcdCondition(ctx context.Context, endpoints []string) v1alpha1.MilvusCondition {
+func GetEtcdCondition(ctx context.Context, endpoints []string) v1beta1.MilvusCondition {
 	health := GetEndpointsHealth(endpoints)
 	etcdReady := false
 	for _, ep := range endpoints {
@@ -184,14 +181,14 @@ func GetEtcdCondition(ctx context.Context, endpoints []string) v1alpha1.MilvusCo
 		}
 	}
 
-	cond := v1alpha1.MilvusCondition{
-		Type:    v1alpha1.EtcdReady,
+	cond := v1beta1.MilvusCondition{
+		Type:    v1beta1.EtcdReady,
 		Status:  GetConditionStatus(etcdReady),
-		Reason:  v1alpha1.ReasonEtcdReady,
+		Reason:  v1beta1.ReasonEtcdReady,
 		Message: MessageEtcdReady,
 	}
 	if !etcdReady {
-		cond.Reason = v1alpha1.ReasonEtcdNotReady
+		cond.Reason = v1beta1.ReasonEtcdNotReady
 		cond.Message = MessageEtcdNotReady // TODO: @shaoyue add detail err msg
 	}
 	return cond
@@ -260,18 +257,18 @@ func GetEndpointsHealth(endpoints []string) map[string]EtcdEndPointHealth {
 	return health
 }
 
-func newErrStorageCondResult(reason, message string) v1alpha1.MilvusCondition {
-	return v1alpha1.MilvusCondition{
-		Type:    v1alpha1.StorageReady,
+func newErrStorageCondResult(reason, message string) v1beta1.MilvusCondition {
+	return v1beta1.MilvusCondition{
+		Type:    v1beta1.StorageReady,
 		Status:  corev1.ConditionFalse,
 		Reason:  reason,
 		Message: message,
 	}
 }
 
-func newErrMsgStreamCondResult(reason, message string) v1alpha1.MilvusCondition {
-	return v1alpha1.MilvusCondition{
-		Type:    v1alpha1.MsgStreamReady,
+func newErrMsgStreamCondResult(reason, message string) v1beta1.MilvusCondition {
+	return v1beta1.MilvusCondition{
+		Type:    v1beta1.MsgStreamReady,
 		Status:  corev1.ConditionFalse,
 		Reason:  reason,
 		Message: message,
@@ -311,16 +308,16 @@ func GetMilvusEndpoint(ctx context.Context, logger logr.Logger, client client.Cl
 // MilvusConditionInfo info for calculate the milvus condition
 type MilvusConditionInfo struct {
 	Object     metav1.Object
-	Conditions []v1alpha1.MilvusCondition
+	Conditions []v1beta1.MilvusCondition
 	IsCluster  bool
 }
 
-func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, info MilvusConditionInfo) (v1alpha1.MilvusCondition, error) {
+func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, info MilvusConditionInfo) (v1beta1.MilvusCondition, error) {
 	if !IsDependencyReady(info.Conditions, info.IsCluster) {
-		return v1alpha1.MilvusCondition{
-			Type:    v1alpha1.MilvusReady,
+		return v1beta1.MilvusCondition{
+			Type:    v1beta1.MilvusReady,
 			Status:  corev1.ConditionFalse,
-			Reason:  v1alpha1.ReasonDependencyNotReady,
+			Reason:  v1beta1.ReasonDependencyNotReady,
 			Message: "Milvus Dependencies is not ready",
 		}, nil
 	}
@@ -332,7 +329,7 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, info Mil
 		AppLabelName:     "milvus",
 	})
 	if err := cli.List(ctx, deployments, opts); err != nil {
-		return v1alpha1.MilvusCondition{}, err
+		return v1beta1.MilvusCondition{}, err
 	}
 
 	ready := 0
@@ -347,8 +344,8 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, info Mil
 		}
 	}
 
-	cond := v1alpha1.MilvusCondition{
-		Type: v1alpha1.MilvusReady,
+	cond := v1beta1.MilvusCondition{
+		Type: v1beta1.MilvusReady,
 	}
 
 	readyNeeded := 1
@@ -358,11 +355,11 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, info Mil
 
 	if ready >= readyNeeded {
 		cond.Status = corev1.ConditionTrue
-		cond.Reason = v1alpha1.ReasonMilvusClusterHealthy
+		cond.Reason = v1beta1.ReasonMilvusHealthy
 		cond.Message = MessageMilvusHealthy
 	} else {
 		cond.Status = corev1.ConditionFalse
-		cond.Reason = v1alpha1.ReasonMilvusComponentNotHealthy
+		cond.Reason = v1beta1.ReasonMilvusComponentNotHealthy
 		sort.Strings(notReadyComponents)
 		cond.Message = fmt.Sprintf("%s not ready", notReadyComponents)
 	}

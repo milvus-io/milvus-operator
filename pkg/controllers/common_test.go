@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 	"helm.sh/helm/v3/pkg/cli"
@@ -14,47 +14,11 @@ import (
 	ctrlRuntime "sigs.k8s.io/controller-runtime"
 )
 
-type milvusTestEnv struct {
-	MockClient *MockK8sClient
-	Ctrl       *gomock.Controller
-	Reconciler *MilvusReconciler
-	Inst       v1alpha1.Milvus
-	ctx        context.Context
-}
-
-func (m *milvusTestEnv) tearDown() {
-	m.Ctrl.Finish()
-}
-
-func newMilvusTestEnv(t *testing.T) *milvusTestEnv {
-	config.Init(util.GetGitRepoRootDir())
-
-	ctrl := gomock.NewController(t)
-	reconciler := newMilvusReconcilerForTest(ctrl)
-	mockClient := reconciler.Client.(*MockK8sClient)
-
-	inst := v1alpha1.Milvus{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "ns",
-			Name:      "n",
-		},
-	}
-	inst.Spec.Dep.Etcd.InCluster = new(v1alpha1.InClusterConfig)
-	inst.Spec.Dep.Storage.InCluster = new(v1alpha1.InClusterConfig)
-	return &milvusTestEnv{
-		MockClient: mockClient,
-		Ctrl:       ctrl,
-		Reconciler: reconciler,
-		Inst:       inst,
-		ctx:        context.Background(),
-	}
-}
-
 type clusterTestEnv struct {
 	MockClient *MockK8sClient
 	Ctrl       *gomock.Controller
-	Reconciler *MilvusClusterReconciler
-	Inst       v1alpha1.MilvusCluster
+	Reconciler *MilvusReconciler
+	Inst       v1beta1.Milvus
 	ctx        context.Context
 }
 
@@ -62,22 +26,22 @@ func (m *clusterTestEnv) checkMocks() {
 	m.Ctrl.Finish()
 }
 
-func newClusterTestEnv(t *testing.T) *clusterTestEnv {
+func newTestEnv(t *testing.T) *clusterTestEnv {
 	config.Init(util.GetGitRepoRootDir())
 
 	ctrl := gomock.NewController(t)
-	reconciler := newClusterReconcilerForTest(ctrl)
+	reconciler := newMilvusReconcilerForTest(ctrl)
 	mockClient := reconciler.Client.(*MockK8sClient)
 
-	inst := v1alpha1.MilvusCluster{
+	inst := v1beta1.Milvus{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "ns",
 			Name:      "mc",
 		},
 	}
-	inst.Spec.Dep.Etcd.InCluster = new(v1alpha1.InClusterConfig)
-	inst.Spec.Dep.Storage.InCluster = new(v1alpha1.InClusterConfig)
-	inst.Spec.Dep.Pulsar.InCluster = new(v1alpha1.InClusterConfig)
+	inst.Spec.Dep.Etcd.InCluster = new(v1beta1.InClusterConfig)
+	inst.Spec.Dep.Storage.InCluster = new(v1beta1.InClusterConfig)
+	inst.Spec.Dep.Pulsar.InCluster = new(v1beta1.InClusterConfig)
 	return &clusterTestEnv{
 		MockClient: mockClient,
 		Ctrl:       ctrl,
@@ -87,29 +51,12 @@ func newClusterTestEnv(t *testing.T) *clusterTestEnv {
 	}
 }
 
-func newClusterReconcilerForTest(ctrl *gomock.Controller) *MilvusClusterReconciler {
-	mockClient := NewMockK8sClient(ctrl)
-
-	logger := ctrlRuntime.Log.WithName("test")
-	scheme := runtime.NewScheme()
-	v1alpha1.AddToScheme(scheme)
-	helmSetting := cli.New()
-	helm := MustNewLocalHelmReconciler(helmSetting, logger)
-	r := MilvusClusterReconciler{
-		Client:         mockClient,
-		logger:         logger,
-		Scheme:         scheme,
-		helmReconciler: helm,
-	}
-	return &r
-}
-
 func newMilvusReconcilerForTest(ctrl *gomock.Controller) *MilvusReconciler {
 	mockClient := NewMockK8sClient(ctrl)
 
 	logger := ctrlRuntime.Log.WithName("test")
 	scheme := runtime.NewScheme()
-	v1alpha1.AddToScheme(scheme)
+	v1beta1.AddToScheme(scheme)
 	helmSetting := cli.New()
 	helm := MustNewLocalHelmReconciler(helmSetting, logger)
 	r := MilvusReconciler{

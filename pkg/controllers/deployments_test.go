@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -13,13 +14,13 @@ import (
 )
 
 func TestClusterReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
-	env := newClusterTestEnv(t)
+	env := newTestEnv(t)
 	defer env.checkMocks()
 	r := env.Reconciler
 	mockClient := env.MockClient
 	ctx := env.ctx
 	mc := env.Inst
-
+	mc.Spec.Mode = v1beta1.MilvusModeCluster
 	// all ok
 	mockClient.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
@@ -35,13 +36,13 @@ func TestClusterReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
 }
 
 func TestClusterReconciler_ReconcileDeployments_Existed(t *testing.T) {
-	env := newClusterTestEnv(t)
+	env := newTestEnv(t)
 	defer env.checkMocks()
 	r := env.Reconciler
 	mockClient := env.MockClient
 	ctx := env.ctx
 	m := env.Inst
-
+	m.Spec.Mode = v1beta1.MilvusModeCluster
 	// call client.Update if changed
 	mockClient.EXPECT().
 		Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
@@ -86,71 +87,6 @@ func TestClusterReconciler_ReconcileDeployments_Existed(t *testing.T) {
 			return nil
 		}).Times(len(MilvusComponents))
 
-	err = r.ReconcileDeployments(ctx, m)
-	assert.NoError(t, err)
-}
-
-func TestReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
-	env := newMilvusTestEnv(t)
-	defer env.tearDown()
-	r := env.Reconciler
-	mockClient := env.MockClient
-	ctx := env.ctx
-	m := env.Inst
-
-	// all ok
-	gomock.InOrder(
-		mockClient.EXPECT().
-			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
-			Return(k8sErrors.NewNotFound(schema.GroupResource{}, "")).
-			Times(1),
-		mockClient.EXPECT().
-			Create(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
-			Return(nil).
-			Times(1),
-	)
-
-	err := r.ReconcileDeployments(ctx, m)
-	assert.NoError(t, err)
-}
-
-func TestMilvusReconciler_ReconcileDeployments_Existed(t *testing.T) {
-	env := newMilvusTestEnv(t)
-	defer env.tearDown()
-	r := env.Reconciler
-	mockClient := env.MockClient
-	ctx := env.ctx
-	m := env.Inst
-
-	// call client.Update if changed configmap
-	gomock.InOrder(
-		mockClient.EXPECT().
-			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
-			DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-				cm := obj.(*appsv1.Deployment)
-				cm.Namespace = "ns"
-				cm.Name = "mc"
-				return nil
-			}),
-		mockClient.EXPECT().
-			Update(gomock.Any(), gomock.Any()).Return(nil),
-	)
-
-	err := r.ReconcileDeployments(ctx, m)
-	assert.NoError(t, err)
-
-	// not call client.Update if configmap not changed
-	gomock.InOrder(
-		mockClient.EXPECT().
-			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
-			DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-				cm := obj.(*appsv1.Deployment)
-				cm.Namespace = "ns"
-				cm.Name = "mc"
-				r.updateDeployment(m, cm)
-				return nil
-			}),
-	)
 	err = r.ReconcileDeployments(ctx, m)
 	assert.NoError(t, err)
 }

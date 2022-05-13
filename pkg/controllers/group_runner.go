@@ -5,15 +5,15 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/pkg/errors"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 //go:generate mockgen -source=./group_runner.go -destination=./group_runner_mock.go -package=controllers
 
-type MilvusReconcileFunc func(context.Context, v1alpha1.Milvus) error
-type MilvusClusterReconcileFunc func(context.Context, v1alpha1.MilvusCluster) error
+type MilvusReconcileFunc func(context.Context, v1beta1.Milvus) error
+type MilvusClusterReconcileFunc func(context.Context, v1beta1.Milvus) error
 
 // GroupRunner does a group of funcs in parallel
 type GroupRunner interface {

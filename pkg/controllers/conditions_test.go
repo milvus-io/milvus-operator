@@ -7,7 +7,7 @@ import (
 
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/golang/mock/gomock"
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/minio/madmin-go"
 	"github.com/stretchr/testify/assert"
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
@@ -28,12 +28,12 @@ func getMockPulsarNewClient(cli pulsar.Client, err error) func(options pulsar.Cl
 }
 
 func TestGetKafkaCondition(t *testing.T) {
-	checkKafka = func(p v1alpha1.MilvusKafka) error { return nil }
-	ret := GetKafkaCondition(context.TODO(), logf.Log.WithName("test"), v1alpha1.MilvusKafka{})
+	checkKafka = func(p v1beta1.MilvusKafka) error { return nil }
+	ret := GetKafkaCondition(context.TODO(), logf.Log.WithName("test"), v1beta1.MilvusKafka{})
 	assert.Equal(t, corev1.ConditionTrue, ret.Status)
 
-	checkKafka = func(p v1alpha1.MilvusKafka) error { return errors.New("failed") }
-	ret = GetKafkaCondition(context.TODO(), logf.Log.WithName("test"), v1alpha1.MilvusKafka{})
+	checkKafka = func(p v1beta1.MilvusKafka) error { return errors.New("failed") }
+	ret = GetKafkaCondition(context.TODO(), logf.Log.WithName("test"), v1beta1.MilvusKafka{})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
 }
 
@@ -48,9 +48,9 @@ func TestGetPulsarCondition(t *testing.T) {
 
 	// new client failed, no err
 	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, errTest)
-	ret := GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
+	ret := GetPulsarCondition(ctx, logger, v1beta1.MilvusPulsar{})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonMsgStreamNotReady, ret.Reason)
+	assert.Equal(t, v1beta1.ReasonMsgStreamNotReady, ret.Reason)
 
 	// new client ok, create read failed, no err
 	gomock.InOrder(
@@ -58,9 +58,9 @@ func TestGetPulsarCondition(t *testing.T) {
 		mockPulsarNewClient.EXPECT().Close(),
 	)
 	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, nil)
-	ret = GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
+	ret = GetPulsarCondition(ctx, logger, v1beta1.MilvusPulsar{})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonMsgStreamNotReady, ret.Reason)
+	assert.Equal(t, v1beta1.ReasonMsgStreamNotReady, ret.Reason)
 
 	// new client ok, create read ok, no err
 	mockReader := NewMockPulsarReader(ctrl)
@@ -70,9 +70,9 @@ func TestGetPulsarCondition(t *testing.T) {
 		mockPulsarNewClient.EXPECT().Close(),
 	)
 	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, nil)
-	ret = GetPulsarCondition(ctx, logger, v1alpha1.MilvusPulsar{})
+	ret = GetPulsarCondition(ctx, logger, v1beta1.MilvusPulsar{})
 	assert.Equal(t, corev1.ConditionTrue, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonMsgStreamReady, ret.Reason)
+	assert.Equal(t, v1beta1.ReasonMsgStreamReady, ret.Reason)
 }
 
 func getMockNewMinioClientFunc(cli MinioClient, err error) NewMinioClientFunc {
@@ -96,7 +96,7 @@ func TestGetMinioCondition(t *testing.T) {
 		defer ctrl.Finish()
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errTest)
 		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-		assert.Equal(t, v1alpha1.ReasonClientErr, ret.Reason)
+		assert.Equal(t, v1beta1.ReasonClientErr, ret.Reason)
 	})
 
 	t.Run(`secret not found`, func(t *testing.T) {
@@ -104,7 +104,7 @@ func TestGetMinioCondition(t *testing.T) {
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errNotFound)
 		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
-		assert.Equal(t, v1alpha1.ReasonSecretNotExist, ret.Reason)
+		assert.Equal(t, v1beta1.ReasonSecretNotExist, ret.Reason)
 	})
 
 	t.Run(`secrets keys not found`, func(t *testing.T) {
@@ -112,7 +112,7 @@ func TestGetMinioCondition(t *testing.T) {
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
-		assert.Equal(t, v1alpha1.ReasonSecretNotExist, ret.Reason)
+		assert.Equal(t, v1beta1.ReasonSecretNotExist, ret.Reason)
 	})
 
 	t.Run("new client failed", func(t *testing.T) {
@@ -127,7 +127,7 @@ func TestGetMinioCondition(t *testing.T) {
 			})
 		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
-		assert.Equal(t, v1alpha1.ReasonClientErr, ret.Reason)
+		assert.Equal(t, v1beta1.ReasonClientErr, ret.Reason)
 
 	})
 
@@ -143,7 +143,7 @@ func TestGetMinioCondition(t *testing.T) {
 		mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{}, errTest)
 		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
-		assert.Equal(t, v1alpha1.ReasonClientErr, ret.Reason)
+		assert.Equal(t, v1beta1.ReasonClientErr, ret.Reason)
 
 	})
 
@@ -158,7 +158,7 @@ func TestGetMinioCondition(t *testing.T) {
 		mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{}, nil)
 		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
-		assert.Equal(t, v1alpha1.ReasonStorageNotReady, ret.Reason)
+		assert.Equal(t, v1beta1.ReasonStorageNotReady, ret.Reason)
 	})
 
 	// one online check ok
@@ -178,7 +178,7 @@ func TestGetMinioCondition(t *testing.T) {
 		}, nil)
 		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionTrue, ret.Status)
-		assert.Equal(t, v1alpha1.ReasonStorageReady, ret.Reason)
+		assert.Equal(t, v1beta1.ReasonStorageReady, ret.Reason)
 	})
 }
 
@@ -198,13 +198,13 @@ func TestGetEtcdCondition(t *testing.T) {
 	// no endpoint
 	ret := GetEtcdCondition(ctx, []string{})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonEtcdNotReady, ret.Reason)
+	assert.Equal(t, v1beta1.ReasonEtcdNotReady, ret.Reason)
 
 	// new client failed
 	etcdNewClient = getMockNewEtcdClient(nil, errTest)
 	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonEtcdNotReady, ret.Reason)
+	assert.Equal(t, v1beta1.ReasonEtcdNotReady, ret.Reason)
 
 	// etcd get failed
 	mockEtcdCli := NewMockEtcdClient(ctrl)
@@ -215,7 +215,7 @@ func TestGetEtcdCondition(t *testing.T) {
 	)
 	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonEtcdNotReady, ret.Reason)
+	assert.Equal(t, v1beta1.ReasonEtcdNotReady, ret.Reason)
 
 	// etcd get, err permession denied, alarm failed
 	etcdNewClient = getMockNewEtcdClient(mockEtcdCli, nil)
@@ -226,7 +226,7 @@ func TestGetEtcdCondition(t *testing.T) {
 	)
 	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonEtcdNotReady, ret.Reason)
+	assert.Equal(t, v1beta1.ReasonEtcdNotReady, ret.Reason)
 
 	// etcd get, err permession denied, no alarm ok
 	etcdNewClient = getMockNewEtcdClient(mockEtcdCli, nil)
@@ -241,7 +241,7 @@ func TestGetEtcdCondition(t *testing.T) {
 	)
 	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonEtcdNotReady, ret.Reason)
+	assert.Equal(t, v1beta1.ReasonEtcdNotReady, ret.Reason)
 
 }
 
@@ -302,20 +302,20 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 	// dependency not ready
 	info := MilvusConditionInfo{
 		Object:     &inst,
-		Conditions: []v1alpha1.MilvusCondition{},
+		Conditions: []v1beta1.MilvusCondition{},
 		IsCluster:  true,
 	}
 	ret, err := GetMilvusInstanceCondition(ctx, mockClient, info)
 	assert.NoError(t, err)
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1alpha1.ReasonDependencyNotReady, ret.Reason)
+	assert.Equal(t, v1beta1.ReasonDependencyNotReady, ret.Reason)
 
 	// dependency ready, list failed, err
 	info = MilvusConditionInfo{
 		Object: &inst,
-		Conditions: []v1alpha1.MilvusCondition{
-			{Type: v1alpha1.EtcdReady, Status: corev1.ConditionTrue},
-			{Type: v1alpha1.StorageReady, Status: corev1.ConditionTrue},
+		Conditions: []v1beta1.MilvusCondition{
+			{Type: v1beta1.EtcdReady, Status: corev1.ConditionTrue},
+			{Type: v1beta1.StorageReady, Status: corev1.ConditionTrue},
 		},
 		IsCluster: false,
 	}
@@ -326,9 +326,9 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 	// dependency ready, standalone one ok
 	info = MilvusConditionInfo{
 		Object: &inst,
-		Conditions: []v1alpha1.MilvusCondition{
-			{Type: v1alpha1.EtcdReady, Status: corev1.ConditionTrue},
-			{Type: v1alpha1.StorageReady, Status: corev1.ConditionTrue},
+		Conditions: []v1beta1.MilvusCondition{
+			{Type: v1beta1.EtcdReady, Status: corev1.ConditionTrue},
+			{Type: v1beta1.StorageReady, Status: corev1.ConditionTrue},
 		},
 		IsCluster: false,
 	}
@@ -354,10 +354,10 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 	// dependency ready, cluster 8 ok
 	info = MilvusConditionInfo{
 		Object: &inst,
-		Conditions: []v1alpha1.MilvusCondition{
-			{Type: v1alpha1.EtcdReady, Status: corev1.ConditionTrue},
-			{Type: v1alpha1.StorageReady, Status: corev1.ConditionTrue},
-			{Type: v1alpha1.MsgStreamReady, Status: corev1.ConditionTrue},
+		Conditions: []v1beta1.MilvusCondition{
+			{Type: v1beta1.EtcdReady, Status: corev1.ConditionTrue},
+			{Type: v1beta1.StorageReady, Status: corev1.ConditionTrue},
+			{Type: v1beta1.MsgStreamReady, Status: corev1.ConditionTrue},
 		},
 		IsCluster: true,
 	}

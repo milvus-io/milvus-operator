@@ -8,7 +8,7 @@ import (
 	"reflect"
 
 	"github.com/go-logr/logr"
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/helm"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/pkg/errors"
@@ -185,7 +185,7 @@ func (l LocalHelmReconciler) Reconcile(ctx context.Context, request helm.ChartRe
 	return helm.Update(cfg, request)
 }
 
-func (r *MilvusClusterReconciler) ReconcileEtcd(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+func (r *MilvusReconciler) ReconcileEtcd(ctx context.Context, mc v1beta1.Milvus) error {
 	if mc.Spec.Dep.Etcd.External {
 		return nil
 	}
@@ -200,16 +200,19 @@ func (r *MilvusClusterReconciler) ReconcileEtcd(ctx context.Context, mc v1alpha1
 	return r.helmReconciler.Reconcile(ctx, request)
 }
 
-func (r *MilvusClusterReconciler) ReconcileMsgStream(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+func (r *MilvusReconciler) ReconcileMsgStream(ctx context.Context, mc v1beta1.Milvus) error {
 	switch mc.Spec.Dep.MsgStreamType {
-	case v1alpha1.MsgStreamTypeKafka:
+	case v1beta1.MsgStreamTypeKafka:
 		return r.ReconcileKafka(ctx, mc)
+	case v1beta1.MsgStreamTypeRocksMQ:
+		// built in, do nothing
+		return nil
 	default:
 		return r.ReconcilePulsar(ctx, mc)
 	}
 }
 
-func (r *MilvusClusterReconciler) ReconcileKafka(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+func (r *MilvusReconciler) ReconcileKafka(ctx context.Context, mc v1beta1.Milvus) error {
 	if mc.Spec.Dep.Kafka.External {
 		return nil
 	}
@@ -224,7 +227,7 @@ func (r *MilvusClusterReconciler) ReconcileKafka(ctx context.Context, mc v1alpha
 	return r.helmReconciler.Reconcile(ctx, request)
 }
 
-func (r *MilvusClusterReconciler) ReconcilePulsar(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+func (r *MilvusReconciler) ReconcilePulsar(ctx context.Context, mc v1beta1.Milvus) error {
 	if mc.Spec.Dep.Pulsar.External {
 		return nil
 	}
@@ -239,7 +242,7 @@ func (r *MilvusClusterReconciler) ReconcilePulsar(ctx context.Context, mc v1alph
 	return r.helmReconciler.Reconcile(ctx, request)
 }
 
-func (r *MilvusClusterReconciler) ReconcileMinio(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+func (r *MilvusReconciler) ReconcileMinio(ctx context.Context, mc v1beta1.Milvus) error {
 	if mc.Spec.Dep.Storage.External {
 		return nil
 	}
@@ -249,36 +252,6 @@ func (r *MilvusClusterReconciler) ReconcileMinio(ctx context.Context, mc v1alpha
 		Namespace:   mc.Namespace,
 		Chart:       MinioChart,
 		Values:      mc.Spec.Dep.Storage.InCluster.Values.Data,
-	}
-
-	return r.helmReconciler.Reconcile(ctx, request)
-}
-
-func (r *MilvusReconciler) ReconcileEtcd(ctx context.Context, mil v1alpha1.Milvus) error {
-	if mil.Spec.Dep.Etcd.External {
-		return nil
-	}
-
-	request := helm.ChartRequest{
-		ReleaseName: mil.Name + "-etcd",
-		Namespace:   mil.Namespace,
-		Chart:       EtcdChart,
-		Values:      mil.Spec.Dep.Etcd.InCluster.Values.Data,
-	}
-
-	return r.helmReconciler.Reconcile(ctx, request)
-}
-
-func (r *MilvusReconciler) ReconcileMinio(ctx context.Context, mil v1alpha1.Milvus) error {
-	if mil.Spec.Dep.Storage.External {
-		return nil
-	}
-
-	request := helm.ChartRequest{
-		ReleaseName: mil.Name + "-minio",
-		Namespace:   mil.Namespace,
-		Chart:       MinioChart,
-		Values:      mil.Spec.Dep.Storage.InCluster.Values.Data,
 	}
 
 	return r.helmReconciler.Reconcile(ctx, request)

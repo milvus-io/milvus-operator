@@ -8,37 +8,37 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 )
 
-func (r *MilvusClusterReconciler) updateService(
-	mc v1alpha1.MilvusCluster, service *corev1.Service, component MilvusComponent,
+func (r *MilvusReconciler) updateService(
+	mc v1beta1.Milvus, service *corev1.Service, component MilvusComponent,
 ) error {
-	appLabels := NewComponentAppLabels(mc.Name, component.String())
+	appLabels := NewComponentAppLabels(mc.Name, component.GetName())
 	service.Labels = MergeLabels(service.Labels, appLabels)
 	if err := ctrl.SetControllerReference(&mc, service, r.Scheme); err != nil {
 		return err
 	}
-
-	// we only have proxy service now
-	// if component.Name == Proxy.Name {
-	service.Labels = MergeLabels(service.Labels, mc.Spec.Com.Proxy.ServiceLabels)
-	service.Annotations = MergeLabels(service.Annotations, mc.Spec.Com.Proxy.ServiceAnnotations)
-	// }
-
 	service.Spec.Ports = MergeServicePort(service.Spec.Ports, component.GetServicePorts(mc.Spec))
 	service.Spec.Selector = appLabels
 	service.Spec.Type = component.GetServiceType(mc.Spec)
 
+	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
+		service.Labels = MergeLabels(service.Labels, mc.Spec.Com.Proxy.ServiceLabels)
+		service.Annotations = MergeLabels(service.Annotations, mc.Spec.Com.Proxy.ServiceAnnotations)
+	} else {
+		service.Labels = MergeLabels(service.Labels, mc.Spec.Com.Standalone.ServiceLabels)
+		service.Annotations = MergeLabels(service.Annotations, mc.Spec.Com.Standalone.ServiceAnnotations)
+
+	}
+
 	return nil
 }
 
-func (r *MilvusClusterReconciler) ReconcileComponentService(
-	ctx context.Context, mc v1alpha1.MilvusCluster, component MilvusComponent,
+func (r *MilvusReconciler) ReconcileComponentService(
+	ctx context.Context, mc v1beta1.Milvus, component MilvusComponent,
 ) error {
 	if component.IsNode() || component.IsCoord() {
 		return nil
@@ -84,77 +84,13 @@ func (r *MilvusClusterReconciler) ReconcileComponentService(
 	return r.Update(ctx, cur)
 }
 
-func (r *MilvusClusterReconciler) ReconcileServices(ctx context.Context, mc v1alpha1.MilvusCluster) error {
-	err := r.ReconcileComponentService(ctx, mc, Proxy)
+func (r *MilvusReconciler) ReconcileServices(ctx context.Context, mc v1beta1.Milvus) error {
+	var err error
+	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
+		err = r.ReconcileComponentService(ctx, mc, Proxy)
+	} else {
+		err = r.ReconcileComponentService(ctx, mc, MilvusStandalone)
+	}
+
 	return pkgerr.Wrap(err, "reconcile milvus services")
-}
-
-func (r *MilvusReconciler) ReconcileServices(ctx context.Context, mil v1alpha1.Milvus) error {
-	old := &corev1.Service{}
-	key := client.ObjectKey{
-		Namespace: mil.Namespace,
-		Name:      GetServiceInstanceName(mil.Name),
-	}
-	err := r.Get(ctx, key, old)
-	if errors.IsNotFound(err) {
-		new := &corev1.Service{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      GetServiceInstanceName(mil.Name),
-				Namespace: mil.Namespace,
-			},
-		}
-		if err := r.updateService(mil, new); err != nil {
-			return err
-		}
-
-		r.logger.Info("Create Service", "name", new.Name, "namespace", new.Namespace)
-		return r.Create(ctx, new)
-	} else if err != nil {
-		return err
-	}
-
-	cur := old.DeepCopy()
-	if err := r.updateService(mil, cur); err != nil {
-		return err
-	}
-
-	if IsEqual(old, cur) {
-		return nil
-	}
-
-	r.logger.Info("Update Service", "name", cur.Name, "namespace", cur.Namespace)
-	return r.Update(ctx, cur)
-}
-
-func (r *MilvusReconciler) updateService(
-	mc v1alpha1.Milvus, service *corev1.Service,
-) error {
-	appLabels := NewComponentAppLabels(mc.Name, MilvusName)
-	service.Labels = MergeLabels(service.Labels, appLabels)
-	if err := ctrl.SetControllerReference(&mc, service, r.Scheme); err != nil {
-		return err
-	}
-
-	service.Labels = MergeLabels(service.Labels, mc.Spec.ServiceLabels)
-	service.Annotations = MergeLabels(service.Annotations, mc.Spec.ServiceAnnotations)
-
-	service.Spec.Ports = MergeServicePort(service.Spec.Ports, []corev1.ServicePort{
-		{
-			Name:       MilvusName,
-			Protocol:   corev1.ProtocolTCP,
-			Port:       MilvusPort,
-			TargetPort: intstr.FromString(MilvusName),
-		},
-		{
-			Name:       MetricPortName,
-			Protocol:   corev1.ProtocolTCP,
-			Port:       MetricPort,
-			TargetPort: intstr.FromString(MetricPortName),
-		},
-	})
-
-	service.Spec.Selector = appLabels
-	service.Spec.Type = mc.Spec.ServiceType
-
-	return nil
 }

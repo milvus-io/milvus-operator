@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/patrickmn/go-cache"
 )
 
@@ -14,8 +14,8 @@ var endpointCheckCache EndpointCheckCache = NewEndpointCheckCacheImpl()
 
 // EndpointCheckCache coordinates endpoint check to avoid duplicated check for same endpoint
 type EndpointCheckCache interface {
-	Get(endpoint []string) (condition *v1alpha1.MilvusCondition, found bool)
-	Set(endpoints []string, condition *v1alpha1.MilvusCondition)
+	Get(endpoint []string) (condition *v1beta1.MilvusCondition, found bool)
+	Set(endpoints []string, condition *v1beta1.MilvusCondition)
 }
 
 // EndpointCheckCacheImpl implements EndpointCheckCache
@@ -34,7 +34,7 @@ func strSliceAsKey(input []string) string {
 	return strings.Join(sortable, ",")
 }
 
-func (e EndpointCheckCacheImpl) Get(endpoints []string) (condition *v1alpha1.MilvusCondition, isUpToDate bool) {
+func (e EndpointCheckCacheImpl) Get(endpoints []string) (condition *v1beta1.MilvusCondition, isUpToDate bool) {
 	if len(endpoints) == 0 {
 		return nil, false
 	}
@@ -42,10 +42,10 @@ func (e EndpointCheckCacheImpl) Get(endpoints []string) (condition *v1alpha1.Mil
 	if !found {
 		return nil, false
 	}
-	return item.(*v1alpha1.MilvusCondition), true
+	return item.(*v1beta1.MilvusCondition), true
 }
 
-func (e EndpointCheckCacheImpl) Set(endpoints []string, condition *v1alpha1.MilvusCondition) {
+func (e EndpointCheckCacheImpl) Set(endpoints []string, condition *v1beta1.MilvusCondition) {
 	if len(endpoints) == 0 {
 		return
 	}

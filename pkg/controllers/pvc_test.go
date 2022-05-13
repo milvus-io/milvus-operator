@@ -6,13 +6,14 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 func TestMilvusReconciler_ReconcilePVCs(t *testing.T) {
-	env := newMilvusTestEnv(t)
-	defer env.tearDown()
+	env := newTestEnv(t)
+	defer env.checkMocks()
 	r := env.Reconciler
 	mockClient := env.MockClient
 	ctx := env.ctx
@@ -24,14 +25,14 @@ func TestMilvusReconciler_ReconcilePVCs(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	m.Spec.Persistence.Enabled = true
-	m.Spec.Persistence.PersistentVolumeClaim.ExistingClaim = "claim"
+	m.Spec.Dep.RocksMQ.Persistence.Enabled = true
+	m.Spec.Dep.RocksMQ.Persistence.PersistentVolumeClaim.ExistingClaim = "claim"
 	t.Run("using_existing", func(t *testing.T) {
 		err := r.ReconcilePVCs(ctx, m)
 		assert.NoError(t, err)
 	})
 
-	m.Spec.Persistence.PersistentVolumeClaim.ExistingClaim = ""
+	m.Spec.Dep.RocksMQ.Persistence.PersistentVolumeClaim.ExistingClaim = ""
 	m.Namespace = "ns"
 	m.Name = "name"
 	errMock := errors.New("mock")
@@ -52,12 +53,15 @@ func TestMilvusReconciler_ReconcilePVCs(t *testing.T) {
 
 	t.Run("sync:no_update", func(t *testing.T) {
 		defer env.Ctrl.Finish()
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.Any()).Return(nil)
+		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.Any()).Do(func(_, _, obj interface{}) {
+			pvc := obj.(*corev1.PersistentVolumeClaim)
+			r.syncPVC(ctx, m.Spec.Dep.RocksMQ.Persistence.PersistentVolumeClaim, pvc)
+		}).Return(nil)
 		err := r.ReconcilePVCs(ctx, m)
 		assert.NoError(t, err)
 	})
 
-	m.Spec.Persistence.PersistentVolumeClaim.Annotations = map[string]string{"bla": "bla"}
+	m.Spec.Dep.RocksMQ.Persistence.PersistentVolumeClaim.Annotations = map[string]string{"bla": "bla"}
 	t.Run("sync:update", func(t *testing.T) {
 		defer env.Ctrl.Finish()
 		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.Any()).Return(nil)

@@ -1,7 +1,7 @@
 package controllers
 
 import (
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	pkgErrs "github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -13,6 +13,7 @@ import (
 type deploymentUpdater interface {
 	GetIntanceName() string
 	GetComponentName() string
+	GetPortName() string
 	GetControllerRef() metav1.Object
 	GetScheme() *runtime.Scheme
 	GetReplicas() *int32
@@ -21,65 +22,7 @@ type deploymentUpdater interface {
 	GetMergedComponentSpec() ComponentSpec
 	GetArgs() []string
 	GetSecretRef() string
-	GetPersistenceConfig() *v1alpha1.Persistence
-}
-
-// milvusDeploymentUpdater implements deploymentUpdater for milvus
-type milvusDeploymentUpdater struct {
-	v1alpha1.Milvus
-	scheme *runtime.Scheme
-}
-
-func newMilvusDeploymentUpdater(m v1alpha1.Milvus, scheme *runtime.Scheme) *milvusDeploymentUpdater {
-	return &milvusDeploymentUpdater{
-		Milvus: m,
-		scheme: scheme,
-	}
-}
-
-func (m milvusDeploymentUpdater) GetIntanceName() string {
-	return m.Name
-}
-func (m milvusDeploymentUpdater) GetComponentName() string {
-	return MilvusName
-}
-
-func (m milvusDeploymentUpdater) GetControllerRef() metav1.Object {
-	return &m.Milvus
-}
-func (m milvusDeploymentUpdater) GetScheme() *runtime.Scheme {
-	return m.scheme
-}
-
-func (m milvusDeploymentUpdater) GetReplicas() *int32 {
-	return m.Spec.Replicas
-}
-
-func (m milvusDeploymentUpdater) GetDeploymentStrategy() appsv1.DeploymentStrategy {
-	return appsv1.DeploymentStrategy{
-		Type: appsv1.RecreateDeploymentStrategyType,
-	}
-}
-
-func (m milvusDeploymentUpdater) GetConfCheckSum() string {
-	return GetMilvusConfCheckSum(m.Spec)
-}
-
-func (m milvusDeploymentUpdater) GetMergedComponentSpec() ComponentSpec {
-	return MergeComponentSpec(
-		m.Spec.ComponentSpec,
-		ComponentSpec{}, // a dummy one for merge
-	)
-}
-func (m milvusDeploymentUpdater) GetArgs() []string {
-	return []string{RunScriptPath, "milvus", "run", "standalone"}
-}
-func (m milvusDeploymentUpdater) GetSecretRef() string {
-	return m.Spec.Dep.Storage.SecretRef
-}
-
-func (m milvusDeploymentUpdater) GetPersistenceConfig() *v1alpha1.Persistence {
-	return &m.Spec.Persistence
+	GetPersistenceConfig() *v1beta1.Persistence
 }
 
 func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) error {
@@ -141,9 +84,9 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	env := mergedComSpec.Env
 	env = append(env, GetStorageSecretRefEnv(updater.GetSecretRef())...)
 	container.Env = MergeEnvVar(container.Env, env)
-	container.Ports = MergeContainerPort(container.Ports, []corev1.ContainerPort{
+	container.Ports = []corev1.ContainerPort{
 		{
-			Name:          updater.GetComponentName(),
+			Name:          updater.GetPortName(),
 			ContainerPort: MilvusPort,
 			Protocol:      corev1.ProtocolTCP,
 		},
@@ -152,7 +95,7 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 			ContainerPort: MetricPort,
 			Protocol:      corev1.ProtocolTCP,
 		},
-	})
+	}
 
 	addVolumeMount(&container.VolumeMounts, configVolumeMount)
 	addVolumeMount(&container.VolumeMounts, toolVolumeMount)
@@ -169,55 +112,63 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	return nil
 }
 
-// milvusclusterDeploymentUpdater implements deploymentUpdater for milvuscluster
-type milvusclusterDeploymentUpdater struct {
-	v1alpha1.MilvusCluster
+// milvusDeploymentUpdater implements deploymentUpdater for milvus
+type milvusDeploymentUpdater struct {
+	v1beta1.Milvus
 	scheme    *runtime.Scheme
 	component MilvusComponent
 }
 
-func newMilvusclusterDeploymentUpdater(m v1alpha1.MilvusCluster, scheme *runtime.Scheme, component MilvusComponent) *milvusclusterDeploymentUpdater {
-	return &milvusclusterDeploymentUpdater{
-		MilvusCluster: m,
-		scheme:        scheme,
-		component:     component,
+func newMilvusDeploymentUpdater(m v1beta1.Milvus, scheme *runtime.Scheme, component MilvusComponent) *milvusDeploymentUpdater {
+	return &milvusDeploymentUpdater{
+		Milvus:    m,
+		scheme:    scheme,
+		component: component,
 	}
 }
 
-func (m milvusclusterDeploymentUpdater) GetPersistenceConfig() *v1alpha1.Persistence {
+func (m milvusDeploymentUpdater) GetPersistenceConfig() *v1beta1.Persistence {
+	if m.Milvus.Spec.Dep.RocksMQ.Persistence.Enabled {
+		return &m.Milvus.Spec.Dep.RocksMQ.Persistence
+	}
 	return nil
 }
 
-func (m milvusclusterDeploymentUpdater) GetIntanceName() string {
+func (m milvusDeploymentUpdater) GetIntanceName() string {
 	return m.Name
 }
-func (m milvusclusterDeploymentUpdater) GetComponentName() string {
-	return m.component.String()
+func (m milvusDeploymentUpdater) GetComponentName() string {
+	return m.component.GetName()
 }
-func (m milvusclusterDeploymentUpdater) GetControllerRef() metav1.Object {
-	return &m.MilvusCluster
+
+func (m milvusDeploymentUpdater) GetPortName() string {
+	return m.component.GetPortName()
 }
-func (m milvusclusterDeploymentUpdater) GetScheme() *runtime.Scheme {
+
+func (m milvusDeploymentUpdater) GetControllerRef() metav1.Object {
+	return &m.Milvus
+}
+func (m milvusDeploymentUpdater) GetScheme() *runtime.Scheme {
 	return m.scheme
 }
-func (m milvusclusterDeploymentUpdater) GetReplicas() *int32 {
+func (m milvusDeploymentUpdater) GetReplicas() *int32 {
 	return m.component.GetReplicas(m.Spec)
 }
-func (m milvusclusterDeploymentUpdater) GetDeploymentStrategy() appsv1.DeploymentStrategy {
+func (m milvusDeploymentUpdater) GetDeploymentStrategy() appsv1.DeploymentStrategy {
 	return m.component.GetDeploymentStrategy()
 }
-func (m milvusclusterDeploymentUpdater) GetConfCheckSum() string {
+func (m milvusDeploymentUpdater) GetConfCheckSum() string {
 	return GetConfCheckSum(m.Spec)
 }
-func (m milvusclusterDeploymentUpdater) GetMergedComponentSpec() ComponentSpec {
+func (m milvusDeploymentUpdater) GetMergedComponentSpec() ComponentSpec {
 	return MergeComponentSpec(
 		m.component.GetComponentSpec(m.Spec),
 		m.Spec.Com.ComponentSpec,
 	)
 }
-func (m milvusclusterDeploymentUpdater) GetArgs() []string {
-	return []string{RunScriptPath, "milvus", "run", m.component.String()}
+func (m milvusDeploymentUpdater) GetArgs() []string {
+	return []string{RunScriptPath, "milvus", "run", m.component.GetName()}
 }
-func (m milvusclusterDeploymentUpdater) GetSecretRef() string {
+func (m milvusDeploymentUpdater) GetSecretRef() string {
 	return m.Spec.Dep.Storage.SecretRef
 }

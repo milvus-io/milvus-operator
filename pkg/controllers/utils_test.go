@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -332,38 +332,38 @@ func TestGetConditionStatus(t *testing.T) {
 
 func TestIsClusterDependencyReady(t *testing.T) {
 	// 1 not ready -> not ready
-	status := v1alpha1.MilvusStatus{
-		Conditions: []v1alpha1.MilvusCondition{
+	status := v1beta1.MilvusStatus{
+		Conditions: []v1beta1.MilvusCondition{
 			{
-				Type:   v1alpha1.EtcdReady,
+				Type:   v1beta1.EtcdReady,
 				Status: corev1.ConditionTrue,
 			},
 			{
-				Type:   v1alpha1.MsgStreamReady,
+				Type:   v1beta1.MsgStreamReady,
 				Status: corev1.ConditionTrue,
 			},
 			{
-				Type:   v1alpha1.StorageReady,
+				Type:   v1beta1.StorageReady,
 				Status: corev1.ConditionFalse,
 			},
 		},
 	}
-	assert.False(t, IsClusterDependencyReady(status))
+	assert.False(t, IsDependencyReady(status.Conditions, true))
 	// all ready -> ready
 	status.Conditions[2].Status = corev1.ConditionTrue
-	assert.True(t, IsClusterDependencyReady(status))
+	assert.True(t, IsDependencyReady(status.Conditions, true))
 }
 
 func TestIsDependencyReady(t *testing.T) {
 	// 1 not ready -> not ready
-	status := v1alpha1.MilvusStatus{
-		Conditions: []v1alpha1.MilvusCondition{
+	status := v1beta1.MilvusStatus{
+		Conditions: []v1beta1.MilvusCondition{
 			{
-				Type:   v1alpha1.EtcdReady,
+				Type:   v1beta1.EtcdReady,
 				Status: corev1.ConditionTrue,
 			},
 			{
-				Type:   v1alpha1.StorageReady,
+				Type:   v1beta1.StorageReady,
 				Status: corev1.ConditionFalse,
 			},
 		},
@@ -376,16 +376,16 @@ func TestIsDependencyReady(t *testing.T) {
 
 func TestUpdateClusterCondition(t *testing.T) {
 	// append if not existed
-	status := v1alpha1.MilvusStatus{
-		Conditions: []v1alpha1.MilvusCondition{
+	status := v1beta1.MilvusStatus{
+		Conditions: []v1beta1.MilvusCondition{
 			{
-				Type:   v1alpha1.StorageReady,
+				Type:   v1beta1.StorageReady,
 				Status: corev1.ConditionFalse,
 			},
 		},
 	}
-	condition := v1alpha1.MilvusCondition{
-		Type:    v1alpha1.MsgStreamReady,
+	condition := v1beta1.MilvusCondition{
+		Type:    v1beta1.MsgStreamReady,
 		Status:  corev1.ConditionFalse,
 		Reason:  "NotReady",
 		Message: "Pulsar is not ready",
@@ -396,8 +396,8 @@ func TestUpdateClusterCondition(t *testing.T) {
 	assert.Equal(t, status.Conditions[1].Type, condition.Type)
 
 	// update existed
-	condition2 := v1alpha1.MilvusCondition{
-		Type:    v1alpha1.MsgStreamReady,
+	condition2 := v1beta1.MilvusCondition{
+		Type:    v1beta1.MsgStreamReady,
 		Status:  corev1.ConditionTrue,
 		Reason:  "Ready",
 		Message: "Pulsar is ready",
@@ -410,16 +410,16 @@ func TestUpdateClusterCondition(t *testing.T) {
 
 func TestUpdateCondition(t *testing.T) {
 	// append if not existed
-	status := v1alpha1.MilvusStatus{
-		Conditions: []v1alpha1.MilvusCondition{
+	status := v1beta1.MilvusStatus{
+		Conditions: []v1beta1.MilvusCondition{
 			{
-				Type:   v1alpha1.StorageReady,
+				Type:   v1beta1.StorageReady,
 				Status: corev1.ConditionFalse,
 			},
 		},
 	}
-	condition := v1alpha1.MilvusCondition{
-		Type:    v1alpha1.MsgStreamReady,
+	condition := v1beta1.MilvusCondition{
+		Type:    v1beta1.MsgStreamReady,
 		Status:  corev1.ConditionFalse,
 		Reason:  "NotReady",
 		Message: "Pulsar is not ready",
@@ -430,8 +430,8 @@ func TestUpdateCondition(t *testing.T) {
 	assert.Equal(t, status.Conditions[1].Type, condition.Type)
 
 	// update existed
-	condition2 := v1alpha1.MilvusCondition{
-		Type:    v1alpha1.MsgStreamReady,
+	condition2 := v1beta1.MilvusCondition{
+		Type:    v1beta1.MsgStreamReady,
 		Status:  corev1.ConditionTrue,
 		Reason:  "Ready",
 		Message: "Pulsar is ready",
@@ -462,12 +462,12 @@ func TestGetMinioSecure(t *testing.T) {
 }
 
 func TestDiffObject(t *testing.T) {
-	obj1 := &v1alpha1.MilvusCluster{
+	obj1 := &v1beta1.Milvus{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "obj1",
 		},
 	}
-	obj2 := &v1alpha1.MilvusCluster{
+	obj2 := &v1beta1.Milvus{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "obj2",
 		},
