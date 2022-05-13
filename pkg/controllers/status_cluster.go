@@ -17,27 +17,27 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 )
 
 const (
-	MessageEtcdReady       = "Etcd endpoints is healthy"
-	MessageEtcdNotReady    = "All etcd endpoints are unhealthy"
-	MessageStorageReady    = "Storage endpoints is healthy"
-	MessageStorageNotReady = "All Storage endpoints are unhealthy"
-	MessagePulsarReady     = "Pulsar is ready"
-	MessagePulsarNotReady  = "Pulsar is not ready"
-	MessageSecretNotExist  = "Secret not exist"
-	MessageKeyNotExist     = "accesskey or secretkey not exist in secret"
-	MessageDecodeErr       = "accesskey or secretkey decode error"
-	MessageMilvusHealthy   = "All Milvus components are healthy"
+	MessageEtcdReady         = "Etcd endpoints is healthy"
+	MessageEtcdNotReady      = "All etcd endpoints are unhealthy"
+	MessageStorageReady      = "Storage endpoints is healthy"
+	MessageStorageNotReady   = "All Storage endpoints are unhealthy"
+	MessageMsgStreamReady    = "MsgStream is ready"
+	MessageMsgStreamNotReady = "MsgStream is not ready"
+	MessageSecretNotExist    = "Secret not exist"
+	MessageKeyNotExist       = "accesskey or secretkey not exist in secret"
+	MessageDecodeErr         = "accesskey or secretkey decode error"
+	MessageMilvusHealthy     = "All Milvus components are healthy"
 )
 
 var (
-	S3ReadyCondition = v1alpha1.MilvusCondition{
-		Type:   v1alpha1.StorageReady,
+	S3ReadyCondition = v1beta1.MilvusCondition{
+		Type:   v1beta1.StorageReady,
 		Status: GetConditionStatus(true),
-		Reason: v1alpha1.ReasonS3Ready,
+		Reason: v1beta1.ReasonS3Ready,
 	}
 )
 
@@ -47,7 +47,7 @@ type EtcdEndPointHealth struct {
 	Error  string `json:"error,omitempty"`
 }
 
-type MilvusClusterStatusSyncer struct {
+type MilvusStatusSyncer struct {
 	ctx context.Context
 	client.Client
 	logger logr.Logger
@@ -55,8 +55,8 @@ type MilvusClusterStatusSyncer struct {
 	sync.Once
 }
 
-func NewMilvusClusterStatusSyncer(ctx context.Context, client client.Client, logger logr.Logger) *MilvusClusterStatusSyncer {
-	return &MilvusClusterStatusSyncer{
+func NewMilvusStatusSyncer(ctx context.Context, client client.Client, logger logr.Logger) *MilvusStatusSyncer {
+	return &MilvusStatusSyncer{
 		ctx:    ctx,
 		Client: client,
 		logger: logger,
@@ -65,26 +65,26 @@ func NewMilvusClusterStatusSyncer(ctx context.Context, client client.Client, log
 
 var unhealthySyncInterval = 30 * time.Second
 
-func (r *MilvusClusterStatusSyncer) RunIfNot() {
+func (r *MilvusStatusSyncer) RunIfNot() {
 	r.Once.Do(func() {
 		go LoopWithInterval(r.ctx, r.syncUnhealthy, unhealthySyncInterval, r.logger)
 		go LoopWithInterval(r.ctx, r.syncHealthy, unhealthySyncInterval*2, r.logger)
 	})
 }
 
-func (r *MilvusClusterStatusSyncer) syncUnhealthy() error {
-	milvusClusterList := &v1alpha1.MilvusClusterList{}
-	err := r.List(r.ctx, milvusClusterList)
+func (r *MilvusStatusSyncer) syncUnhealthy() error {
+	milvusList := &v1beta1.MilvusList{}
+	err := r.List(r.ctx, milvusList)
 	if err != nil {
-		return errors.Wrap(err, "list milvuscluster failed")
+		return errors.Wrap(err, "list milvus failed")
 	}
 
 	argsArray := []Args{}
-	for i := range milvusClusterList.Items {
-		mc := &milvusClusterList.Items[i]
+	for i := range milvusList.Items {
+		mc := &milvusList.Items[i]
 		r.logger.Info("syncUnhealthy mc status", "status", mc.Status.Status)
 		if mc.Status.Status == "" ||
-			mc.Status.Status == v1alpha1.StatusHealthy {
+			mc.Status.Status == v1beta1.StatusHealthy {
 			continue
 		}
 		argsArray = append(argsArray, Args{mc})
@@ -93,16 +93,16 @@ func (r *MilvusClusterStatusSyncer) syncUnhealthy() error {
 	return errors.Wrap(err, "UpdateStatus failed")
 }
 
-func (r *MilvusClusterStatusSyncer) syncHealthy() error {
-	milvusClusterList := &v1alpha1.MilvusClusterList{}
-	err := r.List(r.ctx, milvusClusterList)
+func (r *MilvusStatusSyncer) syncHealthy() error {
+	milvusList := &v1beta1.MilvusList{}
+	err := r.List(r.ctx, milvusList)
 	if err != nil {
-		return errors.Wrap(err, "list milvuscluster failed")
+		return errors.Wrap(err, "list milvus failed")
 	}
 	argsArray := []Args{}
-	for i := range milvusClusterList.Items {
-		mc := &milvusClusterList.Items[i]
-		if mc.Status.Status == v1alpha1.StatusHealthy {
+	for i := range milvusList.Items {
+		mc := &milvusList.Items[i]
+		if mc.Status.Status == v1beta1.StatusHealthy {
 			argsArray = append(argsArray, Args{mc})
 		}
 	}
@@ -110,23 +110,23 @@ func (r *MilvusClusterStatusSyncer) syncHealthy() error {
 	return errors.Wrap(err, "UpdateStatus failed")
 }
 
-func (r *MilvusClusterStatusSyncer) UpdateStatus(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
+func (r *MilvusStatusSyncer) UpdateStatus(ctx context.Context, mc *v1beta1.Milvus) error {
 	// ignore if default status not set
-	if !IsClusterSetDefaultDone(mc) {
+	if !IsSetDefaultDone(mc) {
 		return nil
 	}
 
 	funcs := []Func{
 		r.GetEtcdCondition,
 		r.GetMinioCondition,
-		r.GetPulsarCondition,
+		r.GetMsgStreamCondition,
 	}
 	ress := defaultGroupRunner.RunWithResult(funcs, ctx, *mc)
 
 	errTexts := []string{}
 	for _, res := range ress {
 		if res.Err == nil {
-			UpdateClusterCondition(&mc.Status, res.Data.(v1alpha1.MilvusCondition))
+			UpdateCondition(&mc.Status, res.Data.(v1beta1.MilvusCondition))
 		} else {
 			errTexts = append(errTexts, res.Err.Error())
 		}
@@ -136,16 +136,16 @@ func (r *MilvusClusterStatusSyncer) UpdateStatus(ctx context.Context, mc *v1alph
 		return fmt.Errorf("update status error: %s", strings.Join(errTexts, ":"))
 	}
 
-	milvusCond, err := r.GetMilvusClusterCondition(ctx, *mc)
+	milvusCond, err := r.GetMilvusCondition(ctx, *mc)
 	if err != nil {
 		return err
 	}
-	UpdateClusterCondition(&mc.Status, milvusCond)
+	UpdateCondition(&mc.Status, milvusCond)
 
 	if milvusCond.Status != corev1.ConditionTrue {
-		mc.Status.Status = v1alpha1.StatusUnHealthy
+		mc.Status.Status = v1beta1.StatusUnHealthy
 	} else {
-		mc.Status.Status = v1alpha1.StatusHealthy
+		mc.Status.Status = v1beta1.StatusHealthy
 	}
 
 	err = r.UpdateIngressStatus(ctx, mc)
@@ -174,14 +174,14 @@ type replicaUpdaterImpl struct{}
 
 func (r replicaUpdaterImpl) UpdateReplicas(ctx context.Context, obj client.Object, cli client.Client) error {
 	components := MilvusComponents
-	if reflect.TypeOf(obj).String() != reflect.TypeOf(&v1alpha1.MilvusCluster{}).String() {
+	if reflect.TypeOf(obj).String() != reflect.TypeOf(&v1beta1.Milvus{}).String() {
 		components = StandaloneComponents
 	}
-	status := reflect.ValueOf(obj).Elem().FieldByName("Status").Addr().Interface().(*v1alpha1.MilvusStatus)
+	status := reflect.ValueOf(obj).Elem().FieldByName("Status").Addr().Interface().(*v1beta1.MilvusStatus)
 	return updateReplicas(ctx, client.ObjectKeyFromObject(obj), status, components, cli)
 }
 
-func updateReplicas(ctx context.Context, key client.ObjectKey, status *v1alpha1.MilvusStatus, components []MilvusComponent, client client.Client) error {
+func updateReplicas(ctx context.Context, key client.ObjectKey, status *v1beta1.MilvusStatus, components []MilvusComponent, client client.Client) error {
 	for _, component := range components {
 		deploy, err := getComponentDeployment(ctx, key, component, client)
 		if err != nil {
@@ -208,7 +208,7 @@ func getComponentDeployment(ctx context.Context, key client.ObjectKey, component
 	return deployment, nil
 }
 
-func (r *MilvusClusterStatusSyncer) UpdateIngressStatus(ctx context.Context, mc *v1alpha1.MilvusCluster) error {
+func (r *MilvusStatusSyncer) UpdateIngressStatus(ctx context.Context, mc *v1beta1.Milvus) error {
 	key := client.ObjectKeyFromObject(mc)
 	key.Name = key.Name + "-milvus"
 	status, err := getIngressStatus(ctx, r.Client, client.ObjectKeyFromObject(mc))
@@ -233,7 +233,7 @@ func getIngressStatus(ctx context.Context, client client.Client, key client.Obje
 	return ingress.Status.DeepCopy(), nil
 }
 
-func (r *MilvusClusterStatusSyncer) GetMilvusEndpoint(ctx context.Context, mc v1alpha1.MilvusCluster) string {
+func (r *MilvusStatusSyncer) GetMilvusEndpoint(ctx context.Context, mc v1beta1.Milvus) string {
 	info := MilvusEndpointInfo{
 		Namespace:   mc.Namespace,
 		Name:        mc.Name,
@@ -243,25 +243,38 @@ func (r *MilvusClusterStatusSyncer) GetMilvusEndpoint(ctx context.Context, mc v1
 	return GetMilvusEndpoint(ctx, r.logger, r.Client, info)
 }
 
-func (r *MilvusClusterStatusSyncer) GetMilvusClusterCondition(ctx context.Context, mc v1alpha1.MilvusCluster) (v1alpha1.MilvusCondition, error) {
+func (r *MilvusStatusSyncer) GetMilvusCondition(ctx context.Context, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
 	info := MilvusConditionInfo{
 		Object:     mc.GetObjectMeta(),
 		Conditions: mc.Status.Conditions,
-		IsCluster:  true,
+		IsCluster:  mc.Spec.Mode == v1beta1.MilvusModeCluster,
 	}
 	return GetMilvusInstanceCondition(ctx, r.Client, info)
 }
 
-func (r *MilvusClusterStatusSyncer) GetPulsarCondition(
-	ctx context.Context, mc v1alpha1.MilvusCluster) (v1alpha1.MilvusCondition, error) {
-	getter := wrapPulsarConditonGetter(ctx, r.logger, mc.Spec.Dep.Pulsar)
-	return GetCondition(getter, []string{mc.Spec.Dep.Pulsar.Endpoint}), nil
+func (r *MilvusStatusSyncer) GetMsgStreamCondition(
+	ctx context.Context, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
+	var eps = []string{}
+	var getter func() v1beta1.MilvusCondition
+	// rocksmq is built in, assume ok
+	if mc.Spec.Dep.MsgStreamType == v1beta1.MsgStreamTypeRocksMQ {
+		return msgStreamReadyCondition, nil
+	}
+
+	if mc.Spec.Dep.MsgStreamType == v1beta1.MsgStreamTypeKafka {
+		getter = wrapKafkaConditonGetter(ctx, r.logger, mc.Spec.Dep.Kafka)
+		eps = mc.Spec.Dep.Kafka.BrokerList
+	} else {
+		getter = wrapPulsarConditonGetter(ctx, r.logger, mc.Spec.Dep.Pulsar)
+		eps = []string{mc.Spec.Dep.Pulsar.Endpoint}
+	}
+	return GetCondition(getter, eps), nil
 }
 
 // TODO: rename as GetStorageCondition
-func (r *MilvusClusterStatusSyncer) GetMinioCondition(
-	ctx context.Context, mc v1alpha1.MilvusCluster) (v1alpha1.MilvusCondition, error) {
-	if mc.Spec.Dep.Storage.Type == v1alpha1.StorageTypeS3 {
+func (r *MilvusStatusSyncer) GetMinioCondition(
+	ctx context.Context, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
+	if mc.Spec.Dep.Storage.Type == v1beta1.StorageTypeS3 {
 		return S3ReadyCondition, nil
 	}
 	info := StorageConditionInfo{
@@ -274,7 +287,7 @@ func (r *MilvusClusterStatusSyncer) GetMinioCondition(
 	return GetCondition(getter, []string{mc.Spec.Dep.Storage.Endpoint}), nil
 }
 
-func (r *MilvusClusterStatusSyncer) GetEtcdCondition(ctx context.Context, mc v1alpha1.MilvusCluster) (v1alpha1.MilvusCondition, error) {
+func (r *MilvusStatusSyncer) GetEtcdCondition(ctx context.Context, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
 	getter := wrapEtcdConditionGetter(ctx, mc.Spec.Dep.Etcd.Endpoints)
 	return GetCondition(getter, mc.Spec.Dep.Etcd.Endpoints), nil
 }

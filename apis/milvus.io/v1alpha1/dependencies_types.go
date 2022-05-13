@@ -24,12 +24,25 @@ type MilvusClusterDependencies struct {
 	// +kubebuilder:validation:Optional
 	Etcd MilvusEtcd `json:"etcd"`
 
+	// +kubebuilder:default:="pulsar"
+	// +kubebuilder:validation:Enum:={"pulsar", "kafka"}
 	// +kubebuilder:validation:Optional
-	Pulsar MilvusPulsar `json:"pulsar"`
+	MsgStreamType string `json:"msgStreamType,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Pulsar MilvusPulsar `json:"pulsar,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Kafka MilvusKafka `json:"kafka,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	Storage MilvusStorage `json:"storage"`
 }
+
+const (
+	MsgStreamTypePulsar = "pulsar"
+	MsgStreamTypeKafka  = "kafka"
+)
 
 type MilvusEtcd struct {
 	// +kubebuilder:validation:Optional
@@ -87,4 +100,17 @@ type MilvusPulsar struct {
 
 	// +kubebuilder:validation:Optional
 	Endpoint string `json:"endpoint"`
+}
+
+// MilvusKafka configuration
+type MilvusKafka struct {
+	// +kubebuilder:validation:Optional
+	InCluster *InClusterConfig `json:"inCluster,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:default:=false
+	External bool `json:"external,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	BrokerList []string `json:"brokerList,omitempty"`
 }

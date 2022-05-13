@@ -1,0 +1,47 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: milvus-sit
+---
+apiVersion: milvus.io/v1alpha1
+kind: Milvus
+metadata:
+  name: milvus
+  namespace: milvus-sit
+  labels:
+    app: milvus
+spec:
+  disableMetric: true
+  ingress:
+    labels:
+      ingressLabel: value
+    annotations:
+      ingressAnnotation: value
+    hosts: ["mc-sit.milvus.io"]
+  serviceLabels:
+    myLabel: value
+  serviceAnnotations:
+    myAnnotation: value
+  dependencies:
+    etcd:
+      inCluster:
+        deletionPolicy: Delete
+        pvcDeletion: true
+        values:
+          replicaCount: 1
+    storage:
+      inCluster:
+        deletionPolicy: Delete
+        pvcDeletion: true
+        values:
+          mode: standalone
+  persistence:
+    enabled: true
+  config:
+    milvus:
+      log:
+        level: info
+    component:
+      proxy:
+        timeTickInterval: 150

@@ -9,11 +9,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 )
 
-func (r *MilvusClusterReconciler) updatePodMonitor(
-	mc v1alpha1.MilvusCluster, podmonitor *monitoringv1.PodMonitor) error {
+func (r *MilvusReconciler) updatePodMonitor(
+	mc v1beta1.Milvus, podmonitor *monitoringv1.PodMonitor) error {
 
 	appLabels := NewAppLabels(mc.Name)
 	podmonitor.Labels = MergeLabels(podmonitor.Labels, appLabels)
@@ -41,7 +41,7 @@ func (r *MilvusClusterReconciler) updatePodMonitor(
 	return nil
 }
 
-func (r *MilvusClusterReconciler) ReconcilePodMonitor(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+func (r *MilvusReconciler) ReconcilePodMonitor(ctx context.Context, mc v1beta1.Milvus) error {
 	if mc.Spec.Com.DisableMetric {
 		return nil
 	}
@@ -85,78 +85,4 @@ func (r *MilvusClusterReconciler) ReconcilePodMonitor(ctx context.Context, mc v1
 
 	r.logger.Info("Update PodMonitor", "name", cur.Name, "namespace", cur.Namespace)
 	return r.Update(ctx, cur)
-}
-
-func (r *MilvusReconciler) ReconcilePodMonitor(ctx context.Context, mc v1alpha1.Milvus) error {
-	if mc.Spec.DisableMetric {
-		return nil
-	}
-	namespacedName := NamespacedName(mc.Namespace, mc.Name)
-	old := &monitoringv1.PodMonitor{}
-	err := r.Get(ctx, namespacedName, old)
-	if meta.IsNoMatchError(err) {
-		r.logger.Info("podmonitor kind no matchs, maybe is not installed")
-		return nil
-	}
-
-	if errors.IsNotFound(err) {
-		new := &monitoringv1.PodMonitor{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      namespacedName.Name,
-				Namespace: namespacedName.Namespace,
-			},
-		}
-
-		if err := r.updatePodMonitor(mc, new); err != nil {
-			return err
-		}
-
-		r.logger.Info("Create PodMonitor", "name", new.Name, "namespace", new.Namespace)
-		return r.Create(ctx, new)
-	}
-
-	if err != nil {
-		return err
-	}
-
-	cur := old.DeepCopy()
-	if err := r.updatePodMonitor(mc, cur); err != nil {
-		return err
-	}
-
-	if IsEqual(old, cur) {
-		return nil
-	}
-
-	r.logger.Info("Update PodMonitor", "name", cur.Name, "namespace", cur.Namespace)
-	return r.Update(ctx, cur)
-}
-
-func (r *MilvusReconciler) updatePodMonitor(
-	mil v1alpha1.Milvus, podmonitor *monitoringv1.PodMonitor) error {
-
-	appLabels := NewAppLabels(mil.Name)
-	podmonitor.Labels = MergeLabels(podmonitor.Labels, appLabels)
-	if err := ctrl.SetControllerReference(&mil, podmonitor, r.Scheme); err != nil {
-		r.logger.Error(err, "PodMonitor SetControllerReference error", "name", mil.Name, "namespace", mil.Namespace)
-		return err
-	}
-
-	podmonitor.Spec.PodMetricsEndpoints = []monitoringv1.PodMetricsEndpoint{
-		{
-			HonorLabels: true,
-			Interval:    "30s",
-			Path:        MetricPath,
-			Port:        MetricPortName,
-		},
-	}
-	podmonitor.Spec.NamespaceSelector = monitoringv1.NamespaceSelector{
-		MatchNames: []string{mil.Namespace},
-	}
-	podmonitor.Spec.Selector.MatchLabels = appLabels
-	podmonitor.Spec.PodTargetLabels = []string{
-		AppLabelInstance, AppLabelName, AppLabelComponent,
-	}
-
-	return nil
 }

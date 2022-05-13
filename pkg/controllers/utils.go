@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -286,20 +286,16 @@ func GetConditionStatus(b bool) corev1.ConditionStatus {
 	return corev1.ConditionFalse
 }
 
-func IsClusterDependencyReady(status v1alpha1.MilvusStatus) bool {
-	return IsDependencyReady(status.Conditions, true)
-}
-
-func IsDependencyReady(conditions []v1alpha1.MilvusCondition, isCluster bool) bool {
+func IsDependencyReady(conditions []v1beta1.MilvusCondition, isCluster bool) bool {
 	ready := 0
 	for _, c := range conditions {
 		if c.Status != corev1.ConditionTrue {
 			continue
 		}
 		switch c.Type {
-		case v1alpha1.EtcdReady, v1alpha1.StorageReady:
+		case v1beta1.EtcdReady, v1beta1.StorageReady:
 			ready++
-		case v1alpha1.PulsarReady:
+		case v1beta1.MsgStreamReady:
 			if isCluster {
 				ready++
 			}
@@ -311,7 +307,7 @@ func IsDependencyReady(conditions []v1alpha1.MilvusCondition, isCluster bool) bo
 	return ready == 2
 }
 
-func UpdateClusterCondition(status *v1alpha1.MilvusStatus, c v1alpha1.MilvusCondition) {
+func UpdateClusterCondition(status *v1beta1.MilvusStatus, c v1beta1.MilvusCondition) {
 	for i := range status.Conditions {
 		cp := &status.Conditions[i]
 		if cp.Type == c.Type {
@@ -336,7 +332,7 @@ func UpdateClusterCondition(status *v1alpha1.MilvusStatus, c v1alpha1.MilvusCond
 	status.Conditions = append(status.Conditions, c)
 }
 
-func UpdateCondition(status *v1alpha1.MilvusStatus, c v1alpha1.MilvusCondition) {
+func UpdateCondition(status *v1beta1.MilvusStatus, c v1beta1.MilvusCondition) {
 	for i := range status.Conditions {
 		cp := &status.Conditions[i]
 		if cp.Type == c.Type {

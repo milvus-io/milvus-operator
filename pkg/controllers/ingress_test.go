@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -27,7 +27,7 @@ func mockSetCtrlRef(err error) {
 }
 
 func TestMilvusClusterReconciler_ReconcileIngress(t *testing.T) {
-	env := newClusterTestEnv(t)
+	env := newTestEnv(t)
 	defer env.checkMocks()
 	r := env.Reconciler
 	mockClient := env.MockClient
@@ -38,12 +38,13 @@ func TestMilvusClusterReconciler_ReconcileIngress(t *testing.T) {
 	mockRenderer := NewMockingressRendererInterface(env.Ctrl)
 	ingressRenderer = mockRenderer
 
+	mc.Spec.Mode = v1beta1.MilvusModeCluster
 	t.Run("disabled", func(t *testing.T) {
 		err := r.ReconcileIngress(ctx, mc)
 		assert.NoError(t, err)
 	})
 
-	mc.Spec.Com.Proxy.Ingress = &v1alpha1.MilvusIngress{}
+	mc.Spec.Com.Proxy.Ingress = &v1beta1.MilvusIngress{}
 	mockSetCtrlRef(mockErr)
 	t.Run("SetControllerReference failed", func(t *testing.T) {
 		mockRenderer.EXPECT().Render(gomock.Any(), gomock.Any()).Return(nil)
@@ -101,20 +102,11 @@ func TestMilvusClusterReconciler_ReconcileIngress(t *testing.T) {
 	})
 }
 
-func TestMilvusReconciler_ReconcileIngress_callok(t *testing.T) {
-	env := newMilvusTestEnv(t)
-	defer env.tearDown()
-	r := env.Reconciler
-	// tests in milvuscluster, here just test entry
-	err := r.ReconcileIngress(env.ctx, env.Inst)
-	assert.NoError(t, err)
-}
-
 func TestIngressRenderer_Render(t *testing.T) {
-	env := newClusterTestEnv(t)
+	env := newTestEnv(t)
 	mc := env.Inst
 	icn := "class1"
-	ingressSpec := v1alpha1.MilvusIngress{
+	ingressSpec := v1beta1.MilvusIngress{
 		IngressClassName: &icn,
 		Labels:           map[string]string{"label1": "value1"},
 		Annotations:      map[string]string{"anno1": "value1"},

@@ -4,7 +4,7 @@ kind: Namespace
 metadata:
   name: milvus-sit
 ---
-apiVersion: milvus.io/v1alpha1
+apiVersion: milvus.io/v1beta1
 kind: Milvus
 metadata:
   name: milvus
@@ -12,28 +12,36 @@ metadata:
   labels:
     app: milvus
 spec:
-  disableMetric: true
-  ingress:
-    labels:
-      ingressLabel: value
-    annotations:
-      ingressAnnotation: value
-    hosts: ["mc-sit.milvus.io"]
-  serviceLabels:
-    myLabel: value
-  serviceAnnotations:
-    myAnnotation: value
+  mode: "standalone"
+  components:
+    disableMetric: true
+    standalone:
+      ingress:
+        labels:
+          ingressLabel: value
+        annotations:
+          ingressAnnotation: value
+        hosts: ["mc-sit.milvus.io"]
+      serviceLabels:
+        myLabel: value
+      serviceAnnotations:
+        myAnnotation: value
   dependencies:
     etcd:
       inCluster:
         deletionPolicy: Delete
         pvcDeletion: true
+        values:
+          replicaCount: 1
     storage:
       inCluster:
         deletionPolicy: Delete
         pvcDeletion: true
-  persistence:
-    enabled: true
+        values:
+          mode: standalone
+    rocksmq:
+      persistence:
+        enabled: true
   config:
     milvus:
       log:

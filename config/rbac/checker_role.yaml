@@ -140,7 +140,7 @@ rules:
   - apiGroups:
     - milvus.io
     resources:
-    - milvus
+    - milvuses
     verbs:
     - create
     - delete
@@ -158,37 +158,11 @@ rules:
   - apiGroups:
     - milvus.io
     resources:
-    - milvus/status
+    - milvuses/status
     verbs:
     - get
     - patch
-    - update
-  - apiGroups:
-    - milvus.io
-    resources:
-    - milvusclusters
-    verbs:
-    - create
-    - delete
-    - get
-    - list
-    - patch
-    - update
-    - watch
-  - apiGroups:
-    - milvus.io
-    resources:
-    - milvusclusters/finalizers
-    verbs:
-    - update
-  - apiGroups:
-    - milvus.io
-    resources:
-    - milvusclusters/status
-    verbs:
-    - get
-    - patch
-    - update
+    - update  
   - apiGroups:
     - monitoring.coreos.com
     resources:

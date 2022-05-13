@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 )
 
@@ -28,6 +28,7 @@ const (
 	QueryNodeName  = "querynode"
 	IndexNodeName  = "indexnode"
 	ProxyName      = "proxy"
+	StandaloneName = "standalone"
 	MilvusName     = "milvus"
 
 	RootCoordFieldName  = "RootCoord"
@@ -50,7 +51,8 @@ const (
 	DataNodePort   = 21124
 	ProxyPort      = 19530
 	// TODO: use configurable port?
-	MilvusPort = ProxyPort
+	MilvusPort     = ProxyPort
+	StandalonePort = MilvusPort
 )
 
 // MilvusComponent contains basic info of a milvus cluster component
@@ -72,7 +74,7 @@ var (
 	Proxy      = MilvusComponent{ProxyName, ProxyFieldName, ProxyPort}
 
 	// Milvus standalone
-	MilvusStandalone = MilvusComponent{MilvusName, StandaloneFieldName, MilvusPort}
+	MilvusStandalone = MilvusComponent{StandaloneName, StandaloneFieldName, StandalonePort}
 
 	MilvusComponents = []MilvusComponent{
 		RootCoord, DataCoord, QueryCoord, IndexCoord, DataNode, QueryNode, IndexNode, Proxy,
@@ -92,13 +94,18 @@ func (c MilvusComponent) IsCoord() bool {
 	return strings.HasSuffix(c.Name, "coord")
 }
 
+// IsCoord return if it's a coord by its name
+func (c MilvusComponent) IsStandalone() bool {
+	return c.Name == StandaloneName
+}
+
 // IsCoord return if it's a node by its name
 func (c MilvusComponent) IsNode() bool {
 	return strings.HasSuffix(c.Name, "node")
 }
 
 // GetReplicas returns the replicas for the component
-func (c MilvusComponent) GetReplicas(spec v1alpha1.MilvusClusterSpec) *int32 {
+func (c MilvusComponent) GetReplicas(spec v1beta1.MilvusSpec) *int32 {
 	replicas, _ := reflect.ValueOf(spec.Com).
 		FieldByName(c.FieldName).
 		FieldByName("Component").
@@ -107,7 +114,7 @@ func (c MilvusComponent) GetReplicas(spec v1alpha1.MilvusClusterSpec) *int32 {
 }
 
 // String returns the name of the component
-func (c MilvusComponent) String() string {
+func (c MilvusComponent) GetName() string {
 	return c.Name
 }
 
@@ -135,15 +142,23 @@ func (c MilvusComponent) GetContainerName() string {
 }
 
 // SetStatusReplica sets the replica status of the component, input status should not be nil
-func (c MilvusComponent) SetStatusReplicas(status *v1alpha1.MilvusReplicas, replicas int) {
+func (c MilvusComponent) SetStatusReplicas(status *v1beta1.MilvusReplicas, replicas int) {
 	reflect.ValueOf(status).Elem().FieldByName(c.FieldName).SetInt(int64(replicas))
 }
 
+// GetPortName returns the port name of the component container
+func (c MilvusComponent) GetPortName() string {
+	if c.Name == StandaloneName || c.Name == ProxyName {
+		return MilvusName
+	}
+	return c.Name
+}
+
 // GetContainerPorts returns the ports of the component container
-func (c MilvusComponent) GetContainerPorts(spec v1alpha1.MilvusClusterSpec) []corev1.ContainerPort {
+func (c MilvusComponent) GetContainerPorts(spec v1beta1.MilvusSpec) []corev1.ContainerPort {
 	return []corev1.ContainerPort{
 		{
-			Name:          c.String(),
+			Name:          c.GetPortName(),
 			ContainerPort: c.GetComponentPort(spec),
 			Protocol:      corev1.ProtocolTCP,
 		},
@@ -156,7 +171,7 @@ func (c MilvusComponent) GetContainerPorts(spec v1alpha1.MilvusClusterSpec) []co
 }
 
 // GetServiceType returns the type of the component service
-func (c MilvusComponent) GetServiceType(spec v1alpha1.MilvusClusterSpec) corev1.ServiceType {
+func (c MilvusComponent) GetServiceType(spec v1beta1.MilvusSpec) corev1.ServiceType {
 	if c != Proxy {
 		return corev1.ServiceTypeClusterIP
 	}
@@ -165,16 +180,14 @@ func (c MilvusComponent) GetServiceType(spec v1alpha1.MilvusClusterSpec) corev1.
 }
 
 // GetServicePorts returns the ports of the component service
-func (c MilvusComponent) GetServicePorts(spec v1alpha1.MilvusClusterSpec) []corev1.ServicePort {
+func (c MilvusComponent) GetServicePorts(spec v1beta1.MilvusSpec) []corev1.ServicePort {
 	servicePorts := []corev1.ServicePort{}
-	if !c.IsNode() {
-		servicePorts = append(servicePorts, corev1.ServicePort{
-			Name:       c.String(),
-			Protocol:   corev1.ProtocolTCP,
-			Port:       c.GetComponentPort(spec),
-			TargetPort: intstr.FromString(c.String()),
-		})
-	}
+	servicePorts = append(servicePorts, corev1.ServicePort{
+		Name:       c.GetPortName(),
+		Protocol:   corev1.ProtocolTCP,
+		Port:       c.GetComponentPort(spec),
+		TargetPort: intstr.FromString(c.GetPortName()),
+	})
 	servicePorts = append(servicePorts, corev1.ServicePort{
 		Name:       MetricPortName,
 		Protocol:   corev1.ProtocolTCP,
@@ -186,7 +199,7 @@ func (c MilvusComponent) GetServicePorts(spec v1alpha1.MilvusClusterSpec) []core
 }
 
 // GetComponentPort returns the port of the component
-func (c MilvusComponent) GetComponentPort(spec v1alpha1.MilvusClusterSpec) int32 {
+func (c MilvusComponent) GetComponentPort(spec v1beta1.MilvusSpec) int32 {
 	port, _ := reflect.ValueOf(spec.Com).
 		FieldByName(c.FieldName).
 		FieldByName("Component").
@@ -200,18 +213,19 @@ func (c MilvusComponent) GetComponentPort(spec v1alpha1.MilvusClusterSpec) int32
 }
 
 // GetComponentSpec returns the component spec
-func (c MilvusComponent) GetComponentSpec(spec v1alpha1.MilvusClusterSpec) v1alpha1.ComponentSpec {
+func (c MilvusComponent) GetComponentSpec(spec v1beta1.MilvusSpec) v1beta1.ComponentSpec {
 	value := reflect.ValueOf(spec.Com).FieldByName(c.FieldName).FieldByName("ComponentSpec")
-	comSpec, _ := value.Interface().(v1alpha1.ComponentSpec)
+	comSpec, _ := value.Interface().(v1beta1.ComponentSpec)
 	return comSpec
 }
 
 // GetConfCheckSum returns the checksum of the component configuration
-func GetConfCheckSum(spec v1alpha1.MilvusClusterSpec) string {
+func GetConfCheckSum(spec v1beta1.MilvusSpec) string {
 	conf := map[string]interface{}{}
 	conf["conf"] = spec.Conf.Data
 	conf["etcd-endpoints"] = spec.Dep.Etcd.Endpoints
 	conf["pulsar-endpoint"] = spec.Dep.Pulsar.Endpoint
+	conf["kafka-brokerList"] = spec.Dep.Kafka.BrokerList
 	conf["storage-endpoint"] = spec.Dep.Storage.Endpoint
 
 	b, err := json.Marshal(conf)
@@ -223,7 +237,7 @@ func GetConfCheckSum(spec v1alpha1.MilvusClusterSpec) string {
 }
 
 // GetMilvusConfCheckSum returns the checksum of the component configuration
-func GetMilvusConfCheckSum(spec v1alpha1.MilvusSpec) string {
+func GetMilvusConfCheckSum(spec v1beta1.MilvusSpec) string {
 	conf := map[string]interface{}{}
 	conf["conf"] = spec.Conf.Data
 	conf["etcd-endpoints"] = spec.Dep.Etcd.Endpoints
@@ -257,7 +271,7 @@ func GetLivenessProbe() *corev1.Probe {
 var GetReadinessProbe = GetLivenessProbe
 
 func (c MilvusComponent) GetDeploymentStrategy() appsv1.DeploymentStrategy {
-	if c.IsCoord() {
+	if c.IsCoord() || c.IsStandalone() {
 		return appsv1.DeploymentStrategy{
 			Type: appsv1.RecreateDeploymentStrategyType,
 		}
@@ -272,7 +286,7 @@ func (c MilvusComponent) GetDeploymentStrategy() appsv1.DeploymentStrategy {
 	}
 }
 
-type ComponentSpec = v1alpha1.ComponentSpec
+type ComponentSpec = v1beta1.ComponentSpec
 
 const (
 	CacheSizeEnvVarName = "CACHE_SIZE"

@@ -10,9 +10,4 @@ webhooks:
       name: '{{ include "chart.fullname" . }}-webhook-service'
       namespace: '{{ .Release.Namespace | quote }}'
       port: 443
-- name: vmilvuscluster.kb.io
-  clientConfig:
-    service:
-      name: '{{ include "chart.fullname" . }}-webhook-service'
-      namespace: '{{ .Release.Namespace | quote }}'
-      port: 443
+

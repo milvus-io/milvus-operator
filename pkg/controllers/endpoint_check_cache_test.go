@@ -3,7 +3,7 @@ package controllers
 import (
 	"testing"
 
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,7 +12,7 @@ func TestEndpointCheckCache(t *testing.T) {
 		key := []string{}
 		_, found := endpointCheckCache.Get(key)
 		assert.False(t, found)
-		cond := &v1alpha1.MilvusCondition{Reason: "OK"}
+		cond := &v1beta1.MilvusCondition{Reason: "OK"}
 		endpointCheckCache.Set(key, cond)
 		_, found = endpointCheckCache.Get(key)
 		assert.False(t, found)
@@ -22,7 +22,7 @@ func TestEndpointCheckCache(t *testing.T) {
 		key1 := []string{"a"}
 		_, found := endpointCheckCache.Get(key1)
 		assert.False(t, found)
-		cond := &v1alpha1.MilvusCondition{Reason: "OK"}
+		cond := &v1beta1.MilvusCondition{Reason: "OK"}
 		endpointCheckCache.Set(key1, cond)
 		ret, found := endpointCheckCache.Get(key1)
 		assert.True(t, found)
@@ -34,7 +34,7 @@ func TestEndpointCheckCache(t *testing.T) {
 		key2 := []string{"c", "a", "b"}
 		_, found := endpointCheckCache.Get(key1)
 		assert.False(t, found)
-		cond := &v1alpha1.MilvusCondition{Reason: "OK"}
+		cond := &v1beta1.MilvusCondition{Reason: "OK"}
 		endpointCheckCache.Set(key1, cond)
 		ret, found := endpointCheckCache.Get(key2)
 		assert.True(t, found)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	milvusv1alpha1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/pkg/errors"
 	"helm.sh/helm/v3/pkg/cli"
@@ -15,6 +14,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	milvusv1alpha1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	milvusv1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
+	milvuscluster "github.com/milvus-io/milvus-operator/pkg/controllers/milvuscluster"
 )
 
 var configFlagInsecure = true
@@ -33,39 +36,35 @@ func SetupControllers(ctx context.Context, mgr manager.Manager, enableHook bool)
 	helmReconciler := MustNewLocalHelmReconciler(settings, logger.WithName("helm"))
 
 	// should be run after mgr started to make sure the client is ready
-	clusterStatusSyncer := NewMilvusClusterStatusSyncer(ctx, mgr.GetClient(), logger.WithName("status-syncer"))
-
-	clusterController := &MilvusClusterReconciler{
-		Client:         mgr.GetClient(),
-		Scheme:         mgr.GetScheme(),
-		logger:         logger.WithName("milvus-cluster"),
-		helmReconciler: helmReconciler,
-		statusSyncer:   clusterStatusSyncer,
-	}
-
-	if err := clusterController.SetupWithManager(mgr); err != nil {
-		logger.Error(err, "unable to setup milvus cluster controller with manager", "controller", "MilvusCluster")
-		return err
-	}
-
-	// should be run after mgr started to make sure the client is ready
 	statusSyncer := NewMilvusStatusSyncer(ctx, mgr.GetClient(), logger.WithName("status-syncer"))
 
-	controller := &MilvusReconciler{
+	milvusController := &MilvusReconciler{
 		Client:         mgr.GetClient(),
 		Scheme:         mgr.GetScheme(),
 		logger:         logger.WithName("milvus"),
 		helmReconciler: helmReconciler,
 		statusSyncer:   statusSyncer,
 	}
-	if err := controller.SetupWithManager(mgr); err != nil {
-		logger.Error(err, "unable to setup milvus controller with manager", "controller", "MilvusCluster")
+
+	if err := milvusController.SetupWithManager(mgr); err != nil {
+		logger.Error(err, "unable to setup milvus controller with manager", "controller", "Milvus")
+		return err
+	}
+
+	mcController := milvuscluster.NewMilvusClusterReconciler(
+		mgr.GetClient(),
+		mgr.GetScheme(),
+		logger.WithName("milvuscluster"),
+	)
+
+	if err := mcController.SetupWithManager(mgr); err != nil {
+		logger.Error(err, "unable to setup milvuscluster controller with manager", "controller", "MilvusCluster")
 		return err
 	}
 
 	if enableHook {
-		if err := (&milvusv1alpha1.MilvusCluster{}).SetupWebhookWithManager(mgr); err != nil {
-			logger.Error(err, "unable to create webhook", "webhook", "MilvusCluster")
+		if err := (&milvusv1beta1.Milvus{}).SetupWebhookWithManager(mgr); err != nil {
+			logger.Error(err, "unable to create webhook", "webhook", "Milvus")
 			return err
 		}
 		if err := (&milvusv1alpha1.Milvus{}).SetupWebhookWithManager(mgr); err != nil {

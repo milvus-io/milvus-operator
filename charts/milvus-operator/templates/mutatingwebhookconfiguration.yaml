@@ -8,33 +8,11 @@ metadata:
 webhooks:
 - admissionReviewVersions:
   - v1
-  - v1beta1
   clientConfig:
     service:
       name: '{{ include "chart.fullname" . }}-webhook-service'
       namespace: {{ .Release.Namespace | quote }}
-      path: /mutate-milvus-io-v1alpha1-milvuscluster
-      port: 443
-  failurePolicy: Fail
-  name: mmilvuscluster.kb.io
-  rules:
-  - apiGroups:
-    - milvus.io
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - milvusclusters
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  clientConfig:
-    service:
-      name: '{{ include "chart.fullname" . }}-webhook-service'
-      namespace: {{ .Release.Namespace | quote }}
-      path: /mutate-milvus-io-v1alpha1-milvus
+      path: /mutate-milvus-io-v1beta1-milvus
       port: 443
   failurePolicy: Fail
   name: mmilvus.kb.io
@@ -42,7 +20,7 @@ webhooks:
   - apiGroups:
     - milvus.io
     apiVersions:
-    - v1alpha1
+    - v1beta1
     operations:
     - CREATE
     - UPDATE

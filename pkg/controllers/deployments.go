@@ -9,8 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
-	"github.com/milvus-io/milvus-operator/pkg/util"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 )
 
 const (
@@ -60,14 +59,14 @@ func GetStorageSecretRefEnv(secretRef string) []corev1.EnvVar {
 	return env
 }
 
-func (r *MilvusClusterReconciler) updateDeployment(
-	mc v1alpha1.MilvusCluster, deployment *appsv1.Deployment, component MilvusComponent,
+func (r *MilvusReconciler) updateDeployment(
+	mc v1beta1.Milvus, deployment *appsv1.Deployment, component MilvusComponent,
 ) error {
-	return updateDeployment(deployment, newMilvusclusterDeploymentUpdater(mc, r.Scheme, component))
+	return updateDeployment(deployment, newMilvusDeploymentUpdater(mc, r.Scheme, component))
 }
 
-func (r *MilvusClusterReconciler) ReconcileComponentDeployment(
-	ctx context.Context, mc v1alpha1.MilvusCluster, component MilvusComponent,
+func (r *MilvusReconciler) ReconcileComponentDeployment(
+	ctx context.Context, mc v1beta1.Milvus, component MilvusComponent,
 ) error {
 	namespacedName := NamespacedName(mc.Namespace, component.GetDeploymentInstanceName(mc.Name))
 	old := &appsv1.Deployment{}
@@ -106,9 +105,13 @@ func (r *MilvusClusterReconciler) ReconcileComponentDeployment(
 	return r.Update(ctx, cur)
 }
 
-func (r *MilvusClusterReconciler) ReconcileDeployments(ctx context.Context, mc v1alpha1.MilvusCluster) error {
+func (r *MilvusReconciler) ReconcileDeployments(ctx context.Context, mc v1beta1.Milvus) error {
 	g, gtx := NewGroup(ctx)
-	for _, component := range MilvusComponents {
+	components := StandaloneComponents
+	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
+		components = MilvusComponents
+	}
+	for _, component := range components {
 		g.Go(WarppedReconcileComponentFunc(r.ReconcileComponentDeployment, gtx, mc, component))
 	}
 
@@ -117,47 +120,6 @@ func (r *MilvusClusterReconciler) ReconcileDeployments(ctx context.Context, mc v
 	}
 
 	return nil
-}
-
-func (r *MilvusReconciler) ReconcileDeployments(ctx context.Context, mil v1alpha1.Milvus) error {
-	namespacedName := NamespacedName(mil.Namespace, mil.Name)
-	old := &appsv1.Deployment{}
-	err := r.Get(ctx, namespacedName, old)
-	if errors.IsNotFound(err) {
-		new := &appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      namespacedName.Name,
-				Namespace: namespacedName.Namespace,
-			},
-		}
-		if err := r.updateDeployment(mil, new); err != nil {
-			return err
-		}
-
-		r.logger.Info("Create Deployment", "name", new.Name, "namespace", new.Namespace)
-		return r.Create(ctx, new)
-	} else if err != nil {
-		return err
-	}
-
-	cur := old.DeepCopy()
-	if err := r.updateDeployment(mil, cur); err != nil {
-		return err
-	}
-
-	if IsEqual(old, cur) {
-		return nil
-	}
-
-	diff := util.DiffStr(old, cur)
-	r.logger.Info("Deployment diff", "name", cur.Name, "namespace", cur.Namespace, "diff", string(diff))
-
-	r.logger.Info("Update Deployment", "name", cur.Name, "namespace", cur.Namespace)
-	return r.Update(ctx, cur)
-}
-
-func (r *MilvusReconciler) updateDeployment(m v1alpha1.Milvus, deployment *appsv1.Deployment) error {
-	return updateDeployment(deployment, newMilvusDeploymentUpdater(m, r.Scheme))
 }
 
 func addVolume(volumes *[]corev1.Volume, volume corev1.Volume) {
@@ -240,10 +202,10 @@ func persisentVolumeByName(name string) corev1.Volume {
 	}
 }
 
-func persistentVolumeMount(persist v1alpha1.Persistence) corev1.VolumeMount {
+func persistentVolumeMount(persist v1beta1.Persistence) corev1.VolumeMount {
 	return corev1.VolumeMount{
 		Name:      MilvusDataVolumeName,
 		ReadOnly:  false,
-		MountPath: persist.MountPath,
+		MountPath: v1beta1.RocksMQPersistPath,
 	}
 }

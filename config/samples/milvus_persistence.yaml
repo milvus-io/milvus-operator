@@ -1,7 +1,9 @@
-apiVersion: milvus.io/v1alpha1
+apiVersion: milvus.io/v1beta1
 kind: Milvus
 metadata:
   name: my-release
 spec:
-  persistence:
-    enabled: true
+  components:
+    rocksmq:
+      persistence:
+        enabled: true

@@ -29,7 +29,7 @@ search_latency_fmt = "search latency = {:.4f}s"
 #
 # Note: the `using` parameter of the following methods is default to "default".
 print(fmt.format("start connecting to Milvus"))
-connections.connect("default", host=host, port="19530")
+connections.connect("default", host="milvus-milvus", port="19530")
 
 has = utility.has_collection("hello_milvus")
 print(f"Does collection hello_milvus exist in Milvus: {has}")

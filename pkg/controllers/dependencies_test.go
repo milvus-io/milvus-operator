@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/helm"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/stretchr/testify/assert"
@@ -137,53 +137,15 @@ func TestLocalHelmReconciler_Reconcile(t *testing.T) {
 	})
 }
 
-func TestMilvusReconciler_ReconcileDeps(t *testing.T) {
-	env := newMilvusTestEnv(t)
-	defer env.tearDown()
-	r := env.Reconciler
-	ctx := env.ctx
-	m := env.Inst
-	mockHelm := NewMockHelmReconciler(env.Ctrl)
-	r.helmReconciler = mockHelm
-	icc := new(v1alpha1.InClusterConfig)
-
-	m.Spec.Dep.Etcd.InCluster = icc
-
-	// internal reconcile helm
-	mockHelm.EXPECT().Reconcile(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, request helm.ChartRequest) error {
-			assert.Equal(t, request.Chart, EtcdChart)
-			return nil
-		})
-	assert.NoError(t, r.ReconcileEtcd(ctx, m))
-
-	// external ignored
-	m.Spec.Dep.Etcd.External = true
-	assert.NoError(t, r.ReconcileEtcd(ctx, m))
-
-	m.Spec.Dep.Storage.InCluster = icc
-	// internal reconcile helm
-	mockHelm.EXPECT().Reconcile(gomock.Any(), gomock.Any()).
-		DoAndReturn(func(ctx context.Context, request helm.ChartRequest) error {
-			assert.Equal(t, request.Chart, MinioChart)
-			return nil
-		})
-	assert.NoError(t, r.ReconcileMinio(ctx, m))
-
-	// external ignored
-	m.Spec.Dep.Storage.External = true
-	assert.NoError(t, r.ReconcileMinio(ctx, m))
-}
-
 func TestClusterReconciler_ReconcileDeps(t *testing.T) {
-	env := newClusterTestEnv(t)
+	env := newTestEnv(t)
 	defer env.checkMocks()
 	r := env.Reconciler
 	ctx := env.ctx
 	m := env.Inst
 	mockHelm := NewMockHelmReconciler(env.Ctrl)
 	r.helmReconciler = mockHelm
-	icc := new(v1alpha1.InClusterConfig)
+	icc := new(v1beta1.InClusterConfig)
 
 	m.Spec.Dep.Etcd.InCluster = icc
 

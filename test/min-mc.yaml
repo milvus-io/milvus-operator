@@ -4,14 +4,15 @@ kind: Namespace
 metadata:
   name: mc-sit
 ---
-apiVersion: milvus.io/v1alpha1
-kind: MilvusCluster
+apiVersion: milvus.io/v1beta1
+kind: Milvus
 metadata:
   name: milvus
   namespace: mc-sit
   labels:
     app: milvus
 spec:
+  mode: "cluster"
   components:
     disableMetric: true
     proxy:

@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -32,14 +33,14 @@ type MilvusClusterSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// +kubebuilder:validation:Optional
-	Com MilvusComponents `json:"components,omitempty"`
+	Com v1beta1.MilvusComponents `json:"components,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	Dep MilvusClusterDependencies `json:"dependencies,omitempty"`
+	Dep v1beta1.MilvusDependencies `json:"dependencies,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:pruning:PreserveUnknownFields
-	Conf Values `json:"config,omitempty"`
+	Conf v1beta1.Values `json:"config,omitempty"`
 }
 
 // MilvusIngress defines the ingress of MilvusCluster
@@ -55,7 +56,7 @@ type MilvusIngress struct {
 	IngressClassName *string `json:"ingressClassName,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	Hosts []string `json:"hosts"`
+	Hosts []string `json:"hosts,omitempty"`
 
 	// TLSSecretRefs is a map of TLS secret to hosts
 	// +kubebuilder:validation:Optional
@@ -80,8 +81,8 @@ const (
 	EtcdReady MiluvsConditionType = "EtcdReady"
 	// StorageReady means the Storage is ready.
 	StorageReady MiluvsConditionType = "StorageReady"
-	// PulsarReady means the Pulsar is ready.
-	PulsarReady MiluvsConditionType = "PulsarReady"
+	// MsgStreamReady means the MsgStream is ready.
+	MsgStreamReady MiluvsConditionType = "MsgStreamReady"
 	// MilvusReady means all components of Milvus are ready.
 	MilvusReady MiluvsConditionType = "MilvusReady"
 
@@ -99,8 +100,8 @@ const (
 	ReasonS3Ready            = "S3StorageAssumeReady"
 	ReasonStorageReady       = "StorageReady"
 	ReasonStorageNotReady    = "StorageNotReady"
-	ReasonPulsarReady        = "PulsarReady"
-	ReasonPulsarNotReady     = "PulsarNotReady"
+	ReasonMsgStreamReady     = "MsgStreamReady"
+	ReasonMsgStreamNotReady  = "MsgStreamReady"
 	ReasonSecretNotExist     = "SecretNotExist"
 	ReasonSecretErr          = "SecretError"
 	ReasonSecretDecodeErr    = "SecretDecodeError"
@@ -152,8 +153,30 @@ type MilvusCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   MilvusClusterSpec `json:"spec,omitempty"`
-	Status MilvusStatus      `json:"status,omitempty"`
+	Spec   MilvusClusterSpec    `json:"spec,omitempty"`
+	Status v1beta1.MilvusStatus `json:"status,omitempty"`
+}
+
+// ConvertTo converts to v1beta1.Milvus
+func (r *MilvusCluster) ConvertToMilvus(dst *v1beta1.Milvus) {
+	dst.Namespace = r.Namespace
+	dst.Name = r.Name
+	dst.Labels = r.Labels
+	dst.Annotations = r.Annotations
+	dst.Spec.Mode = v1beta1.MilvusModeCluster
+	dst.Spec.Com = r.Spec.Com
+	dst.Spec.Conf = r.Spec.Conf
+	dst.Spec.Dep = r.Spec.Dep
+	dst.Default()
+	v1beta1.SetDefault(dst)
+}
+
+// UpdateStatusFrom updates status from v1beta1.Milvus
+func (r *MilvusCluster) UpdateStatusFrom(src *v1beta1.Milvus) {
+	r.Spec.Com = src.Spec.Com
+	r.Spec.Conf = src.Spec.Conf
+	r.Spec.Dep = src.Spec.Dep
+	r.Status = src.Status
 }
 
 //+kubebuilder:object:root=true

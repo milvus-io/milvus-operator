@@ -32,4 +32,6 @@ jobs:
         run : |
           set -ex
           kubectl create -f ./config/samples/milvus_minimum.yaml
-          kubectl create -f ./config/samples/milvuscluster_minimum.yaml
+          kubectl delete -f ./config/samples/milvus_minimum.yaml
+          kubectl create -f ./config/samples/milvus_cluster_minimum.yaml
+          kubectl delete -f ./config/samples/milvus_cluster_minimum.yaml
