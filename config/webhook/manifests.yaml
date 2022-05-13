@@ -12,40 +12,19 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /mutate-milvus-io-v1alpha1-milvus
+      path: /mutate-milvus-io-v1beta1-milvus
   failurePolicy: Fail
   name: mmilvus.kb.io
   rules:
   - apiGroups:
     - milvus.io
     apiVersions:
-    - v1alpha1
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
     resources:
     - milvuses
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /mutate-milvus-io-v1alpha1-milvuscluster
-  failurePolicy: Fail
-  name: mmilvuscluster.kb.io
-  rules:
-  - apiGroups:
-    - milvus.io
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - milvusclusters
   sideEffects: None
 
 ---
@@ -61,38 +40,17 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
-      path: /validate-milvus-io-v1alpha1-milvus
+      path: /validate-milvus-io-v1beta1-milvus
   failurePolicy: Fail
   name: vmilvus.kb.io
   rules:
   - apiGroups:
     - milvus.io
     apiVersions:
-    - v1alpha1
+    - v1beta1
     operations:
     - CREATE
     - UPDATE
     resources:
     - milvuses
-  sideEffects: None
-- admissionReviewVersions:
-  - v1
-  - v1beta1
-  clientConfig:
-    service:
-      name: webhook-service
-      namespace: system
-      path: /validate-milvus-io-v1alpha1-milvuscluster
-  failurePolicy: Fail
-  name: vmilvuscluster.kb.io
-  rules:
-  - apiGroups:
-    - milvus.io
-    apiVersions:
-    - v1alpha1
-    operations:
-    - CREATE
-    - UPDATE
-    resources:
-    - milvusclusters
   sideEffects: None
