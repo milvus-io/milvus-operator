@@ -27,7 +27,7 @@ helm install milvus-operator \
 Or install with kubectl & raw manifests:
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/deploy/manifests/deployment.yaml
+kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.4.1/deploy/manifests/deployment.yaml
 ```
 
 For more infomation Check [instructions on how to install/uninstall milvus operator](docs/installation/installation.md)
