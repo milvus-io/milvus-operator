@@ -209,6 +209,13 @@ func getComponentDeployment(ctx context.Context, key client.ObjectKey, component
 }
 
 func (r *MilvusStatusSyncer) UpdateIngressStatus(ctx context.Context, mc *v1beta1.Milvus) error {
+	ingress := mc.Spec.Com.Standalone.Ingress
+	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
+		ingress = mc.Spec.Com.Proxy.Ingress
+	}
+	if ingress == nil {
+		return nil
+	}
 	key := client.ObjectKeyFromObject(mc)
 	key.Name = key.Name + "-milvus"
 	status, err := getIngressStatus(ctx, r.Client, client.ObjectKeyFromObject(mc))
