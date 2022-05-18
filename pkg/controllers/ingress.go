@@ -15,20 +15,17 @@ import (
 )
 
 func (r *MilvusReconciler) ReconcileIngress(ctx context.Context, mc v1beta1.Milvus) error {
-	ingress := mc.Spec.Com.Standalone.Ingress
-	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
-		ingress = mc.Spec.Com.Proxy.Ingress
-	}
-	return reconcileIngress(ctx, r.logger, r.Client, r.Scheme, &mc, ingress)
-}
-
-func reconcileIngress(ctx context.Context, logger logr.Logger,
-	cli client.Client, scheme *runtime.Scheme, crd client.Object, ingress *v1beta1.MilvusIngress) error {
+	ingress := mc.Spec.GetServiceComponent().Ingress
 	if ingress == nil {
 		return nil
 	}
+	return reconcileIngress(ctx, r.logger, r.Client, r.Scheme, &mc, *ingress)
+}
 
-	new := ingressRenderer.Render(crd, *ingress)
+func reconcileIngress(ctx context.Context, logger logr.Logger,
+	cli client.Client, scheme *runtime.Scheme, crd client.Object, ingress v1beta1.MilvusIngress) error {
+
+	new := ingressRenderer.Render(crd, ingress)
 
 	if err := ctrl.SetControllerReference(crd, new, scheme); err != nil {
 		return errors.Wrap(err, "failed to set controller reference")

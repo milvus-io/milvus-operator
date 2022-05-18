@@ -28,12 +28,13 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 		Mode: MilvusModeStandalone,
 		Dep: MilvusDependencies{
 			Etcd: MilvusEtcd{
-				Endpoints: []string{},
+				Endpoints: []string{"mc-etcd.default:2379"},
 				InCluster: defaultInClusterConfig,
 			},
 			MsgStreamType: MsgStreamTypeRocksMQ,
 			Storage: MilvusStorage{
 				Type:      "MinIO",
+				Endpoint:  "mc-minio.default:9000",
 				SecretRef: crName + "-minio",
 				InCluster: defaultInClusterConfig,
 			},
@@ -43,7 +44,9 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 				Image: config.DefaultMilvusImage,
 			},
 			Standalone: MilvusStandalone{
-				Component: defaultComponent,
+				ServiceComponent: ServiceComponent{
+					Component: defaultComponent,
+				},
 			},
 		},
 		Conf: Values{
@@ -62,6 +65,7 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 	clusterDefault.Mode = MilvusModeCluster
 	clusterDefault.Dep.MsgStreamType = MsgStreamTypePulsar
 	clusterDefault.Dep.Pulsar = MilvusPulsar{
+		Endpoint:  "mc-pulsar-proxy.default:6650",
 		InCluster: defaultInClusterConfig,
 	}
 	clusterDefault.Com = MilvusComponents{
@@ -69,7 +73,9 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 			Image: config.DefaultMilvusImage,
 		},
 		Proxy: MilvusProxy{
-			Component: defaultComponent,
+			ServiceComponent: ServiceComponent{
+				Component: defaultComponent,
+			},
 		},
 		RootCoord: MilvusRootCoord{
 			Component: defaultComponent,

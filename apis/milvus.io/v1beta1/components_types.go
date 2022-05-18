@@ -116,21 +116,7 @@ type MilvusIndexNode struct {
 }
 
 type MilvusProxy struct {
-	Component `json:",inline"`
-
-	// +kubebuilder:validation:Optional
-	// +kubebuilder:validation:Enum={"ClusterIP", "NodePort", "LoadBalancer"}
-	// +kubebuilder:default="ClusterIP"
-	ServiceType corev1.ServiceType `json:"serviceType,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	ServiceLabels map[string]string `json:"serviceLabels,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	ServiceAnnotations map[string]string `json:"serviceAnnotations,omitempty"`
-
-	// +kubebuilder:validation:Optional
-	Ingress *MilvusIngress `json:"ingress,omitempty"`
+	ServiceComponent `json:",inline"`
 }
 
 type MilvusRootCoord struct {
@@ -150,6 +136,11 @@ type MilvusIndexCoord struct {
 }
 
 type MilvusStandalone struct {
+	ServiceComponent `json:",inline"`
+}
+
+// ServiceComponent is the milvus component that exposes service
+type ServiceComponent struct {
 	Component `json:",inline"`
 
 	// +kubebuilder:validation:Optional

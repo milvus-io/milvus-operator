@@ -209,22 +209,17 @@ func getComponentDeployment(ctx context.Context, key client.ObjectKey, component
 }
 
 func (r *MilvusStatusSyncer) UpdateIngressStatus(ctx context.Context, mc *v1beta1.Milvus) error {
-	ingress := mc.Spec.Com.Standalone.Ingress
-	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
-		ingress = mc.Spec.Com.Proxy.Ingress
-	}
+	ingress := mc.Spec.GetServiceComponent().Ingress
 	if ingress == nil {
 		return nil
 	}
 	key := client.ObjectKeyFromObject(mc)
 	key.Name = key.Name + "-milvus"
-	status, err := getIngressStatus(ctx, r.Client, client.ObjectKeyFromObject(mc))
+	status, err := getIngressStatus(ctx, r.Client, key)
 	if err != nil {
 		return errors.Wrap(err, "get ingress status failed")
 	}
-	if status != nil {
-		mc.Status.IngressStatus = *status.DeepCopy()
-	}
+	mc.Status.IngressStatus = *status
 	return nil
 }
 
@@ -233,7 +228,7 @@ func getIngressStatus(ctx context.Context, client client.Client, key client.Obje
 	err := client.Get(ctx, key, ingress)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
-			return nil, nil
+			return &networkv1.IngressStatus{}, nil
 		}
 		return nil, err
 	}

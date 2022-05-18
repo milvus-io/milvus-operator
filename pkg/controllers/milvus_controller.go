@@ -32,7 +32,6 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	milvusv1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 )
@@ -124,7 +123,7 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	// Start reconcile
 	r.logger.Info("start reconcile")
 	old := milvus.DeepCopy()
-	v1beta1.SetDefault(milvus)
+	milvus.Default()
 
 	if !IsEqual(old.Spec, milvus.Spec) {
 		diff, _ := diffObject(old, milvus)

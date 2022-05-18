@@ -50,6 +50,10 @@ var _ webhook.Defaulter = &Milvus{}
 func (r *Milvus) Default() {
 	milvuslog.Info("default", "name", r.Name)
 
+	if r.Namespace == "" {
+		r.Namespace = "default"
+	}
+
 	if r.Spec.Mode == "" {
 		r.Spec.Mode = MilvusModeStandalone
 	}
@@ -103,6 +107,7 @@ func (r *Milvus) Default() {
 
 	// etcd
 	if !r.Spec.Dep.Etcd.External {
+		r.Spec.Dep.Etcd.Endpoints = []string{fmt.Sprintf("%s-etcd.%s:2379", r.Name, r.Namespace)}
 		if r.Spec.Dep.Etcd.InCluster == nil {
 			r.Spec.Dep.Etcd.InCluster = &InClusterConfig{}
 		}
@@ -129,6 +134,7 @@ func (r *Milvus) Default() {
 	switch r.Spec.Dep.MsgStreamType {
 	case MsgStreamTypeKafka:
 		if !r.Spec.Dep.Kafka.External {
+			r.Spec.Dep.Kafka.BrokerList = []string{fmt.Sprintf("%s-kafka.%s:9092", r.Name, r.Namespace)}
 			if r.Spec.Dep.Kafka.InCluster == nil {
 				r.Spec.Dep.Kafka.InCluster = &InClusterConfig{}
 			}
@@ -141,6 +147,7 @@ func (r *Milvus) Default() {
 		}
 	case MsgStreamTypePulsar:
 		if !r.Spec.Dep.Pulsar.External {
+			r.Spec.Dep.Pulsar.Endpoint = fmt.Sprintf("%s-pulsar-proxy.%s:6650", r.Name, r.Namespace)
 			if r.Spec.Dep.Pulsar.InCluster == nil {
 				r.Spec.Dep.Pulsar.InCluster = &InClusterConfig{}
 			}
@@ -157,6 +164,7 @@ func (r *Milvus) Default() {
 
 	// storage
 	if !r.Spec.Dep.Storage.External {
+		r.Spec.Dep.Storage.Endpoint = fmt.Sprintf("%s-minio.%s:9000", r.Name, r.Namespace)
 		if r.Spec.Dep.Storage.InCluster == nil {
 			r.Spec.Dep.Storage.InCluster = &InClusterConfig{}
 		}
@@ -167,34 +175,6 @@ func (r *Milvus) Default() {
 			r.Spec.Dep.Storage.InCluster.DeletionPolicy = DeletionPolicyRetain
 		}
 		r.Spec.Dep.Storage.SecretRef = r.Name + "-minio"
-	}
-}
-
-func SetDefault(mc *Milvus) {
-	if !mc.Spec.Dep.Etcd.External && len(mc.Spec.Dep.Etcd.Endpoints) == 0 {
-		mc.Spec.Dep.Etcd.Endpoints = []string{fmt.Sprintf("%s-etcd.%s:2379", mc.Name, mc.Namespace)}
-	}
-	// mq
-	if mc.Spec.Dep.MsgStreamType == "" {
-		switch mc.Spec.Mode {
-		case MilvusModeStandalone:
-			mc.Spec.Dep.MsgStreamType = MsgStreamTypeRocksMQ
-		case MilvusModeCluster:
-			mc.Spec.Dep.MsgStreamType = MsgStreamTypePulsar
-		}
-	}
-	switch mc.Spec.Dep.MsgStreamType {
-	case MsgStreamTypePulsar:
-		if !mc.Spec.Dep.Pulsar.External && len(mc.Spec.Dep.Pulsar.Endpoint) == 0 {
-			mc.Spec.Dep.Pulsar.Endpoint = fmt.Sprintf("%s-pulsar-proxy.%s:6650", mc.Name, mc.Namespace)
-		}
-	case MsgStreamTypeKafka:
-		if !mc.Spec.Dep.Kafka.External && len(mc.Spec.Dep.Kafka.BrokerList) == 0 {
-			mc.Spec.Dep.Kafka.BrokerList = []string{fmt.Sprintf("%s-kafka.%s:9092", mc.Name, mc.Namespace)}
-		}
-	}
-	if !mc.Spec.Dep.Storage.External && len(mc.Spec.Dep.Storage.Endpoint) == 0 {
-		mc.Spec.Dep.Storage.Endpoint = fmt.Sprintf("%s-minio.%s:9000", mc.Name, mc.Namespace)
 	}
 }
 

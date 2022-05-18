@@ -86,7 +86,6 @@ func TestClusterReconciler_ReconcileFinalizer(t *testing.T) {
 			Name:      "mc",
 		},
 	}
-	m.Default()
 
 	ctx := context.Background()
 

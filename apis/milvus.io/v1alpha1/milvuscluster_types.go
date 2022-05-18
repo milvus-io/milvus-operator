@@ -168,7 +168,6 @@ func (r *MilvusCluster) ConvertToMilvus(dst *v1beta1.Milvus) {
 	dst.Spec.Conf = r.Spec.Conf
 	dst.Spec.Dep = r.Spec.Dep
 	dst.Default()
-	v1beta1.SetDefault(dst)
 }
 
 // UpdateStatusFrom updates status from v1beta1.Milvus

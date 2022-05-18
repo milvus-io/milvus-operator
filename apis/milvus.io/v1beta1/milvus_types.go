@@ -46,6 +46,13 @@ type MilvusSpec struct {
 	Conf Values `json:"config,omitempty"`
 }
 
+func (ms MilvusSpec) GetServiceComponent() *ServiceComponent {
+	if ms.Mode == MilvusModeCluster {
+		return &ms.Com.Proxy.ServiceComponent
+	}
+	return &ms.Com.Standalone.ServiceComponent
+}
+
 // MilvusMode defines the mode of Milvus deployment
 type MilvusMode string
 
@@ -70,6 +77,7 @@ type MilvusStatus struct {
 	// Endpoint of milvus cluster
 	Endpoint string `json:"endpoint,omitempty"`
 
+	// deprecated
 	IngressStatus networkv1.IngressStatus `json:"ingress,omitempty"`
 
 	// +kubebuilder:validation:Optional

@@ -37,7 +37,6 @@ func (r *Milvus) ConvertTo(dstRaw conversion.Hub) error {
 	dst.ObjectMeta = r.ObjectMeta
 	r.Spec.ConvertSpecTo(&dst.Spec)
 	dst.Status = r.Status
-	milvuslog.Info("convert-to", "Milvus", dst)
 	return nil
 }
 
@@ -49,15 +48,17 @@ func (r *MilvusSpec) ConvertSpecTo(dst *v1beta1.MilvusSpec) {
 	dst.Com = v1beta1.MilvusComponents{
 		DisableMetric: r.DisableMetric,
 		Standalone: v1beta1.MilvusStandalone{
-			Component: v1beta1.Component{
-				ComponentSpec: r.ComponentSpec,
-				Replicas:      r.Replicas,
-				Port:          19530,
+			ServiceComponent: v1beta1.ServiceComponent{
+				Component: v1beta1.Component{
+					ComponentSpec: r.ComponentSpec,
+					Replicas:      r.Replicas,
+					Port:          19530,
+				},
+				ServiceType:        r.ServiceType,
+				ServiceLabels:      r.ServiceLabels,
+				ServiceAnnotations: r.ServiceAnnotations,
+				Ingress:            r.Ingress,
 			},
-			ServiceType:        r.ServiceType,
-			ServiceLabels:      r.ServiceLabels,
-			ServiceAnnotations: r.ServiceAnnotations,
-			Ingress:            r.Ingress,
 		},
 	}
 }
@@ -78,6 +79,5 @@ func (r *Milvus) ConvertFrom(srcRaw conversion.Hub) error {
 
 	r.ObjectMeta = src.ObjectMeta
 	r.Status = src.Status
-	milvuslog.Info("convert-from", "Milvus", src)
 	return nil
 }
