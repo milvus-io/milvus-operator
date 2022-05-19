@@ -16,6 +16,7 @@ pull_request_rules:
   - name: remove ci-pass when CI not passed
     conditions:
       - or:
+        - check-success!=check
         - check-success!=Code Check (ubuntu18.04)
         - check-success!=Unit Test (ubuntu18.04)
         - check-success!=System Integration Test (ubuntu18.04)
@@ -30,6 +31,7 @@ pull_request_rules:
           - ci-passed
   - name: add ci-pass when CI passed
     conditions:
+      - check-success=check
       - check-success=Code Check (ubuntu18.04)
       - check-success=Unit Test (ubuntu18.04)
       - check-success=System Integration Test (ubuntu18.04)

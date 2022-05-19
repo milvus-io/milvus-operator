@@ -36,6 +36,7 @@ func NewMilvusClusterReconciler(client client.Client, scheme *runtime.Scheme, lo
 //+kubebuilder:rbac:groups=milvus.io,resources=milvusclusters,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=milvus.io,resources=milvusclusters/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=milvus.io,resources=milvusclusters/finalizers,verbs=update
+
 func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	milvus := &milvusv1alpha1.MilvusCluster{}
 	if err := r.Get(ctx, req.NamespacedName, milvus); err != nil {
