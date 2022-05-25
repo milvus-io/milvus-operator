@@ -72,32 +72,66 @@ func (r *Milvus) Default() {
 		r.Spec.Com.Image = config.DefaultMilvusImage
 	}
 
+	// default components
+	if r.Spec.Mode == MilvusModeCluster {
+		if r.Spec.Com.Proxy == nil {
+			r.Spec.Com.Proxy = &MilvusProxy{}
+		}
+		if r.Spec.Com.MixCoord == nil {
+			r.Spec.Com.RootCoord = &MilvusRootCoord{}
+			r.Spec.Com.IndexCoord = &MilvusIndexCoord{}
+			r.Spec.Com.DataCoord = &MilvusDataCoord{}
+			r.Spec.Com.QueryCoord = &MilvusQueryCoord{}
+		}
+		if r.Spec.Com.DataNode == nil {
+			r.Spec.Com.DataNode = &MilvusDataNode{}
+		}
+		if r.Spec.Com.IndexNode == nil {
+			r.Spec.Com.IndexNode = &MilvusIndexNode{}
+		}
+		if r.Spec.Com.QueryNode == nil {
+			r.Spec.Com.QueryNode = &MilvusQueryNode{}
+		}
+	} else {
+		// standalone
+		if r.Spec.Com.Standalone == nil {
+			r.Spec.Com.Standalone = &MilvusStandalone{}
+		}
+	}
+
 	// defaultReplicas
 	defaultReplicas := int32(1)
 	if r.Spec.Mode == MilvusModeCluster {
-		if r.Spec.Com.Proxy.Replicas == nil {
-			r.Spec.Com.Proxy.Replicas = &defaultReplicas
-		}
-		if r.Spec.Com.RootCoord.Replicas == nil {
-			r.Spec.Com.RootCoord.Replicas = &defaultReplicas
-		}
-		if r.Spec.Com.DataCoord.Replicas == nil {
-			r.Spec.Com.DataCoord.Replicas = &defaultReplicas
-		}
-		if r.Spec.Com.IndexCoord.Replicas == nil {
-			r.Spec.Com.IndexCoord.Replicas = &defaultReplicas
-		}
-		if r.Spec.Com.QueryCoord.Replicas == nil {
-			r.Spec.Com.QueryCoord.Replicas = &defaultReplicas
-		}
-		if r.Spec.Com.DataNode.Replicas == nil {
-			r.Spec.Com.DataNode.Replicas = &defaultReplicas
-		}
-		if r.Spec.Com.IndexNode.Replicas == nil {
-			r.Spec.Com.IndexNode.Replicas = &defaultReplicas
-		}
-		if r.Spec.Com.QueryNode.Replicas == nil {
-			r.Spec.Com.QueryNode.Replicas = &defaultReplicas
+
+		if r.Spec.Com.MixCoord != nil {
+			if r.Spec.Com.MixCoord.Replicas == nil {
+				r.Spec.Com.MixCoord.Replicas = &defaultReplicas
+			}
+		} else {
+			if r.Spec.Com.Proxy.Replicas == nil {
+				r.Spec.Com.Proxy.Replicas = &defaultReplicas
+			}
+			if r.Spec.Com.RootCoord.Replicas == nil {
+				r.Spec.Com.RootCoord.Replicas = &defaultReplicas
+			}
+			if r.Spec.Com.DataCoord.Replicas == nil {
+				r.Spec.Com.DataCoord.Replicas = &defaultReplicas
+			}
+			if r.Spec.Com.IndexCoord.Replicas == nil {
+				r.Spec.Com.IndexCoord.Replicas = &defaultReplicas
+			}
+			if r.Spec.Com.QueryCoord.Replicas == nil {
+				r.Spec.Com.QueryCoord.Replicas = &defaultReplicas
+			}
+			if r.Spec.Com.DataNode.Replicas == nil {
+				r.Spec.Com.DataNode.Replicas = &defaultReplicas
+			}
+			if r.Spec.Com.IndexNode.Replicas == nil {
+				r.Spec.Com.IndexNode.Replicas = &defaultReplicas
+			}
+			if r.Spec.Com.QueryNode.Replicas == nil {
+				r.Spec.Com.QueryNode.Replicas = &defaultReplicas
+			}
 		}
 	} else {
 		if r.Spec.Com.Standalone.Replicas == nil {

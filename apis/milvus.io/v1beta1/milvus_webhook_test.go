@@ -43,7 +43,7 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 			ComponentSpec: ComponentSpec{
 				Image: config.DefaultMilvusImage,
 			},
-			Standalone: MilvusStandalone{
+			Standalone: &MilvusStandalone{
 				ServiceComponent: ServiceComponent{
 					Component: defaultComponent,
 				},
@@ -72,30 +72,30 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 		ComponentSpec: ComponentSpec{
 			Image: config.DefaultMilvusImage,
 		},
-		Proxy: MilvusProxy{
+		Proxy: &MilvusProxy{
 			ServiceComponent: ServiceComponent{
 				Component: defaultComponent,
 			},
 		},
-		RootCoord: MilvusRootCoord{
+		RootCoord: &MilvusRootCoord{
 			Component: defaultComponent,
 		},
-		DataCoord: MilvusDataCoord{
+		DataCoord: &MilvusDataCoord{
 			Component: defaultComponent,
 		},
-		IndexCoord: MilvusIndexCoord{
+		IndexCoord: &MilvusIndexCoord{
 			Component: defaultComponent,
 		},
-		QueryCoord: MilvusQueryCoord{
+		QueryCoord: &MilvusQueryCoord{
 			Component: defaultComponent,
 		},
-		DataNode: MilvusDataNode{
+		DataNode: &MilvusDataNode{
 			Component: defaultComponent,
 		},
-		IndexNode: MilvusIndexNode{
+		IndexNode: &MilvusIndexNode{
 			Component: defaultComponent,
 		},
-		QueryNode: MilvusQueryNode{
+		QueryNode: &MilvusQueryNode{
 			Component: defaultComponent,
 		},
 	}

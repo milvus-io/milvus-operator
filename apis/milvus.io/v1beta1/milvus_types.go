@@ -89,6 +89,8 @@ type MilvusReplicas struct {
 	//+kubebuilder:validation:Optional
 	Proxy int `json:"proxy,omitempty"`
 	//+kubebuilder:validation:Optional
+	MixCoord int `json:"mixCoord,omitempty"`
+	//+kubebuilder:validation:Optional
 	RootCoord int `json:"rootCoord,omitempty"`
 	//+kubebuilder:validation:Optional
 	DataCoord int `json:"dataCoord,omitempty"`

@@ -115,6 +115,9 @@ func (r *MilvusStatusSyncer) UpdateStatus(ctx context.Context, mc *v1beta1.Milvu
 	if !IsSetDefaultDone(mc) {
 		return nil
 	}
+	// some default values may not be set if there's an upgrade
+	// so we call default again to ensure
+	mc.Default()
 
 	funcs := []Func{
 		r.GetEtcdCondition,
@@ -136,7 +139,7 @@ func (r *MilvusStatusSyncer) UpdateStatus(ctx context.Context, mc *v1beta1.Milvu
 		return fmt.Errorf("update status error: %s", strings.Join(errTexts, ":"))
 	}
 
-	milvusCond, err := r.GetMilvusCondition(ctx, *mc)
+	milvusCond, err := GetMilvusInstanceCondition(ctx, r.Client, *mc)
 	if err != nil {
 		return err
 	}
@@ -167,16 +170,13 @@ var replicaUpdater replicaUpdaterInterface = new(replicaUpdaterImpl)
 //go:generate mockgen -package=controllers -source=status_cluster.go -destination=status_cluster_mock.go
 
 type replicaUpdaterInterface interface {
-	UpdateReplicas(ctx context.Context, obj client.Object, cli client.Client) error
+	UpdateReplicas(ctx context.Context, obj *v1beta1.Milvus, cli client.Client) error
 }
 
 type replicaUpdaterImpl struct{}
 
-func (r replicaUpdaterImpl) UpdateReplicas(ctx context.Context, obj client.Object, cli client.Client) error {
-	components := MilvusComponents
-	if reflect.TypeOf(obj).String() != reflect.TypeOf(&v1beta1.Milvus{}).String() {
-		components = StandaloneComponents
-	}
+func (r replicaUpdaterImpl) UpdateReplicas(ctx context.Context, obj *v1beta1.Milvus, cli client.Client) error {
+	components := GetComponentsBySpec(obj.Spec)
 	status := reflect.ValueOf(obj).Elem().FieldByName("Status").Addr().Interface().(*v1beta1.MilvusStatus)
 	return updateReplicas(ctx, client.ObjectKeyFromObject(obj), status, components, cli)
 }
@@ -239,19 +239,14 @@ func (r *MilvusStatusSyncer) GetMilvusEndpoint(ctx context.Context, mc v1beta1.M
 	info := MilvusEndpointInfo{
 		Namespace:   mc.Namespace,
 		Name:        mc.Name,
-		ServiceType: mc.Spec.Com.Proxy.ServiceType,
-		Port:        Proxy.GetComponentPort(mc.Spec),
+		ServiceType: mc.Spec.GetServiceComponent().ServiceType,
+		Port:        MilvusPort,
 	}
 	return GetMilvusEndpoint(ctx, r.logger, r.Client, info)
 }
 
 func (r *MilvusStatusSyncer) GetMilvusCondition(ctx context.Context, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
-	info := MilvusConditionInfo{
-		Object:     mc.GetObjectMeta(),
-		Conditions: mc.Status.Conditions,
-		IsCluster:  mc.Spec.Mode == v1beta1.MilvusModeCluster,
-	}
-	return GetMilvusInstanceCondition(ctx, r.Client, info)
+	return GetMilvusInstanceCondition(ctx, r.Client, mc)
 }
 
 func (r *MilvusStatusSyncer) GetMsgStreamCondition(

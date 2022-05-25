@@ -39,9 +39,7 @@ func newTestEnv(t *testing.T) *clusterTestEnv {
 			Name:      "mc",
 		},
 	}
-	inst.Spec.Dep.Etcd.InCluster = new(v1beta1.InClusterConfig)
-	inst.Spec.Dep.Storage.InCluster = new(v1beta1.InClusterConfig)
-	inst.Spec.Dep.Pulsar.InCluster = new(v1beta1.InClusterConfig)
+	inst.Default()
 	return &clusterTestEnv{
 		MockClient: mockClient,
 		Ctrl:       ctrl,

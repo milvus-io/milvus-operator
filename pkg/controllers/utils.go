@@ -286,25 +286,18 @@ func GetConditionStatus(b bool) corev1.ConditionStatus {
 	return corev1.ConditionFalse
 }
 
-func IsDependencyReady(conditions []v1beta1.MilvusCondition, isCluster bool) bool {
+func IsDependencyReady(conditions []v1beta1.MilvusCondition) bool {
 	ready := 0
 	for _, c := range conditions {
 		if c.Status != corev1.ConditionTrue {
 			continue
 		}
 		switch c.Type {
-		case v1beta1.EtcdReady, v1beta1.StorageReady:
+		case v1beta1.EtcdReady, v1beta1.StorageReady, v1beta1.MsgStreamReady:
 			ready++
-		case v1beta1.MsgStreamReady:
-			if isCluster {
-				ready++
-			}
 		}
 	}
-	if isCluster {
-		return ready == 3
-	}
-	return ready == 2
+	return ready == 3
 }
 
 func UpdateClusterCondition(status *v1beta1.MilvusStatus, c v1beta1.MilvusCondition) {

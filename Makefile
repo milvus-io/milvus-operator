@@ -246,13 +246,7 @@ sit-deploy: sit-load-images
 	sleep 5 #wait for the service to be ready
 
 sit-test: 
-	./test/sit.sh
-
-sit-test-kafka: 
-	./test/sit.sh kafka
-
-sit-test-alpha: 
-	./test/sit.sh alpha
+	./test/sit.sh ${test_mode}
 
 cleanup-sit:
 	kubectl delete -f test/test_gen.yaml

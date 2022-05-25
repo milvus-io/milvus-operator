@@ -84,17 +84,23 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	env := mergedComSpec.Env
 	env = append(env, GetStorageSecretRefEnv(updater.GetSecretRef())...)
 	container.Env = MergeEnvVar(container.Env, env)
-	container.Ports = []corev1.ContainerPort{
-		{
-			Name:          updater.GetPortName(),
-			ContainerPort: MilvusPort,
-			Protocol:      corev1.ProtocolTCP,
-		},
-		{
-			Name:          MetricPortName,
-			ContainerPort: MetricPort,
-			Protocol:      corev1.ProtocolTCP,
-		},
+	metricPort := corev1.ContainerPort{
+		Name:          MetricPortName,
+		ContainerPort: MetricPort,
+		Protocol:      corev1.ProtocolTCP,
+	}
+	componentName := updater.GetComponentName()
+	if componentName == ProxyName || componentName == StandaloneName {
+		container.Ports = []corev1.ContainerPort{
+			{
+				Name:          updater.GetPortName(),
+				ContainerPort: MilvusPort,
+				Protocol:      corev1.ProtocolTCP,
+			},
+			metricPort,
+		}
+	} else {
+		container.Ports = []corev1.ContainerPort{metricPort}
 	}
 
 	addVolumeMount(&container.VolumeMounts, configVolumeMount)
@@ -167,7 +173,7 @@ func (m milvusDeploymentUpdater) GetMergedComponentSpec() ComponentSpec {
 	)
 }
 func (m milvusDeploymentUpdater) GetArgs() []string {
-	return []string{RunScriptPath, "milvus", "run", m.component.GetName()}
+	return []string{RunScriptPath, "milvus", "run", m.component.GetRunCommand()}
 }
 func (m milvusDeploymentUpdater) GetSecretRef() string {
 	return m.Spec.Dep.Storage.SecretRef
