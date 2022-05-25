@@ -20,6 +20,7 @@ const (
 	MetricPortName = "metrics"
 	MetricPath     = "/metrics"
 
+	MixCoordName   = "mixcoord"
 	RootCoordName  = "rootcoord"
 	DataCoordName  = "datacoord"
 	QueryCoordName = "querycoord"
@@ -31,6 +32,7 @@ const (
 	StandaloneName = "standalone"
 	MilvusName     = "milvus"
 
+	MixCoordFieldName   = "MixCoord"
 	RootCoordFieldName  = "RootCoord"
 	DataCoordFieldName  = "DataCoord"
 	QueryCoordFieldName = "QueryCoord"
@@ -42,6 +44,7 @@ const (
 	StandaloneFieldName = "Standalone"
 
 	MetricPort     = 9091
+	MultiplePorts  = -1
 	RootCoordPort  = 53100
 	DataCoordPort  = 13333
 	QueryCoordPort = 19531
@@ -64,6 +67,7 @@ type MilvusComponent struct {
 
 // define MilvusComponents
 var (
+	MixCoord   = MilvusComponent{MixCoordName, MixCoordFieldName, MultiplePorts}
 	RootCoord  = MilvusComponent{RootCoordName, RootCoordFieldName, RootCoordPort}
 	DataCoord  = MilvusComponent{DataCoordName, DataCoordFieldName, DataCoordPort}
 	QueryCoord = MilvusComponent{QueryCoordName, QueryCoordFieldName, QueryCoordPort}
@@ -75,6 +79,10 @@ var (
 
 	// Milvus standalone
 	MilvusStandalone = MilvusComponent{StandaloneName, StandaloneFieldName, StandalonePort}
+
+	MixtureComponents = []MilvusComponent{
+		MixCoord, DataNode, QueryNode, IndexNode, Proxy,
+	}
 
 	MilvusComponents = []MilvusComponent{
 		RootCoord, DataCoord, QueryCoord, IndexCoord, DataNode, QueryNode, IndexNode, Proxy,
@@ -89,8 +97,22 @@ var (
 	}
 )
 
+// GetComponentsBySpec returns the components by the spec
+func GetComponentsBySpec(spec v1beta1.MilvusSpec) []MilvusComponent {
+	if spec.Mode == v1beta1.MilvusModeStandalone {
+		return StandaloneComponents
+	}
+	if spec.Com.MixCoord != nil {
+		return MixtureComponents
+	}
+	return MilvusComponents
+}
+
 // IsCoord return if it's a coord by its name
 func (c MilvusComponent) IsCoord() bool {
+	if c.Name == MixCoordName {
+		return true
+	}
 	return strings.HasSuffix(c.Name, "coord")
 }
 
@@ -107,10 +129,20 @@ func (c MilvusComponent) IsNode() bool {
 // GetReplicas returns the replicas for the component
 func (c MilvusComponent) GetReplicas(spec v1beta1.MilvusSpec) *int32 {
 	replicas, _ := reflect.ValueOf(spec.Com).
-		FieldByName(c.FieldName).
+		FieldByName(c.FieldName).Elem().
 		FieldByName("Component").
 		FieldByName("Replicas").Interface().(*int32)
 	return replicas
+}
+
+const mixtureRunCommand = "mixture"
+
+// String returns the name of the component
+func (c MilvusComponent) GetRunCommand() string {
+	if c.Name == MixCoordName {
+		return mixtureRunCommand
+	}
+	return c.Name
 }
 
 // String returns the name of the component
@@ -200,21 +232,12 @@ func (c MilvusComponent) GetServicePorts(spec v1beta1.MilvusSpec) []corev1.Servi
 
 // GetComponentPort returns the port of the component
 func (c MilvusComponent) GetComponentPort(spec v1beta1.MilvusSpec) int32 {
-	port, _ := reflect.ValueOf(spec.Com).
-		FieldByName(c.FieldName).
-		FieldByName("Component").
-		FieldByName("Port").Interface().(int32)
-
-	if port != 0 {
-		return port
-	}
-
 	return c.DefaultPort
 }
 
 // GetComponentSpec returns the component spec
 func (c MilvusComponent) GetComponentSpec(spec v1beta1.MilvusSpec) v1beta1.ComponentSpec {
-	value := reflect.ValueOf(spec.Com).FieldByName(c.FieldName).FieldByName("ComponentSpec")
+	value := reflect.ValueOf(spec.Com).FieldByName(c.FieldName).Elem().FieldByName("ComponentSpec")
 	comSpec, _ := value.Interface().(v1beta1.ComponentSpec)
 	return comSpec
 }

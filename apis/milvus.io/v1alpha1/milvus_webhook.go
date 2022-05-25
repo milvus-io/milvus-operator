@@ -47,7 +47,7 @@ func (r *MilvusSpec) ConvertSpecTo(dst *v1beta1.MilvusSpec) {
 	dst.Dep.RocksMQ.Persistence = r.Persistence
 	dst.Com = v1beta1.MilvusComponents{
 		DisableMetric: r.DisableMetric,
-		Standalone: v1beta1.MilvusStandalone{
+		Standalone: &v1beta1.MilvusStandalone{
 			ServiceComponent: v1beta1.ServiceComponent{
 				Component: v1beta1.Component{
 					ComponentSpec: r.ComponentSpec,
@@ -69,6 +69,9 @@ func (r *Milvus) ConvertFrom(srcRaw conversion.Hub) error {
 	r.Spec.Conf = src.Spec.Conf
 	r.Spec.Dep = src.Spec.Dep
 	r.Spec.DisableMetric = src.Spec.Com.DisableMetric
+	if src.Spec.Com.Standalone == nil {
+		src.Spec.Com.Standalone = &v1beta1.MilvusStandalone{}
+	}
 	r.Spec.ComponentSpec = src.Spec.Com.Standalone.ComponentSpec
 
 	r.Spec.Replicas = src.Spec.Com.Standalone.Replicas

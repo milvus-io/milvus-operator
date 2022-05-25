@@ -348,30 +348,10 @@ func TestIsClusterDependencyReady(t *testing.T) {
 			},
 		},
 	}
-	assert.False(t, IsDependencyReady(status.Conditions, true))
+	assert.False(t, IsDependencyReady(status.Conditions))
 	// all ready -> ready
 	status.Conditions[2].Status = corev1.ConditionTrue
-	assert.True(t, IsDependencyReady(status.Conditions, true))
-}
-
-func TestIsDependencyReady(t *testing.T) {
-	// 1 not ready -> not ready
-	status := v1beta1.MilvusStatus{
-		Conditions: []v1beta1.MilvusCondition{
-			{
-				Type:   v1beta1.EtcdReady,
-				Status: corev1.ConditionTrue,
-			},
-			{
-				Type:   v1beta1.StorageReady,
-				Status: corev1.ConditionFalse,
-			},
-		},
-	}
-	assert.False(t, IsDependencyReady(status.Conditions, false))
-	// all ready -> ready
-	status.Conditions[1].Status = corev1.ConditionTrue
-	assert.True(t, IsDependencyReady(status.Conditions, false))
+	assert.True(t, IsDependencyReady(status.Conditions))
 }
 
 func TestUpdateClusterCondition(t *testing.T) {

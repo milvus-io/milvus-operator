@@ -11,6 +11,29 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
+func newSpec() v1beta1.MilvusSpec {
+	milvus := v1beta1.Milvus{}
+	milvus.Default()
+	return milvus.Spec
+}
+
+func newSpecCluster() v1beta1.MilvusSpec {
+	milvus := v1beta1.Milvus{}
+	milvus.Spec.Mode = v1beta1.MilvusModeCluster
+	milvus.Default()
+	return milvus.Spec
+}
+
+func TestGetComponentsBySpec(t *testing.T) {
+	spec := newSpec()
+	spec.Mode = v1beta1.MilvusModeStandalone
+	assert.Equal(t, StandaloneComponents, GetComponentsBySpec(spec))
+	spec.Mode = v1beta1.MilvusModeCluster
+	assert.Equal(t, MilvusComponents, GetComponentsBySpec(spec))
+	spec.Com.MixCoord = &v1beta1.MixCoord{}
+	assert.Equal(t, MixtureComponents, GetComponentsBySpec(spec))
+}
+
 func TestMilvusComponent_IsCoord(t *testing.T) {
 	assert.False(t, QueryNode.IsCoord())
 	assert.True(t, QueryCoord.IsCoord())
@@ -162,11 +185,20 @@ func TestMergeComponentSpec(t *testing.T) {
 
 func TestMilvusComponent_GetReplicas(t *testing.T) {
 	// has global, use global
-	spec := v1beta1.MilvusSpec{}
+	milvus := v1beta1.Milvus{}
+	spec := milvus.Spec
+	spec.Com.QueryNode = &v1beta1.MilvusQueryNode{}
 	com := QueryNode
 	replica := int32(1)
 	spec.Com.QueryNode.Component.Replicas = &replica
 	assert.Equal(t, &replica, com.GetReplicas(spec))
+}
+
+func TestMilvusComponent_GetRunCommand(t *testing.T) {
+	com := QueryNode
+	assert.Equal(t, com.Name, com.GetRunCommand())
+	com = MixCoord
+	assert.Equal(t, mixtureRunCommand, com.GetRunCommand())
 }
 
 func TestMilvusComponent_GetName(t *testing.T) {
@@ -196,17 +228,16 @@ func TestMilvusComponent_GetContainerName(t *testing.T) {
 
 func TestMilvusComponent_GetContainerPorts(t *testing.T) {
 	com := QueryNode
-	spec := v1beta1.MilvusSpec{}
-	spec.Com.QueryNode.Component.Port = 8080
+	spec := newSpecCluster()
 	ports := com.GetContainerPorts(spec)
 	assert.Equal(t, 2, len(ports))
-	assert.Equal(t, spec.Com.QueryNode.Component.Port, ports[0].ContainerPort)
+	assert.Equal(t, com.DefaultPort, ports[0].ContainerPort)
 	assert.Equal(t, int32(MetricPort), ports[1].ContainerPort)
 }
 
 func TestMilvusComponent_GetServiceType(t *testing.T) {
 	com := QueryNode
-	spec := v1beta1.MilvusSpec{}
+	spec := newSpecCluster()
 	assert.Equal(t, corev1.ServiceTypeClusterIP, com.GetServiceType(spec))
 
 	com = Proxy
@@ -216,45 +247,44 @@ func TestMilvusComponent_GetServiceType(t *testing.T) {
 
 func TestMilvusComponent_GetServicePorts(t *testing.T) {
 	com := Proxy
-	spec := v1beta1.MilvusSpec{}
+	spec := newSpecCluster()
 	ports := com.GetServicePorts(spec)
 	assert.Equal(t, 2, len(ports))
 	assert.Equal(t, Proxy.DefaultPort, ports[0].Port)
 	assert.Equal(t, int32(MetricPort), ports[1].Port)
 
 	com = QueryNode
-	spec = v1beta1.MilvusSpec{}
+	spec = newSpecCluster()
 	ports = com.GetServicePorts(spec)
 	assert.Equal(t, 2, len(ports))
 	assert.Equal(t, QueryNode.DefaultPort, ports[0].Port)
 	assert.Equal(t, int32(MetricPort), ports[1].Port)
 
 	com = QueryCoord
-	spec.Com.QueryCoord.Component.Port = 8080
 	ports = com.GetServicePorts(spec)
 	assert.Equal(t, 2, len(ports))
-	assert.Equal(t, spec.Com.QueryCoord.Component.Port, ports[0].Port)
+	assert.Equal(t, com.DefaultPort, ports[0].Port)
 	assert.Equal(t, int32(MetricPort), ports[1].Port)
 }
 
 func TestMilvusComponent_GetComponentPort(t *testing.T) {
 	com := QueryNode
-	spec := v1beta1.MilvusSpec{}
+	spec := newSpecCluster()
 	assert.Equal(t, com.DefaultPort, com.GetComponentPort(spec))
 
 	spec.Com.QueryNode.Component.Port = 8080
-	assert.Equal(t, spec.Com.QueryNode.Component.Port, com.GetComponentPort(spec))
+	assert.Equal(t, QueryNode.DefaultPort, com.GetComponentPort(spec))
 }
 
 func TestMilvusComponent_GetComponentSpec(t *testing.T) {
-	spec := v1beta1.MilvusSpec{}
+	spec := newSpecCluster()
 	spec.Com.QueryNode.Component.ComponentSpec.Image = "a"
 	com := QueryNode
 	assert.Equal(t, "a", com.GetComponentSpec(spec).Image)
 }
 
 func TestMilvusComponent_GetConfCheckSum(t *testing.T) {
-	spec := v1beta1.MilvusSpec{}
+	spec := newSpecCluster()
 	checksum1 := GetConfCheckSum(spec)
 
 	spec.Conf.Data = map[string]interface{}{
@@ -280,7 +310,7 @@ func TestMilvusComponent_GetConfCheckSum(t *testing.T) {
 }
 
 func TestMilvusComponent_GetMilvusConfCheckSumt(t *testing.T) {
-	spec := v1beta1.MilvusSpec{}
+	spec := newSpecCluster()
 	spec.Conf.Data = map[string]interface{}{
 		"k1": "v1",
 		"k2": "v2",
@@ -327,6 +357,11 @@ func TestMilvusComponent_SetStatusReplica(t *testing.T) {
 	status := v1beta1.MilvusReplicas{}
 	com.SetStatusReplicas(&status, 1)
 	assert.Equal(t, 1, status.QueryNode)
+
+	com = MixCoord
+	status = v1beta1.MilvusReplicas{}
+	com.SetStatusReplicas(&status, 1)
+	assert.Equal(t, 1, status.MixCoord)
 }
 
 func TestGetInstanceName_GetInstance(t *testing.T) {

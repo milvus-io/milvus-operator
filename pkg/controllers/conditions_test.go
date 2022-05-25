@@ -298,108 +298,133 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 		Name:      "mc",
 		UID:       "uid",
 	}
-
-	// dependency not ready
-	info := MilvusConditionInfo{
-		Object:     &inst,
-		Conditions: []v1beta1.MilvusCondition{},
-		IsCluster:  true,
+	milvus := &v1beta1.Milvus{
+		ObjectMeta: inst,
 	}
-	ret, err := GetMilvusInstanceCondition(ctx, mockClient, info)
-	assert.NoError(t, err)
-	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1beta1.ReasonDependencyNotReady, ret.Reason)
-
-	// dependency ready, list failed, err
-	info = MilvusConditionInfo{
-		Object: &inst,
-		Conditions: []v1beta1.MilvusCondition{
-			{Type: v1beta1.EtcdReady, Status: corev1.ConditionTrue},
-			{Type: v1beta1.StorageReady, Status: corev1.ConditionTrue},
-		},
-		IsCluster: false,
-	}
-	mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
-	ret, err = GetMilvusInstanceCondition(ctx, mockClient, info)
-	assert.Error(t, err)
-
-	// dependency ready, standalone one ok
-	info = MilvusConditionInfo{
-		Object: &inst,
-		Conditions: []v1beta1.MilvusCondition{
-			{Type: v1beta1.EtcdReady, Status: corev1.ConditionTrue},
-			{Type: v1beta1.StorageReady, Status: corev1.ConditionTrue},
-		},
-		IsCluster: false,
-	}
-
 	trueVal := true
-	mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
-		Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
-			list.Items = []appsv1.Deployment{
 
-				{},
-			}
-			list.Items[0].OwnerReferences = []metav1.OwnerReference{
-				{Controller: &trueVal, UID: "uid"},
-			}
-			list.Items[0].Status.Conditions = []appsv1.DeploymentCondition{
-				{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
-			}
-		})
-	ret, err = GetMilvusInstanceCondition(ctx, mockClient, info)
-	assert.NoError(t, err)
-	assert.Equal(t, corev1.ConditionTrue, ret.Status)
+	t.Run(("dependency not ready"), func(t *testing.T) {
+		milvus.Spec.Mode = v1beta1.MilvusModeCluster
+		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+		assert.Equal(t, v1beta1.ReasonDependencyNotReady, ret.Reason)
 
-	// dependency ready, cluster 8 ok
-	info = MilvusConditionInfo{
-		Object: &inst,
-		Conditions: []v1beta1.MilvusCondition{
+		milvus.Status.Conditions = []v1beta1.MilvusCondition{
 			{Type: v1beta1.EtcdReady, Status: corev1.ConditionTrue},
+			{Type: v1beta1.MsgStreamReady, Status: corev1.ConditionFalse},
 			{Type: v1beta1.StorageReady, Status: corev1.ConditionTrue},
-			{Type: v1beta1.MsgStreamReady, Status: corev1.ConditionTrue},
-		},
-		IsCluster: true,
-	}
-	mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
-		Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
-			list.Items = []appsv1.Deployment{
-				{}, {}, {}, {},
-				{}, {}, {}, {},
-			}
-			for i := 0; i < 8; i++ {
-				list.Items[i].OwnerReferences = []metav1.OwnerReference{
-					{Controller: &trueVal, UID: "uid"},
-				}
-				list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
-					{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
-				}
-			}
-		})
-	ret, err = GetMilvusInstanceCondition(ctx, mockClient, info)
-	assert.NoError(t, err)
-	assert.Equal(t, corev1.ConditionTrue, ret.Status)
+		}
+		ret, err = GetMilvusInstanceCondition(ctx, mockClient, *milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+	})
 
-	// dependency ready, cluster 1 fail, fail
-	mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
-		Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
-			list.Items = []appsv1.Deployment{
-				{}, {}, {}, {},
-				{}, {}, {}, {},
-			}
-			for i := 0; i < 8; i++ {
-				list.Items[i].OwnerReferences = []metav1.OwnerReference{
+	t.Run(("get milvus condition error"), func(t *testing.T) {
+		milvus.Spec.Mode = v1beta1.MilvusModeCluster
+		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+		assert.Equal(t, v1beta1.ReasonDependencyNotReady, ret.Reason)
+
+		milvus.Status.Conditions = []v1beta1.MilvusCondition{
+			{Type: v1beta1.EtcdReady, Status: corev1.ConditionTrue},
+			{Type: v1beta1.MsgStreamReady, Status: corev1.ConditionTrue},
+			{Type: v1beta1.StorageReady, Status: corev1.ConditionTrue},
+		}
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
+		ret, err = GetMilvusInstanceCondition(ctx, mockClient, *milvus)
+		assert.Error(t, err)
+	})
+
+	t.Run(("standalone milvus ok"), func(t *testing.T) {
+		milvus.Spec.Mode = v1beta1.MilvusModeStandalone
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
+				list.Items = []appsv1.Deployment{
+
+					{},
+				}
+				list.Items[0].OwnerReferences = []metav1.OwnerReference{
 					{Controller: &trueVal, UID: "uid"},
 				}
-				list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
+				list.Items[0].Status.Conditions = []appsv1.DeploymentCondition{
 					{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
 				}
-			}
-			list.Items[7].Status.Conditions = []appsv1.DeploymentCondition{
-				{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionFalse},
-			}
-		})
-	ret, err = GetMilvusInstanceCondition(ctx, mockClient, info)
-	assert.NoError(t, err)
-	assert.Equal(t, corev1.ConditionFalse, ret.Status)
+			})
+		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionTrue, ret.Status)
+	})
+
+	t.Run(("cluster all ok"), func(t *testing.T) {
+		milvus.Spec.Mode = v1beta1.MilvusModeCluster
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
+				list.Items = []appsv1.Deployment{
+					{}, {}, {}, {},
+					{}, {}, {}, {},
+				}
+				for i := 0; i < 8; i++ {
+					list.Items[i].OwnerReferences = []metav1.OwnerReference{
+						{Controller: &trueVal, UID: "uid"},
+					}
+					list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
+						{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
+					}
+				}
+			})
+		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionTrue, ret.Status)
+	})
+
+	t.Run(("cluster mixture 5 ok"), func(t *testing.T) {
+		milvus.Spec.Mode = v1beta1.MilvusModeCluster
+		milvus.Spec.Com.MixCoord = &v1beta1.MixCoord{}
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
+				list.Items = []appsv1.Deployment{
+					{}, {}, {}, {},
+					{},
+				}
+				for i := 0; i < 5; i++ {
+					list.Items[i].OwnerReferences = []metav1.OwnerReference{
+						{Controller: &trueVal, UID: "uid"},
+					}
+					list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
+						{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
+					}
+				}
+			})
+		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionTrue, ret.Status)
+	})
+
+	t.Run(("cluster 1 unready"), func(t *testing.T) {
+		milvus.Spec.Com.MixCoord = nil
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
+				list.Items = []appsv1.Deployment{
+					{}, {}, {}, {},
+					{}, {}, {}, {},
+				}
+				for i := 0; i < 8; i++ {
+					list.Items[i].OwnerReferences = []metav1.OwnerReference{
+						{Controller: &trueVal, UID: "uid"},
+					}
+					list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
+						{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
+					}
+				}
+				list.Items[7].Status.Conditions = []appsv1.DeploymentCondition{
+					{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionFalse},
+				}
+			})
+		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+	})
+
 }

@@ -63,31 +63,34 @@ type MilvusComponents struct {
 	DisableMetric bool `json:"disableMetric"`
 
 	// +kubebuilder:validation:Optional
-	Proxy MilvusProxy `json:"proxy,omitempty"`
+	Proxy *MilvusProxy `json:"proxy,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	RootCoord MilvusRootCoord `json:"rootCoord,omitempty"`
+	MixCoord *MixCoord `json:"mixCoord,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	IndexCoord MilvusIndexCoord `json:"indexCoord,omitempty"`
+	RootCoord *MilvusRootCoord `json:"rootCoord,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	DataCoord MilvusDataCoord `json:"dataCoord,omitempty"`
+	IndexCoord *MilvusIndexCoord `json:"indexCoord,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	QueryCoord MilvusQueryCoord `json:"queryCoord,omitempty"`
+	DataCoord *MilvusDataCoord `json:"dataCoord,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	IndexNode MilvusIndexNode `json:"indexNode,omitempty"`
+	QueryCoord *MilvusQueryCoord `json:"queryCoord,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	DataNode MilvusDataNode `json:"dataNode,omitempty"`
+	IndexNode *MilvusIndexNode `json:"indexNode,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	QueryNode MilvusQueryNode `json:"queryNode,omitempty"`
+	DataNode *MilvusDataNode `json:"dataNode,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	Standalone MilvusStandalone `json:"standalone,omitempty"`
+	QueryNode *MilvusQueryNode `json:"queryNode,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	Standalone *MilvusStandalone `json:"standalone,omitempty"`
 }
 
 type Component struct {
@@ -100,6 +103,7 @@ type Component struct {
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Minimum=0
 	// +kubebuilder:validation:Maximum=65535
+	// not used for now
 	Port int32 `json:"port,omitempty"`
 }
 
@@ -117,6 +121,11 @@ type MilvusIndexNode struct {
 
 type MilvusProxy struct {
 	ServiceComponent `json:",inline"`
+}
+
+// MixCoord is a mixture of rootCoord, indexCoord, queryCoord & dataCoord
+type MixCoord struct {
+	Component `json:",inline"`
 }
 
 type MilvusRootCoord struct {

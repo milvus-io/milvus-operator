@@ -306,14 +306,14 @@ func GetMilvusEndpoint(ctx context.Context, logger logr.Logger, client client.Cl
 }
 
 // MilvusConditionInfo info for calculate the milvus condition
-type MilvusConditionInfo struct {
-	Object     metav1.Object
-	Conditions []v1beta1.MilvusCondition
-	IsCluster  bool
-}
+// type MilvusConditionInfo struct {
+// 	Object     metav1.Object
+// 	Conditions []v1beta1.MilvusCondition
+// 	IsCluster  bool
+// }
 
-func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, info MilvusConditionInfo) (v1beta1.MilvusCondition, error) {
-	if !IsDependencyReady(info.Conditions, info.IsCluster) {
+func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
+	if !IsDependencyReady(mc.Status.Conditions) {
 		return v1beta1.MilvusCondition{
 			Type:    v1beta1.MilvusReady,
 			Status:  corev1.ConditionFalse,
@@ -325,7 +325,7 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, info Mil
 	deployments := &appsv1.DeploymentList{}
 	opts := &client.ListOptions{}
 	opts.LabelSelector = labels.SelectorFromSet(map[string]string{
-		AppLabelInstance: info.Object.GetName(),
+		AppLabelInstance: mc.GetName(),
 		AppLabelName:     "milvus",
 	})
 	if err := cli.List(ctx, deployments, opts); err != nil {
@@ -335,7 +335,7 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, info Mil
 	ready := 0
 	notReadyComponents := []string{}
 	for _, deployment := range deployments.Items {
-		if metav1.IsControlledBy(&deployment, info.Object) {
+		if metav1.IsControlledBy(&deployment, &mc) {
 			if DeploymentReady(deployment) {
 				ready++
 			} else {
@@ -348,10 +348,7 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, info Mil
 		Type: v1beta1.MilvusReady,
 	}
 
-	readyNeeded := 1
-	if info.IsCluster {
-		readyNeeded = len(MilvusComponents)
-	}
+	var readyNeeded = len(GetComponentsBySpec(mc.Spec))
 
 	if ready >= readyNeeded {
 		cond.Status = corev1.ConditionTrue

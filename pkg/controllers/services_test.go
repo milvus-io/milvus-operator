@@ -49,6 +49,7 @@ func TestReconciler_ReconcileServices_CreateIfNotExist(t *testing.T) {
 		}
 		m.Default()
 		m.Spec.Mode = v1beta1.MilvusModeCluster
+		m.Default()
 		mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")).Times(1)
 

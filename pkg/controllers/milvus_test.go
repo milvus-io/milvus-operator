@@ -26,6 +26,7 @@ func TestCluster_Finalize(t *testing.T) {
 	errTest := errors.New("test")
 	m.Spec.Mode = v1beta1.MilvusModeCluster
 	m.Spec.Dep.MsgStreamType = v1beta1.MsgStreamTypePulsar
+	m.Default()
 
 	t.Run("no delete", func(t *testing.T) {
 		err := r.Finalize(ctx, m)

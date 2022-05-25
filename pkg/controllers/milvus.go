@@ -43,7 +43,7 @@ func (r *MilvusReconciler) ReconcileAll(ctx context.Context, mc v1beta1.Milvus) 
 }
 
 func (r *MilvusReconciler) ReconcileMilvus(ctx context.Context, mc v1beta1.Milvus) error {
-	if !IsDependencyReady(mc.Status.Conditions, mc.Spec.Mode == v1beta1.MilvusModeCluster) {
+	if !IsDependencyReady(mc.Status.Conditions) {
 		return nil
 	}
 
