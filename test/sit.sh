@@ -5,16 +5,13 @@ testType=$1
 msgStream="pulsar"
 mcManifest="test/min-mc.yaml"
 milvusManifest="test/min-milvus.yaml"
-if [ "$testType" == "kafka" ]; then
-    mcManifest="test/min-mc-kafka.yaml"
-    milvusManifest="test/min-milvus-kafka.yaml"
-    msgStream="kafka"
+if [ "${testType}" != "" ]; then
+    mcManifest="test/min-mc-${testType}.yaml"
+    milvusManifest="test/min-milvus-${testType}.yaml"
+    if [ "${testType}" == "kafka" ]; then
+        msgStream="kafka"
+    fi
 fi
-if [ "$testType" == "alpha" ]; then
-    mcManifest="test/min-mc-alpha.yaml"
-    milvusManifest="test/min-milvus-alpha.yaml"
-fi
-
 
 # utils
 export LOG_PATH=/tmp/sit.log
@@ -107,6 +104,11 @@ delete_milvus(){
 
 # milvus cases:
 case_create_delete_milvus(){
+    # if milvusManifest exists
+    if [ ! -f $milvusManifest ]; then
+        log "milvusManifest not found,ignore"
+        return 0
+    fi
     # create Milvus CR
     log "Creating Milvus..."
     kubectl apply -f $milvusManifest

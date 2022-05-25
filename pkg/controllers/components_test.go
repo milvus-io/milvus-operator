@@ -30,7 +30,7 @@ func TestGetComponentsBySpec(t *testing.T) {
 	assert.Equal(t, StandaloneComponents, GetComponentsBySpec(spec))
 	spec.Mode = v1beta1.MilvusModeCluster
 	assert.Equal(t, MilvusComponents, GetComponentsBySpec(spec))
-	spec.Com.MixCoord = &v1beta1.MixCoord{}
+	spec.Com.MixCoord = &v1beta1.MilvusMixCoord{}
 	assert.Equal(t, MixtureComponents, GetComponentsBySpec(spec))
 }
 

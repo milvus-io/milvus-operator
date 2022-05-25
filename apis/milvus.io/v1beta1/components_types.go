@@ -66,7 +66,7 @@ type MilvusComponents struct {
 	Proxy *MilvusProxy `json:"proxy,omitempty"`
 
 	// +kubebuilder:validation:Optional
-	MixCoord *MixCoord `json:"mixCoord,omitempty"`
+	MixCoord *MilvusMixCoord `json:"mixCoord,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	RootCoord *MilvusRootCoord `json:"rootCoord,omitempty"`
@@ -123,8 +123,8 @@ type MilvusProxy struct {
 	ServiceComponent `json:",inline"`
 }
 
-// MixCoord is a mixture of rootCoord, indexCoord, queryCoord & dataCoord
-type MixCoord struct {
+// MilvusMixCoord is a mixture of rootCoord, indexCoord, queryCoord & dataCoord
+type MilvusMixCoord struct {
 	Component `json:",inline"`
 }
 

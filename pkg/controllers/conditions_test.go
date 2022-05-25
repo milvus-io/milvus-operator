@@ -381,7 +381,7 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 
 	t.Run(("cluster mixture 5 ok"), func(t *testing.T) {
 		milvus.Spec.Mode = v1beta1.MilvusModeCluster
-		milvus.Spec.Com.MixCoord = &v1beta1.MixCoord{}
+		milvus.Spec.Com.MixCoord = &v1beta1.MilvusMixCoord{}
 		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
 			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
 				list.Items = []appsv1.Deployment{

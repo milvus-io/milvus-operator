@@ -81,7 +81,7 @@ jobs:
   sit:
     name: System Integration Test
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -106,7 +106,7 @@ jobs:
   sit-kafka:
     name: System Integration Test for Kafka
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -126,12 +126,12 @@ jobs:
           make sit-deploy
       - name: Integration Test
         run: |
-          make sit-test-kafka
+          make sit-test mode=kafka
 
   sit-alpha:
     name: System Integration Test for v1alpha1
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -151,4 +151,29 @@ jobs:
           make sit-deploy
       - name: Integration Test
         run: |
-          make sit-test-alpha
+          make sit-test mode=alpha
+
+  sit-mixture:
+    name: System Integration Test for Mixture
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu18.04]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Prepare Docker Images
+        run: |
+          make sit-prepare-images
+      - name: Setup KinD Cluster
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.11.1"
+      - name: Deploy to KinD
+        run: |
+          make sit-deploy
+      - name: Integration Test
+        run: |
+          make sit-test mode=mixture

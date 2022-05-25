@@ -1,0 +1,64 @@
+name: Weekly Test
+on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    #         ┌───────────── minute (0 - 59)
+    #         │ ┌───────────── hour (0 - 23)
+    #         │ │  ┌───────────── day of the month (1 - 31)
+    #         │ │  │ ┌───────────── month (1 - 12 or JAN-DEC)
+    #         │ │  │ │ ┌───────────── day of the week (0 - 6 or SUN-SAT)
+    #         │ │  │ │ │
+    #         │ │  │ │ │
+    #         │ │  │ │ │
+    - cron:  '0 23 * * 0'
+
+jobs:
+  daily-kafka:
+    name: System Integration Test for Kafka
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu18.04]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Prepare Docker Images
+        run: |
+          make sit-prepare-images
+      - name: Setup KinD Cluster
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.11.1"
+      - name: Deploy to KinD
+        run: |
+          make sit-deploy
+      - name: Integration Test
+        run: |
+          make sit-test mode=kafka
+
+  daily-alpha:
+    name: System Integration Test for v1alpha1
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu18.04]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Prepare Docker Images
+        run: |
+          make sit-prepare-images
+      - name: Setup KinD Cluster
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.11.1"
+      - name: Deploy to KinD
+        run: |
+          make sit-deploy
+      - name: Integration Test
+        run: |
+          make sit-test mode=alpha
