@@ -367,6 +367,17 @@ func GetMinioSecure(conf map[string]interface{}) bool {
 	return false
 }
 
+func GetMinioBucket(conf map[string]interface{}) string {
+	fields := []string{"minio", "bucketName"}
+	val, exist := util.GetStringValue(conf, fields...)
+	if exist {
+		return val
+	}
+	return defaultBucketName
+}
+
+const defaultBucketName = "milvus-bucket"
+
 func diffObject(old, new client.Object) ([]byte, error) {
 	return client.MergeFrom(old).Data(new)
 }
@@ -379,7 +390,7 @@ func int32Ptr(i int) *int32 {
 func getFuncName(i interface{}) string {
 	splited := strings.Split(runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name(), ".")
 	length := len(splited)
-	if length > 0 {
+	if length > 1 {
 		return splited[length-1]
 	}
 	return splited[0]

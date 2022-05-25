@@ -8,7 +8,7 @@ import (
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/golang/mock/gomock"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
-	"github.com/minio/madmin-go"
+	"github.com/milvus-io/milvus-operator/pkg/external"
 	"github.com/stretchr/testify/assert"
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
@@ -21,6 +21,47 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+func TestGetCondition(t *testing.T) {
+	bak := endpointCheckCache
+	defer func() { endpointCheckCache = bak }()
+
+	t.Run("use cache", func(t *testing.T) {
+		condition := v1beta1.MilvusCondition{Reason: "test"}
+		endpointCheckCache = &mockEndpointCheckCache{condition: &condition, isUpToDate: true}
+		ret := GetCondition(mockConditionGetter, []string{})
+		assert.Equal(t, condition, ret)
+	})
+	t.Run("not use cache", func(t *testing.T) {
+		endpointCheckCache = &mockEndpointCheckCache{condition: nil, isUpToDate: false}
+		ret := GetCondition(mockConditionGetter, []string{})
+		assert.Equal(t, v1beta1.MilvusCondition{Reason: "update"}, ret)
+	})
+}
+
+func TestWrapGetters(t *testing.T) {
+	ctx := context.TODO()
+	logger := logf.Log
+	t.Run("kafka", func(t *testing.T) {
+		fn := wrapKafkaConditonGetter(ctx, logger, v1beta1.MilvusKafka{})
+		fn()
+	})
+	t.Run("pulsar", func(t *testing.T) {
+		fn := wrapPulsarConditonGetter(ctx, logger, v1beta1.MilvusPulsar{})
+		fn()
+	})
+	t.Run("etcd", func(t *testing.T) {
+		fn := wrapEtcdConditionGetter(ctx, []string{})
+		fn()
+	})
+	t.Run("minio", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		cli := NewMockK8sClient(ctrl)
+		cli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		fn := wrapMinioConditionGetter(ctx, logger, cli, StorageConditionInfo{})
+		fn()
+	})
+}
+
 func getMockPulsarNewClient(cli pulsar.Client, err error) func(options pulsar.ClientOptions) (pulsar.Client, error) {
 	return func(options pulsar.ClientOptions) (pulsar.Client, error) {
 		return cli, err
@@ -28,11 +69,11 @@ func getMockPulsarNewClient(cli pulsar.Client, err error) func(options pulsar.Cl
 }
 
 func TestGetKafkaCondition(t *testing.T) {
-	checkKafka = func(p v1beta1.MilvusKafka) error { return nil }
+	checkKafka = func([]string) error { return nil }
 	ret := GetKafkaCondition(context.TODO(), logf.Log.WithName("test"), v1beta1.MilvusKafka{})
 	assert.Equal(t, corev1.ConditionTrue, ret.Status)
 
-	checkKafka = func(p v1beta1.MilvusKafka) error { return errors.New("failed") }
+	checkKafka = func([]string) error { return errors.New("failed") }
 	ret = GetKafkaCondition(context.TODO(), logf.Log.WithName("test"), v1beta1.MilvusKafka{})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
 }
@@ -75,20 +116,23 @@ func TestGetPulsarCondition(t *testing.T) {
 	assert.Equal(t, v1beta1.ReasonMsgStreamReady, ret.Reason)
 }
 
-func getMockNewMinioClientFunc(cli MinioClient, err error) NewMinioClientFunc {
-	return func(endpoint string, accessKeyID, secretAccessKey string, secure bool) (MinioClient, error) {
-		return cli, err
+func getMockCheckMinIOFunc(err error) checkMinIOFunc {
+	return func(external.CheckMinIOArgs) error {
+		return err
 	}
 }
 
 func TestGetMinioCondition(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+	checkMinIObak := checkMinIO
+	defer func() {
+		checkMinIO = checkMinIObak
+	}()
 
 	ctx := context.TODO()
 	logger := logf.Log.WithName("test")
 	mockK8sCli := NewMockK8sClient(ctrl)
-	mockMinio := NewMockMinioClient(ctrl)
 	errTest := errors.New("test")
 	errNotFound := k8sErrors.NewNotFound(schema.GroupResource{}, "")
 
@@ -117,7 +161,7 @@ func TestGetMinioCondition(t *testing.T) {
 
 	t.Run("new client failed", func(t *testing.T) {
 		defer ctrl.Finish()
-		newMinioClientFunc = getMockNewMinioClientFunc(nil, errTest)
+		checkMinIO = getMockCheckMinIOFunc(errTest)
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
 			Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
 				secret.Data = map[string][]byte{
@@ -131,8 +175,8 @@ func TestGetMinioCondition(t *testing.T) {
 
 	})
 
-	t.Run("new client ok, check failed", func(t *testing.T) {
-		newMinioClientFunc = getMockNewMinioClientFunc(mockMinio, nil)
+	t.Run("new client ok, check ok", func(t *testing.T) {
+		checkMinIO = getMockCheckMinIOFunc(nil)
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
 			Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
 				secret.Data = map[string][]byte{
@@ -140,25 +184,8 @@ func TestGetMinioCondition(t *testing.T) {
 					SecretKey: []byte("secretAccessKey"),
 				}
 			})
-		mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{}, errTest)
 		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-		assert.Equal(t, corev1.ConditionFalse, ret.Status)
-		assert.Equal(t, v1beta1.ReasonClientErr, ret.Reason)
-
-	})
-
-	t.Run("new get info ok, check failed", func(t *testing.T) {
-		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
-			Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
-				secret.Data = map[string][]byte{
-					AccessKey: []byte("accessKeyID"),
-					SecretKey: []byte("secretAccessKey"),
-				}
-			})
-		mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{}, nil)
-		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
-		assert.Equal(t, corev1.ConditionFalse, ret.Status)
-		assert.Equal(t, v1beta1.ReasonStorageNotReady, ret.Reason)
+		assert.Equal(t, corev1.ConditionTrue, ret.Status)
 	})
 
 	// one online check ok
@@ -170,12 +197,6 @@ func TestGetMinioCondition(t *testing.T) {
 					SecretKey: []byte("secretAccessKey"),
 				}
 			})
-		mockMinio.EXPECT().ServerInfo(gomock.Any()).Return(madmin.InfoMessage{
-			Servers: []madmin.ServerProperties{
-				{State: "ok"},
-				{State: "not ok"},
-			},
-		}, nil)
 		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, corev1.ConditionTrue, ret.Status)
 		assert.Equal(t, v1beta1.ReasonStorageReady, ret.Reason)
@@ -427,4 +448,9 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
 	})
 
+}
+
+func TestCheckMinIOFailed(t *testing.T) {
+	err := checkMinIO(external.CheckMinIOArgs{})
+	assert.Error(t, err)
 }

@@ -170,6 +170,20 @@ func TestGetVolumeIndex(t *testing.T) {
 	assert.Equal(t, -1, GetVolumeIndex(volumes, "z"))
 }
 
+func TestGetMinioBucket(t *testing.T) {
+	config := map[string]interface{}{
+		"minio": map[string]interface{}{
+			"bucketName": "bucket1",
+		},
+	}
+	// not default
+	assert.Equal(t, "bucket1", GetMinioBucket(config))
+
+	// default
+	config["minio"] = nil
+	assert.Equal(t, defaultBucketName, GetMinioBucket(config))
+}
+
 func TestGetVolumeMountIndex(t *testing.T) {
 	volumeMounts := []corev1.VolumeMount{
 		{MountPath: "a"},
@@ -463,7 +477,7 @@ func TestInt32Ptr(t *testing.T) {
 }
 
 func TestGetFuncName(t *testing.T) {
-	assert.Contains(t, getFuncName(getFuncName), "getFuncName")
+	assert.Equal(t, "getFuncName", getFuncName(getFuncName))
 }
 
 func TestLoopWithInterval(t *testing.T) {

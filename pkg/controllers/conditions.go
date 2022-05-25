@@ -11,7 +11,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/external"
-	"github.com/minio/madmin-go"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	appsv1 "k8s.io/api/apps/v1"
@@ -88,7 +87,7 @@ var msgStreamReadyCondition = v1beta1.MilvusCondition{
 var checkKafka = external.CheckKafka
 
 func GetKafkaCondition(ctx context.Context, logger logr.Logger, p v1beta1.MilvusKafka) v1beta1.MilvusCondition {
-	err := checkKafka(p)
+	err := checkKafka(p.BrokerList)
 	if err != nil {
 		return newErrMsgStreamCondResult(v1beta1.ReasonMsgStreamNotReady, err.Error())
 	}
@@ -99,16 +98,16 @@ func GetKafkaCondition(ctx context.Context, logger logr.Logger, p v1beta1.Milvus
 // StorageConditionInfo is info for acquiring storage condition
 type StorageConditionInfo struct {
 	Namespace string
+	Bucket    string
 	Storage   v1beta1.MilvusStorage
-	EndPoint  string
 	UseSSL    bool
 }
 
-type NewMinioClientFunc func(endpoint string, accessKeyID, secretAccessKey string, secure bool) (MinioClient, error)
+type checkMinIOFunc = func(args external.CheckMinIOArgs) error
 
-// newMinioClientFunc wraps madmin.New for test mock convenience
-var newMinioClientFunc NewMinioClientFunc = func(endpoint string, accessKeyID, secretAccessKey string, secure bool) (MinioClient, error) {
-	return madmin.New(endpoint, accessKeyID, secretAccessKey, secure)
+// checkMinIO wraps minio.New for test mock convenience
+var checkMinIO = func(args external.CheckMinIOArgs) error {
+	return external.CheckMinIO(args)
 }
 
 func GetMinioCondition(ctx context.Context, logger logr.Logger, cli client.Client, info StorageConditionInfo) v1beta1.MilvusCondition {
@@ -129,42 +128,23 @@ func GetMinioCondition(ctx context.Context, logger logr.Logger, cli client.Clien
 		return newErrStorageCondResult(v1beta1.ReasonSecretNotExist, MessageKeyNotExist)
 	}
 
-	mdmClnt, err := newMinioClientFunc(
-		info.Storage.Endpoint,
-		string(accesskey), string(secretkey),
-		info.UseSSL,
-	)
-
+	err = checkMinIO(external.CheckMinIOArgs{
+		Type:     info.Storage.Type,
+		AK:       string(accesskey),
+		SK:       string(secretkey),
+		Endpoint: info.Storage.Endpoint,
+		Bucket:   info.Bucket,
+		UseSSL:   info.UseSSL,
+	})
 	if err != nil {
 		return newErrStorageCondResult(v1beta1.ReasonClientErr, err.Error())
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	st, err := mdmClnt.ServerInfo(ctx)
-	if err != nil {
-		return newErrStorageCondResult(v1beta1.ReasonClientErr, err.Error())
-	}
-	ready := false
-	for _, server := range st.Servers {
-		if server.State == "ok" {
-			ready = true
-			break
-		}
-	}
-
-	cond := v1beta1.MilvusCondition{
+	return v1beta1.MilvusCondition{
 		Type:   v1beta1.StorageReady,
-		Status: GetConditionStatus(ready),
+		Status: GetConditionStatus(true),
 		Reason: v1beta1.ReasonStorageReady,
 	}
-
-	if !ready {
-		cond.Reason = v1beta1.ReasonStorageNotReady
-		cond.Message = MessageStorageNotReady
-	}
-
-	return cond
 }
 
 type EtcdConditionInfo struct {

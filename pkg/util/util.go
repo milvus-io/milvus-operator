@@ -27,6 +27,15 @@ func GetBoolValue(values map[string]interface{}, fields ...string) (bool, bool) 
 	return val, true
 }
 
+func GetStringValue(values map[string]interface{}, fields ...string) (string, bool) {
+	val, found, err := unstructured.NestedString(values, fields...)
+	if err != nil || !found {
+		return "", false
+	}
+
+	return val, true
+}
+
 func DeleteValue(values map[string]interface{}, fields ...string) {
 	unstructured.RemoveNestedField(values, fields...)
 }
