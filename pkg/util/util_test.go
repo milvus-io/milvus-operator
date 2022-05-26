@@ -9,6 +9,20 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+func TestGetStringValue(t *testing.T) {
+	vals := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b": "1",
+		},
+	}
+	ret, exist := GetStringValue(vals, "a", "b")
+	assert.True(t, exist)
+	assert.Equal(t, "1", ret)
+	ret, exist = GetStringValue(vals, "a", "c")
+	assert.False(t, exist)
+	assert.Equal(t, "", ret)
+}
+
 func Test_GetBoolValue_SetValue_DeleteValue(t *testing.T) {
 	origin := map[string]interface{}{}
 

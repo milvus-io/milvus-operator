@@ -9,11 +9,103 @@ import (
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	networkv1 "k8s.io/api/networking/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
+
+func TestMilvusStatusSyncer_UpdateIngressStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockCli := NewMockK8sClient(ctrl)
+	ctx := context.Background()
+	logger := logf.Log.WithName("test")
+	s := NewMilvusStatusSyncer(ctx, mockCli, logger)
+
+	milvus := v1beta1.Milvus{}
+	milvus.Default()
+
+	t.Run("no ingress configed", func(t *testing.T) {
+		err := s.UpdateIngressStatus(ctx, &milvus)
+		assert.NoError(t, err)
+	})
+
+	t.Run("get ingress failed", func(t *testing.T) {
+		milvus.Spec.Com.Standalone.Ingress = &v1beta1.MilvusIngress{}
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
+		err := s.UpdateIngressStatus(ctx, &milvus)
+		assert.Error(t, err)
+	})
+	t.Run("get ingress not found ok", func(t *testing.T) {
+		milvus.Spec.Com.Standalone.Ingress = &v1beta1.MilvusIngress{}
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(kerrors.NewNotFound(schema.GroupResource{}, ""))
+		err := s.UpdateIngressStatus(ctx, &milvus)
+		assert.NoError(t, err)
+	})
+	t.Run("get ingress found, status copied", func(t *testing.T) {
+		milvus.Spec.Com.Standalone.Ingress = &v1beta1.MilvusIngress{}
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
+			Do(func(_, _ interface{}, obj *networkv1.Ingress) {
+				obj.Status.LoadBalancer.Ingress = []corev1.LoadBalancerIngress{
+					{
+						Hostname: "host1",
+					},
+				}
+			}).Return(nil)
+		err := s.UpdateIngressStatus(ctx, &milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, "host1", milvus.Status.IngressStatus.LoadBalancer.Ingress[0].Hostname)
+	})
+}
+
+func TestMilvusStatusSyncer_GetDependencyCondition(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockCli := NewMockK8sClient(ctrl)
+	ctx := context.Background()
+	logger := logf.Log.WithName("test")
+	s := NewMilvusStatusSyncer(ctx, mockCli, logger)
+	milvus := v1beta1.Milvus{}
+	milvus.Spec.Conf.Data = map[string]interface{}{}
+	t.Run("GetMinioCondition", func(t *testing.T) {
+		defer ctrl.Finish()
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
+		ret, err := s.GetMinioCondition(ctx, milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+	})
+	t.Run("GetEtcdCondition", func(t *testing.T) {
+		defer ctrl.Finish()
+		ret, err := s.GetEtcdCondition(ctx, milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+	})
+	t.Run("GetMsgStreamCondition_pulsar", func(t *testing.T) {
+		defer ctrl.Finish()
+		ret, err := s.GetMsgStreamCondition(ctx, milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+	})
+	t.Run("GetMsgStreamCondition_kafka", func(t *testing.T) {
+		defer ctrl.Finish()
+		milvus.Spec.Dep.MsgStreamType = v1beta1.MsgStreamTypeKafka
+		ret, err := s.GetMsgStreamCondition(ctx, milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+	})
+	t.Run("GetMsgStreamCondition_rocksmq", func(t *testing.T) {
+		defer ctrl.Finish()
+		milvus.Spec.Dep.MsgStreamType = v1beta1.MsgStreamTypeRocksMQ
+		ret, err := s.GetMsgStreamCondition(ctx, milvus)
+		assert.NoError(t, err)
+		assert.Equal(t, corev1.ConditionTrue, ret.Status)
+	})
+}
 
 func TestStatusSyncer_syncUnhealthy(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -226,23 +318,6 @@ func (m *mockEndpointCheckCache) Set(endpoints []string, condition *v1beta1.Milv
 
 func mockConditionGetter() v1beta1.MilvusCondition {
 	return v1beta1.MilvusCondition{Reason: "update"}
-}
-
-func TestGetCondition(t *testing.T) {
-	bak := endpointCheckCache
-	defer func() { endpointCheckCache = bak }()
-
-	t.Run("use cache", func(t *testing.T) {
-		condition := v1beta1.MilvusCondition{Reason: "test"}
-		endpointCheckCache = &mockEndpointCheckCache{condition: &condition, isUpToDate: true}
-		ret := GetCondition(mockConditionGetter, []string{})
-		assert.Equal(t, condition, ret)
-	})
-	t.Run("not use cache", func(t *testing.T) {
-		endpointCheckCache = &mockEndpointCheckCache{condition: nil, isUpToDate: false}
-		ret := GetCondition(mockConditionGetter, []string{})
-		assert.Equal(t, v1beta1.MilvusCondition{Reason: "update"}, ret)
-	})
 }
 
 func TestWrapGetter(t *testing.T) {

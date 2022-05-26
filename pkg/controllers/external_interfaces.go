@@ -5,7 +5,6 @@ import (
 
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/go-logr/logr"
-	"github.com/minio/madmin-go"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -30,11 +29,6 @@ type PulsarClient interface {
 // PulsarReader for mock
 type PulsarReader interface {
 	pulsar.Reader
-}
-
-// MinioClient for mock
-type MinioClient interface {
-	ServerInfo(ctx context.Context) (madmin.InfoMessage, error)
 }
 
 // EtcdClient for mock

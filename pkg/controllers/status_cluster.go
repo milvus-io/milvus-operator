@@ -271,13 +271,10 @@ func (r *MilvusStatusSyncer) GetMsgStreamCondition(
 // TODO: rename as GetStorageCondition
 func (r *MilvusStatusSyncer) GetMinioCondition(
 	ctx context.Context, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
-	if mc.Spec.Dep.Storage.Type == v1beta1.StorageTypeS3 {
-		return S3ReadyCondition, nil
-	}
 	info := StorageConditionInfo{
 		Namespace: mc.Namespace,
+		Bucket:    GetMinioBucket(mc.Spec.Conf.Data),
 		Storage:   mc.Spec.Dep.Storage,
-		EndPoint:  mc.Spec.Dep.Storage.Endpoint,
 		UseSSL:    GetMinioSecure(mc.Spec.Conf.Data),
 	}
 	getter := wrapMinioConditionGetter(ctx, r.logger, r.Client, info)
