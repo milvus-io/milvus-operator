@@ -104,7 +104,7 @@ type ImageInfo struct {
 
 var (
 	DefaultOperatorImageInfo = ImageInfo{
-		Image:           "milvusdb/milvus-operator:latest",
+		Image:           "milvusdb/milvus-operator:main-latest",
 		ImagePullPolicy: corev1.PullAlways,
 	}
 	ToolImage = ""
