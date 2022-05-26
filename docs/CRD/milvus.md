@@ -37,8 +37,12 @@ spec:
   # Global tolerations.
   # If specified, the pod's tolerations.
   # More info: https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/
-  tolerations: {} # Optional
-  
+  tolerations: [] # Optional
+
+  # Global affinity.
+  # -- Expects input structure as per specification <https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#affinity-v1-core>
+  affinity: {}
+
   # Global compute resources required.
   # Compute Resources required by this component.
   # Cannot be updated.
