@@ -12,7 +12,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: checker
-        image: milvusdb/milvus-operator:latest 
+        image: milvusdb/milvus-operator:main-latest 
         command: ["/checker"]
         resources:
           limits:

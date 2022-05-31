@@ -20,7 +20,7 @@ spec:
         - /manager
         args:
         - --leader-elect
-        image: milvusdb/milvus-operator:latest
+        image: milvusdb/milvus-operator:main-latest
         name: manager
         securityContext:
           allowPrivilegeEscalation: false

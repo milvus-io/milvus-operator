@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"errors"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -483,13 +484,13 @@ func TestGetFuncName(t *testing.T) {
 func TestLoopWithInterval(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	callCnt := 0
+	var callCnt int32 = 0
 	loopFunc := func() error {
-		callCnt++
+		atomic.AddInt32(&callCnt, 1)
 		return errors.New("test")
 	}
 	logger := logf.Log.WithName("test")
 	go LoopWithInterval(ctx, loopFunc, time.Second/10, logger)
 	time.Sleep(time.Second)
-	assert.Less(t, 9, callCnt)
+	assert.Less(t, int32(9), atomic.LoadInt32(&callCnt))
 }

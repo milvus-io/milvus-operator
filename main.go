@@ -68,6 +68,8 @@ func main() {
 
 	ctx := ctrl.SetupSignalHandler()
 
+	controllers.InitializeMetrics()
+
 	if err := controllers.SetupControllers(ctx, mgr, true); err != nil {
 		setupLog.Error(err, "unable to setup controller with manager")
 		os.Exit(1)

@@ -72,12 +72,22 @@ func (r *MilvusStatusSyncer) RunIfNot() {
 	})
 }
 
+var (
+	// counter for milvus_total_count metric
+	healthyCount   int
+	unhealthyCount int
+)
+
 func (r *MilvusStatusSyncer) syncUnhealthy() error {
 	milvusList := &v1beta1.MilvusList{}
 	err := r.List(r.ctx, milvusList)
 	if err != nil {
 		return errors.Wrap(err, "list milvus failed")
 	}
+
+	unhealthyCount = len(milvusList.Items)
+	milvusTotalCollector.Set(float64(healthyCount + unhealthyCount))
+	milvusUnhealthyCollector.Set(float64(unhealthyCount))
 
 	argsArray := []Args{}
 	for i := range milvusList.Items {
@@ -99,6 +109,10 @@ func (r *MilvusStatusSyncer) syncHealthy() error {
 	if err != nil {
 		return errors.Wrap(err, "list milvus failed")
 	}
+
+	healthyCount = len(milvusList.Items)
+	milvusTotalCollector.Set(float64(healthyCount + unhealthyCount))
+
 	argsArray := []Args{}
 	for i := range milvusList.Items {
 		mc := &milvusList.Items[i]
