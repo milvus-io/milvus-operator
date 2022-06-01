@@ -849,6 +849,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -1325,6 +1327,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -1874,6 +1878,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -2350,6 +2356,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -2826,6 +2834,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -3329,6 +3339,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       serviceAnnotations:
                         additionalProperties:
                           type: string
@@ -3820,6 +3832,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -4296,6 +4310,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -4791,6 +4807,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -4808,6 +4826,8 @@ spec:
                           type: object
                         type: array
                     type: object
+                  serviceAccountName:
+                    type: string
                   standalone:
                     properties:
                       affinity:
@@ -5290,6 +5310,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       serviceAnnotations:
                         additionalProperties:
                           type: string
@@ -6451,6 +6473,8 @@ spec:
                       x-kubernetes-int-or-string: true
                     type: object
                 type: object
+              serviceAccountName:
+                type: string
               serviceAnnotations:
                 additionalProperties:
                   type: string
@@ -7401,6 +7425,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -7877,6 +7903,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -8426,6 +8454,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -8902,6 +8932,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -9378,6 +9410,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -9881,6 +9915,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       serviceAnnotations:
                         additionalProperties:
                           type: string
@@ -10372,6 +10408,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -10848,6 +10886,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -11343,6 +11383,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       tolerations:
                         items:
                           properties:
@@ -11360,6 +11402,8 @@ spec:
                           type: object
                         type: array
                     type: object
+                  serviceAccountName:
+                    type: string
                   standalone:
                     properties:
                       affinity:
@@ -11842,6 +11886,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      serviceAccountName:
+                        type: string
                       serviceAnnotations:
                         additionalProperties:
                           type: string
