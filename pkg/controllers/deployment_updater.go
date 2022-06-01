@@ -69,7 +69,7 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	template.Spec.Tolerations = mergedComSpec.Tolerations
 	template.Spec.NodeSelector = mergedComSpec.NodeSelector
 	template.Spec.ImagePullSecrets = mergedComSpec.ImagePullSecrets
-
+	template.Spec.ServiceAccountName = mergedComSpec.ServiceAccountName
 	// update component container
 	containerIdx := GetContainerIndex(template.Spec.Containers, updater.GetComponentName())
 	if containerIdx < 0 {
