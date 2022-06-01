@@ -20,6 +20,9 @@ log() {
 }
 
 check_milvus_available(){
+    # list all common resources to provide more debug information
+    log "start check milvus, printing all resources first"
+    kubectl -n $1 get all
     # if $1 equals milvus-sit
     kubectl -n $1 create cm hello-milvus --from-file=test/hello-milvus.py
     kubectl -n $1 create -f test/hello-milvus-job.yaml

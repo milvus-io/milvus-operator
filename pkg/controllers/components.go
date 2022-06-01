@@ -135,14 +135,14 @@ func (c MilvusComponent) GetReplicas(spec v1beta1.MilvusSpec) *int32 {
 	return replicas
 }
 
-const mixtureRunCommand = "mixture"
+var mixtureRunCommands = []string{"mixture", "-rootcoord", "-querycoord", "-datacoord", "-indexcoord"}
 
 // String returns the name of the component
-func (c MilvusComponent) GetRunCommand() string {
+func (c MilvusComponent) GetRunCommands() []string {
 	if c.Name == MixCoordName {
-		return mixtureRunCommand
+		return mixtureRunCommands
 	}
-	return c.Name
+	return []string{c.Name}
 }
 
 // String returns the name of the component

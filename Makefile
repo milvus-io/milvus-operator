@@ -202,8 +202,8 @@ sit-prepare-operator-images:
 sit-prepare-images: sit-prepare-operator-images
 	@echo "Preparing images"
 	# TODO: change back to milvus release image
-	docker pull milvusdb/milvus-dev:master-20220511-a8b81e21
-	docker tag milvusdb/milvus-dev:master-20220511-a8b81e21 milvusdb/milvus:v2.0.2
+	docker pull milvusdb/milvus-dev:master-20220602-e88ffb8a
+	docker tag milvusdb/milvus-dev:master-20220602-e88ffb8a milvusdb/milvus:v2.0.2
 	
 	docker pull -q apachepulsar/pulsar:2.8.2
 	docker pull -q bitnami/kafka:3.1.0-debian-10-r52

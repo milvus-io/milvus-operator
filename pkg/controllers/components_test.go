@@ -194,11 +194,11 @@ func TestMilvusComponent_GetReplicas(t *testing.T) {
 	assert.Equal(t, &replica, com.GetReplicas(spec))
 }
 
-func TestMilvusComponent_GetRunCommand(t *testing.T) {
+func TestMilvusComponent_GetRunCommands(t *testing.T) {
 	com := QueryNode
-	assert.Equal(t, com.Name, com.GetRunCommand())
+	assert.Equal(t, []string{com.Name}, com.GetRunCommands())
 	com = MixCoord
-	assert.Equal(t, mixtureRunCommand, com.GetRunCommand())
+	assert.Equal(t, mixtureRunCommands, com.GetRunCommands())
 }
 
 func TestMilvusComponent_GetName(t *testing.T) {
