@@ -126,4 +126,4 @@ jobs:
           make sit-deploy
       - name: Integration Test
         run: |
-          make sit-test mode=mixture
+          make sit-test test_mode=mixture

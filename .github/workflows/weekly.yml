@@ -36,7 +36,7 @@ jobs:
           make sit-deploy
       - name: Integration Test
         run: |
-          make sit-test mode=kafka
+          make sit-test test_mode=kafka
 
   daily-alpha:
     name: System Integration Test for v1alpha1
@@ -61,4 +61,4 @@ jobs:
           make sit-deploy
       - name: Integration Test
         run: |
-          make sit-test mode=alpha
+          make sit-test test_mode=alpha

@@ -173,7 +173,7 @@ func (m milvusDeploymentUpdater) GetMergedComponentSpec() ComponentSpec {
 	)
 }
 func (m milvusDeploymentUpdater) GetArgs() []string {
-	return []string{RunScriptPath, "milvus", "run", m.component.GetRunCommand()}
+	return append([]string{RunScriptPath, "milvus", "run"}, m.component.GetRunCommands()...)
 }
 func (m milvusDeploymentUpdater) GetSecretRef() string {
 	return m.Spec.Dep.Storage.SecretRef
