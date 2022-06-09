@@ -214,7 +214,7 @@ func TestMilvusComponent_GetPort(t *testing.T) {
 
 func TestMilvusComponent_GetDeploymentInstanceName(t *testing.T) {
 	com := QueryNode
-	assert.Equal(t, "inst1-milvus-querynode", com.GetDeploymentInstanceName("inst1"))
+	assert.Equal(t, "inst1-milvus-querynode", com.GetDeploymentName("inst1"))
 }
 
 func TestMilvusComponent_GetSerfviceInstanceName(t *testing.T) {
@@ -365,6 +365,6 @@ func TestMilvusComponent_SetStatusReplica(t *testing.T) {
 }
 
 func TestGetInstanceName_GetInstance(t *testing.T) {
-	assert.Equal(t, "a", MilvusStandalone.GetDeploymentInstanceName("a"))
-	assert.Equal(t, "a-milvus-proxy", Proxy.GetDeploymentInstanceName("a"))
+	assert.Equal(t, "a-milvus-standalone", MilvusStandalone.GetDeploymentName("a"))
+	assert.Equal(t, "a-milvus-proxy", Proxy.GetDeploymentName("a"))
 }

@@ -212,7 +212,7 @@ func updateReplicas(ctx context.Context, key client.ObjectKey, status *v1beta1.M
 
 func getComponentDeployment(ctx context.Context, key client.ObjectKey, component MilvusComponent, cli client.Client) (*appsv1.Deployment, error) {
 	deployment := &appsv1.Deployment{}
-	err := cli.Get(ctx, types.NamespacedName{Name: component.GetDeploymentInstanceName(key.Name), Namespace: key.Namespace}, deployment)
+	err := cli.Get(ctx, types.NamespacedName{Name: component.GetDeploymentName(key.Name), Namespace: key.Namespace}, deployment)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			return nil, nil

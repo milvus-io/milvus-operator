@@ -89,10 +89,10 @@ build-only:
 
 build-release:
 	mkdir -p out
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o out/manager main.go
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -a -o out/checker ./tool/checker
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -a -o out/merge ./tool/merge
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -a -o out/cp ./tool/cp
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o out/manager main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o out/checker ./tool/checker
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o out/merge ./tool/merge
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o out/cp ./tool/cp
 
 
 run: manifests generate fmt vet ## Run a controller from your host.
@@ -117,7 +117,7 @@ docker-local-prepare: build-release out/config/assets/templates
 	tar -xf ./minio.tgz -C ./out/config/assets/charts/
 	tar -xf ./pulsar.tgz -C ./out/config/assets/charts/
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/values.yaml -O ./out/config/assets/charts/values.yaml
-	scripts/run.sh out/run.sh
+	cp scripts/run.sh out/run.sh
 
 docker-local-build:
 	docker build --build-arg MILVUS_HELM_VERSION=$(MILVUS_HELM_VERSION) -t ${IMG} -f local.Dockerfile . 
