@@ -8,6 +8,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 )
@@ -65,17 +67,48 @@ func (r *MilvusReconciler) updateDeployment(
 	return updateDeployment(deployment, newMilvusDeploymentUpdater(mc, r.Scheme, component))
 }
 
+func (r *MilvusReconciler) getDeploymentAndRemoveExtra(ctx context.Context, mc v1beta1.Milvus, component MilvusComponent) (*appsv1.Deployment, error) {
+	deployments := &appsv1.DeploymentList{}
+	opts := &client.ListOptions{
+		Namespace: mc.Namespace,
+	}
+	opts.LabelSelector = labels.SelectorFromSet(NewComponentAppLabels(
+		mc.Name,
+		component.Name,
+	))
+	if err := r.List(ctx, deployments, opts); err != nil {
+		return nil, err
+	}
+	var ret *appsv1.Deployment
+	if len(deployments.Items) > 0 {
+		deploymentName := component.GetDeploymentName(mc.Name)
+		for _, deploy := range deployments.Items {
+			if deploy.Name != deploymentName {
+				if err := r.Delete(ctx, &deploy); err != nil {
+					return nil, err
+				}
+			} else {
+				ret = &deploy
+			}
+		}
+	}
+	if ret == nil {
+		return nil, errors.NewNotFound(appsv1.Resource("deployment"), "resource not found")
+	}
+	return ret, nil
+}
+
 func (r *MilvusReconciler) ReconcileComponentDeployment(
 	ctx context.Context, mc v1beta1.Milvus, component MilvusComponent,
 ) error {
-	namespacedName := NamespacedName(mc.Namespace, component.GetDeploymentInstanceName(mc.Name))
+	namespacedName := NamespacedName(mc.Namespace, component.GetDeploymentName(mc.Name))
 	old := &appsv1.Deployment{}
 	err := r.Get(ctx, namespacedName, old)
 	if errors.IsNotFound(err) {
 		new := &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      namespacedName.Name,
-				Namespace: namespacedName.Namespace,
+				Name:      component.GetDeploymentName(mc.Name),
+				Namespace: mc.Namespace,
 			},
 		}
 		if err := r.updateDeployment(mc, new, component); err != nil {
@@ -105,8 +138,34 @@ func (r *MilvusReconciler) ReconcileComponentDeployment(
 	return r.Update(ctx, cur)
 }
 
+func (r *MilvusReconciler) RemoveOldStandlone(ctx context.Context, mc v1beta1.Milvus) error {
+	deployments := &appsv1.DeploymentList{}
+	opts := &client.ListOptions{
+		Namespace: mc.Namespace,
+	}
+	opts.LabelSelector = labels.SelectorFromSet(NewComponentAppLabels(
+		mc.Name,
+		MilvusName,
+	))
+	if err := r.List(ctx, deployments, opts); err != nil {
+		return err
+	}
+	if len(deployments.Items) > 0 {
+		for _, deploy := range deployments.Items {
+			if err := r.Delete(ctx, &deploy); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (r *MilvusReconciler) ReconcileDeployments(ctx context.Context, mc v1beta1.Milvus) error {
 	g, gtx := NewGroup(ctx)
+	err := r.RemoveOldStandlone(ctx, mc)
+	if err != nil {
+		return err
+	}
 	for _, component := range GetComponentsBySpec(mc.Spec) {
 		g.Go(WarppedReconcileComponentFunc(r.ReconcileComponentDeployment, gtx, mc, component))
 	}

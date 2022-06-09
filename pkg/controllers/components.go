@@ -150,17 +150,9 @@ func (c MilvusComponent) GetName() string {
 	return c.Name
 }
 
-// GetInstanceName returns the name of the component instance
-func (c MilvusComponent) GetInstanceName(instance string) string {
-	if c == MilvusStandalone {
-		return instance
-	}
+// GetDeploymentName returns the name of the component deployment
+func (c MilvusComponent) GetDeploymentName(instance string) string {
 	return fmt.Sprintf("%s-milvus-%s", instance, c.Name)
-}
-
-// GetDeploymentInstanceName returns the name of the component deployment
-func (c MilvusComponent) GetDeploymentInstanceName(instance string) string {
-	return c.GetInstanceName(instance)
 }
 
 // GetServiceInstanceName returns the name of the component service
