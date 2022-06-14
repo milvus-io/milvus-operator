@@ -329,3 +329,47 @@ func TestWrapGetter(t *testing.T) {
 	getter = wrapMinioConditionGetter(nil, nil, nil, StorageConditionInfo{})
 	assert.NotNil(t, getter)
 }
+
+func Test_updateMetrics(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockCli := NewMockK8sClient(ctrl)
+	ctx := context.Background()
+	logger := logf.Log.WithName("test")
+	s := NewMilvusStatusSyncer(ctx, mockCli, logger)
+
+	t.Run("list failed", func(t *testing.T) {
+		defer ctrl.Finish()
+		mockCli.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
+		err := s.updateMetrics()
+		assert.Error(t, err)
+	})
+
+	t.Run("success with correct count", func(t *testing.T) {
+		defer ctrl.Finish()
+		mockCli.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, listType interface{}, _ ...interface{}) {
+			list := listType.(*v1beta1.MilvusList)
+			milvusHealthy := v1beta1.Milvus{}
+			milvusHealthy.Status.Status = v1beta1.StatusHealthy
+			milvusUnhealthy := v1beta1.Milvus{}
+			milvusUnhealthy.Status.Status = v1beta1.StatusUnHealthy
+			milvusCreating := v1beta1.Milvus{}
+			milvusCreating.Status.Status = v1beta1.StatusCreating
+			milvusDeleting := v1beta1.Milvus{}
+			milvusDeleting.Status.Status = v1beta1.StatusDeleting
+			list.Items = []v1beta1.Milvus{
+				milvusHealthy,
+				milvusHealthy,
+				milvusUnhealthy,
+				milvusCreating,
+				milvusDeleting,
+			}
+		}).Return(nil)
+		err := s.updateMetrics()
+		assert.NoError(t, err)
+		assert.Equal(t, 2, healthyCount)
+		assert.Equal(t, 1, unhealthyCount)
+		assert.Equal(t, 1, creatingCount)
+		assert.Equal(t, 1, deletingCount)
+	})
+}

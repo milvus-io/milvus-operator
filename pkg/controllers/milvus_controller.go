@@ -108,6 +108,13 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		}
 
 	} else {
+		if milvus.Status.Status != milvusv1beta1.StatusDeleting {
+			milvus.Status.Status = milvusv1beta1.StatusDeleting
+			if err := r.Status().Update(ctx, milvus); err != nil {
+				return ctrl.Result{}, err
+			}
+		}
+
 		if controllerutil.ContainsFinalizer(milvus, MilvusFinalizerName) {
 			if err := r.Finalize(ctx, *milvus); err != nil {
 				return ctrl.Result{}, err

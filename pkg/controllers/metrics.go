@@ -17,18 +17,25 @@ var (
 		Buckets:   prometheus.ExponentialBuckets(0.001, 2, 10),
 	}, []string{"verb", "url"})
 
-	// metrics to register
-	milvusTotalCollector = prometheus.NewGauge(prometheus.GaugeOpts{
+	milvusStatusCollector = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Subsystem: "milvus",
+		Name:      "status",
+		Help:      "Recording the changing status of each milvus",
+	}, []string{"milvus_namespace", "milvus_name"})
+
+	milvusTotalCountCollector = prometheus.NewGaugeVec(prometheus.GaugeOpts{
 		Subsystem: "milvus",
 		Name:      "total_count",
-		Help:      "Number of milvus CRDs",
-	})
+		Help:      "Total count of milvus in different status",
+	}, []string{"status"})
+)
 
-	milvusUnhealthyCollector = prometheus.NewGauge(prometheus.GaugeOpts{
-		Subsystem: "milvus",
-		Name:      "unhealthy",
-		Help:      "Number of unhealthy milvus CRDs",
-	})
+// MilvusStatusCode for milvusStatusCollector
+const (
+	MilvusStatusCodeCreating  = float64(0)
+	MilvusStatusCodeHealthy   = float64(1)
+	MilvusStatusCodeUnHealthy = float64(2)
+	MilvusStatusCodeDeleting  = float64(3)
 )
 
 // InitializeMetrics for controllers
@@ -36,6 +43,6 @@ func InitializeMetrics() {
 	// unregister the defaults which we don't need
 	metrics.Registry.Unregister(requestLatencyCollector)
 	// register our own
-	metrics.Registry.MustRegister(milvusTotalCollector)
-	metrics.Registry.MustRegister(milvusUnhealthyCollector)
+	metrics.Registry.MustRegister(milvusStatusCollector)
+	metrics.Registry.MustRegister(milvusTotalCountCollector)
 }
