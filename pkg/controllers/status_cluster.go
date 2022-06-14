@@ -69,14 +69,52 @@ func (r *MilvusStatusSyncer) RunIfNot() {
 	r.Once.Do(func() {
 		go LoopWithInterval(r.ctx, r.syncUnhealthy, unhealthySyncInterval, r.logger)
 		go LoopWithInterval(r.ctx, r.syncHealthy, unhealthySyncInterval*2, r.logger)
+		go LoopWithInterval(r.ctx, r.updateMetrics, unhealthySyncInterval, r.logger)
 	})
 }
 
+// we use global variable for the convienence of testing
 var (
-	// counter for milvus_total_count metric
 	healthyCount   int
 	unhealthyCount int
+	deletingCount  int
+	creatingCount  int
 )
+
+func (r *MilvusStatusSyncer) updateMetrics() error {
+	milvusList := &v1beta1.MilvusList{}
+	err := r.List(r.ctx, milvusList)
+	if err != nil {
+		return errors.Wrap(err, "list milvus failed")
+	}
+	healthyCount = 0
+	unhealthyCount = 0
+	deletingCount = 0
+	creatingCount = 0
+	for i := range milvusList.Items {
+		mc := &milvusList.Items[i]
+		statusCollector := milvusStatusCollector.WithLabelValues(mc.Namespace, mc.Name)
+		switch mc.Status.Status {
+		case v1beta1.StatusHealthy:
+			healthyCount++
+			statusCollector.Set(MilvusStatusCodeHealthy)
+		case v1beta1.StatusUnHealthy:
+			unhealthyCount++
+			statusCollector.Set(MilvusStatusCodeUnHealthy)
+		case v1beta1.StatusDeleting:
+			deletingCount++
+			statusCollector.Set(MilvusStatusCodeDeleting)
+		default:
+			creatingCount++
+			statusCollector.Set(MilvusStatusCodeCreating)
+		}
+	}
+	milvusTotalCountCollector.WithLabelValues(string(v1beta1.StatusHealthy)).Set(float64(healthyCount))
+	milvusTotalCountCollector.WithLabelValues(string(v1beta1.StatusUnHealthy)).Set(float64(unhealthyCount))
+	milvusTotalCountCollector.WithLabelValues(string(v1beta1.StatusDeleting)).Set(float64(deletingCount))
+	milvusTotalCountCollector.WithLabelValues(string(v1beta1.StatusCreating)).Set(float64(creatingCount))
+	return nil
+}
 
 func (r *MilvusStatusSyncer) syncUnhealthy() error {
 	milvusList := &v1beta1.MilvusList{}
@@ -84,17 +122,13 @@ func (r *MilvusStatusSyncer) syncUnhealthy() error {
 	if err != nil {
 		return errors.Wrap(err, "list milvus failed")
 	}
-
-	unhealthyCount = len(milvusList.Items)
-	milvusTotalCollector.Set(float64(healthyCount + unhealthyCount))
-	milvusUnhealthyCollector.Set(float64(unhealthyCount))
-
 	argsArray := []Args{}
 	for i := range milvusList.Items {
 		mc := &milvusList.Items[i]
-		r.logger.Info("syncUnhealthy mc status", "status", mc.Status.Status)
+		// update metric
 		if mc.Status.Status == "" ||
-			mc.Status.Status == v1beta1.StatusHealthy {
+			mc.Status.Status == v1beta1.StatusHealthy ||
+			mc.Status.Status == v1beta1.StatusDeleting {
 			continue
 		}
 		argsArray = append(argsArray, Args{mc})
@@ -109,10 +143,6 @@ func (r *MilvusStatusSyncer) syncHealthy() error {
 	if err != nil {
 		return errors.Wrap(err, "list milvus failed")
 	}
-
-	healthyCount = len(milvusList.Items)
-	milvusTotalCollector.Set(float64(healthyCount + unhealthyCount))
-
 	argsArray := []Args{}
 	for i := range milvusList.Items {
 		mc := &milvusList.Items[i]

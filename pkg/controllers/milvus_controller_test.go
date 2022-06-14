@@ -123,6 +123,9 @@ func TestClusterReconciler_ReconcileFinalizer(t *testing.T) {
 			}).
 			Return(nil)
 
+		mockClient.EXPECT().Status().Return(mockClient)
+		mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Times(1)
+
 		mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Do(
 			func(ctx, obj interface{}, opts ...interface{}) {
 				// finalizer should be removed

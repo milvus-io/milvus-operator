@@ -159,6 +159,8 @@ const (
 	StatusHealthy MilvusHealthStatus = "Healthy"
 	// StatusUnHealthy is the status of unhealthy.
 	StatusUnHealthy MilvusHealthStatus = "Unhealthy"
+	// StatusDeleting is the status of deleting.
+	StatusDeleting MilvusHealthStatus = "Deleting"
 
 	// EtcdReady means the Etcd is ready.
 	EtcdReady MiluvsConditionType = "EtcdReady"
