@@ -51,14 +51,25 @@ func (r *MilvusReconciler) updateConfigMap(ctx context.Context, mc v1beta1.Milvu
 	util.SetValue(conf, host, "minio", "address")
 	util.SetValue(conf, int64(port), "minio", "port")
 
-	if mc.Spec.Dep.MsgStreamType == v1beta1.MsgStreamTypeKafka {
+	switch mc.Spec.Dep.MsgStreamType {
+	case v1beta1.MsgStreamTypeKafka:
 		util.SetStringSlice(conf, mc.Spec.Dep.Kafka.BrokerList, "kafka", "brokerList")
-		// delete pulsar config to make milvus use kafka
+		// delete other mq config to make milvus use kafka
 		delete(conf, "pulsar")
-	} else {
+		delete(conf, "rocksmq")
+	case v1beta1.MsgStreamTypePulsar:
 		host, port = util.GetHostPort(mc.Spec.Dep.Pulsar.Endpoint)
 		util.SetValue(conf, host, "pulsar", "address")
 		util.SetValue(conf, int64(port), "pulsar", "port")
+		// delete other mq config to make milvus use kafka
+		delete(conf, "kafka")
+		delete(conf, "rocksmq")
+	case v1beta1.MsgStreamTypeRocksMQ:
+		// adhoc: to let the merger know we're using rocksmq config
+		conf["rocksmq"] = map[string]interface{}{}
+		// delete other mq config to make milvus use rocksmq
+		delete(conf, "pulsar")
+		delete(conf, "kafka")
 	}
 
 	milvusYaml, err := yaml.Marshal(conf)
