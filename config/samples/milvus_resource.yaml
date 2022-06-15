@@ -12,6 +12,5 @@ spec:
     requests:
       cpu: '1'
       memory: 2Gi
-  serviceType: LoadBalancer
   config: {}
   dependencies: {}

@@ -136,11 +136,18 @@ func TestGetMinioCondition(t *testing.T) {
 	errTest := errors.New("test")
 	errNotFound := k8sErrors.NewNotFound(schema.GroupResource{}, "")
 
+	t.Run(`iam not get secret`, func(t *testing.T) {
+		defer ctrl.Finish()
+		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{UseIAM: true})
+		assert.Equal(t, v1beta1.ReasonClientErr, ret.Reason)
+	})
+
 	t.Run(`get secret failed`, func(t *testing.T) {
 		defer ctrl.Finish()
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errTest)
 		ret := GetMinioCondition(ctx, logger, mockK8sCli, StorageConditionInfo{})
 		assert.Equal(t, v1beta1.ReasonClientErr, ret.Reason)
+		assert.Equal(t, errTest.Error(), ret.Message)
 	})
 
 	t.Run(`secret not found`, func(t *testing.T) {

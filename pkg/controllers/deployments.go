@@ -36,6 +36,9 @@ var (
 
 func GetStorageSecretRefEnv(secretRef string) []corev1.EnvVar {
 	env := []corev1.EnvVar{}
+	if secretRef == "" {
+		return env
+	}
 	env = append(env, corev1.EnvVar{
 		Name: "MINIO_ACCESS_KEY",
 		ValueFrom: &corev1.EnvVarSource{

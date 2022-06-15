@@ -357,6 +357,25 @@ func NamespacedName(namespace, name string) types.NamespacedName {
 	}
 }
 
+func GetMinioUseIAM(conf map[string]interface{}) bool {
+	fields := []string{"minio", "useIAM"}
+	val, exist := util.GetBoolValue(conf, fields...)
+	if exist {
+		return val
+	}
+
+	return false
+}
+
+func GetMinioIAMEndpoint(conf map[string]interface{}) string {
+	fields := []string{"minio", "iamEndpoint"}
+	val, exist := util.GetStringValue(conf, fields...)
+	if exist {
+		return val
+	}
+	return ""
+}
+
 func GetMinioSecure(conf map[string]interface{}) bool {
 	fields := []string{"minio", "useSSL"}
 	usessl, exist := util.GetBoolValue(conf, fields...)

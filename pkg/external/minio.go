@@ -15,12 +15,14 @@ import (
 // CheckMinIOArgs is info for acquiring storage condition
 type CheckMinIOArgs struct {
 	// S3 / MinIO
-	Type     string
-	AK       string
-	SK       string
-	Bucket   string
-	Endpoint string
-	UseSSL   bool
+	Type        string
+	AK          string
+	SK          string
+	Bucket      string
+	Endpoint    string
+	UseSSL      bool
+	UseIAM      bool
+	IAMEndpoint string
 }
 
 func CheckMinIO(args CheckMinIOArgs) error {
@@ -34,8 +36,14 @@ func CheckMinIO(args CheckMinIOArgs) error {
 			// minio client cannot recognize aws endpoints with :443
 			endpoint = strings.TrimSuffix(endpoint, ":443")
 		}
+		var creds *credentials.Credentials
+		if args.UseIAM {
+			creds = credentials.NewIAM(args.IAMEndpoint)
+		} else {
+			creds = credentials.NewStaticV4(args.AK, args.SK, "")
+		}
 		cli, err := minio.New(endpoint, &minio.Options{
-			Creds:  credentials.NewStaticV4(args.AK, args.SK, ""),
+			Creds:  creds,
 			Secure: args.UseSSL,
 		})
 		if err != nil {

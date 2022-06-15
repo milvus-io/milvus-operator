@@ -1,0 +1,29 @@
+# # change the <parameters> to match your environment
+apiVersion: milvus.io/v1beta1
+kind: Milvus
+metadata:
+  name: my-release
+  labels:
+    app: milvus
+spec:
+  config:
+    minio:
+      bucketName: <my-bucket>
+      # config the prefix of the bucket milvus will use
+      rootPath: milvus/my-release
+      useSSL: true
+  dependencies:
+    storage:
+      external: true
+      type: S3
+      endpoint: s3.<my-bucket-region>.amazonaws.com:443
+      secretRef: "my-release-s3-secret"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-release-s3-secret
+type: Opaque
+data:
+  accesskey: <my-access-key>
+  secretkey: <my-secret-key>

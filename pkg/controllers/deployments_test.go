@@ -126,3 +126,10 @@ func TestClusterReconciler_ReconcileDeployments_Existed(t *testing.T) {
 	})
 
 }
+
+func TestGetStorageSecretRefEnv(t *testing.T) {
+	ret := GetStorageSecretRefEnv("")
+	assert.Len(t, ret, 0)
+	ret = GetStorageSecretRefEnv("secret")
+	assert.Len(t, ret, 2)
+}
