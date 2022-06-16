@@ -39,6 +39,9 @@ spec:
         pvcDeletion: true
         values:
           mode: standalone
+          resources:
+            requests:
+              memory: 100Mi
     rocksmq:
       persistence:
         enabled: true

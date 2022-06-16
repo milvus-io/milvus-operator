@@ -1,18 +1,27 @@
 package external
 
 import (
-	"time"
+	"net"
 
-	"github.com/Shopify/sarama"
+	"github.com/pkg/errors"
 )
 
+// CheckKafka checks if the kafka is available
+// TODO: use same client as milvus
 func CheckKafka(brokerList []string) error {
-	config := sarama.NewConfig()
-	config.Net.DialTimeout = time.Second * 2
-	config.Net.ReadTimeout = time.Second * 3
-	cli, err := sarama.NewClient(brokerList, config)
-	if cli != nil {
-		cli.Close()
+	if len(brokerList) < 1 {
+		return errors.Errorf("no broker")
 	}
-	return err
+	var err error
+	for _, broker := range brokerList {
+		var conn net.Conn
+		conn, err = net.Dial("tcp", broker)
+		if conn != nil {
+			defer conn.Close()
+		}
+		if err == nil {
+			return nil
+		}
+	}
+	return errors.Wrap(err, "no broker available, one of the err")
 }

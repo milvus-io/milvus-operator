@@ -35,6 +35,14 @@ func main() {
 	if src["pulsar"] == nil {
 		delete(dst, "pulsar")
 	}
+	// adhoc to delete rocksmq fields if not exist in src
+	if src["rocksmq"] == nil {
+		delete(dst, "rocksmq")
+	}
+	// adhoc to delete kafka fields if not exist in src
+	if src["kafka"] == nil {
+		delete(dst, "kafka")
+	}
 
 	bs, err := yaml.Marshal(dst)
 	if err != nil {
