@@ -97,10 +97,12 @@ func GetKafkaCondition(ctx context.Context, logger logr.Logger, p v1beta1.Milvus
 
 // StorageConditionInfo is info for acquiring storage condition
 type StorageConditionInfo struct {
-	Namespace string
-	Bucket    string
-	Storage   v1beta1.MilvusStorage
-	UseSSL    bool
+	Namespace   string
+	Bucket      string
+	Storage     v1beta1.MilvusStorage
+	UseSSL      bool
+	UseIAM      bool
+	IAMEndpoint string
 }
 
 type checkMinIOFunc = func(args external.CheckMinIOArgs) error
@@ -111,30 +113,34 @@ var checkMinIO = func(args external.CheckMinIOArgs) error {
 }
 
 func GetMinioCondition(ctx context.Context, logger logr.Logger, cli client.Client, info StorageConditionInfo) v1beta1.MilvusCondition {
-	secret := &corev1.Secret{}
-	key := types.NamespacedName{Namespace: info.Namespace, Name: info.Storage.SecretRef}
-	err := cli.Get(ctx, key, secret)
-	if err != nil && !k8sErrors.IsNotFound(err) {
-		return newErrStorageCondResult(v1beta1.ReasonClientErr, err.Error())
-	}
+	var accesskey, secretkey []byte
+	if !info.UseIAM {
+		secret := &corev1.Secret{}
+		key := types.NamespacedName{Namespace: info.Namespace, Name: info.Storage.SecretRef}
+		err := cli.Get(ctx, key, secret)
+		if err != nil && !k8sErrors.IsNotFound(err) {
+			return newErrStorageCondResult(v1beta1.ReasonClientErr, err.Error())
+		}
 
-	if k8sErrors.IsNotFound(err) {
-		return newErrStorageCondResult(v1beta1.ReasonSecretNotExist, MessageSecretNotExist)
+		if k8sErrors.IsNotFound(err) {
+			return newErrStorageCondResult(v1beta1.ReasonSecretNotExist, MessageSecretNotExist)
+		}
+		var exist1, exist2 bool
+		accesskey, exist1 = secret.Data[AccessKey]
+		secretkey, exist2 = secret.Data[SecretKey]
+		if !exist1 || !exist2 {
+			return newErrStorageCondResult(v1beta1.ReasonSecretNotExist, MessageKeyNotExist)
+		}
 	}
-
-	accesskey, exist1 := secret.Data[AccessKey]
-	secretkey, exist2 := secret.Data[SecretKey]
-	if !exist1 || !exist2 {
-		return newErrStorageCondResult(v1beta1.ReasonSecretNotExist, MessageKeyNotExist)
-	}
-
-	err = checkMinIO(external.CheckMinIOArgs{
-		Type:     info.Storage.Type,
-		AK:       string(accesskey),
-		SK:       string(secretkey),
-		Endpoint: info.Storage.Endpoint,
-		Bucket:   info.Bucket,
-		UseSSL:   info.UseSSL,
+	err := checkMinIO(external.CheckMinIOArgs{
+		Type:        info.Storage.Type,
+		AK:          string(accesskey),
+		SK:          string(secretkey),
+		Endpoint:    info.Storage.Endpoint,
+		Bucket:      info.Bucket,
+		UseSSL:      info.UseSSL,
+		UseIAM:      info.UseIAM,
+		IAMEndpoint: info.IAMEndpoint,
 	})
 	if err != nil {
 		return newErrStorageCondResult(v1beta1.ReasonClientErr, err.Error())

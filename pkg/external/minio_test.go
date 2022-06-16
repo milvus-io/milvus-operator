@@ -25,7 +25,7 @@ func TestCheckMinIOFailed(t *testing.T) {
 		Type:     v1beta1.StorageTypeS3,
 		AK:       "dummy",
 		SK:       "dummy",
-		Endpoint: "s3.amazonaws.com",
+		Endpoint: "s3.amazonaws.com:443",
 		Bucket:   "dummy",
 		UseSSL:   true,
 	})
@@ -41,6 +41,27 @@ func TestCheckMinIOFailed(t *testing.T) {
 		UseSSL:   true,
 	})
 	assert.Error(t, err)
+
+	err = CheckMinIO(CheckMinIOArgs{
+		Type:     v1beta1.StorageTypeS3,
+		AK:       "",
+		SK:       "",
+		Endpoint: "s3.amazonaws.com:443",
+		Bucket:   "zilliz-infra-test",
+		UseSSL:   true,
+	})
+	assert.NoError(t, err)
+
+	err = CheckMinIO(CheckMinIOArgs{
+		Type:     v1beta1.StorageTypeS3,
+		AK:       "",
+		SK:       "",
+		Endpoint: "s3.ap-southeast-1.amazonaws.com:443",
+		Bucket:   "zilliz-infra-test",
+		UseSSL:   true,
+		UseIAM:   true,
+	})
+	assert.NoError(t, err)
 }
 
 func TestIsHealthyByServerInfo(t *testing.T) {

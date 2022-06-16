@@ -1,3 +1,4 @@
+# change the <parameters> to match your environment
 apiVersion: milvus.io/v1beta1
 kind: Milvus
 metadata:
@@ -5,12 +6,23 @@ metadata:
   labels:
     app: milvus
 spec:
+  config:
+    etcd:
+      rootPath: my-release
+    msgChannel:
+      chanNamePrefix:
+        cluster: my-release
+    minio:
+      bucketName: <my-bucket>
+      # config the prefix of the bucket milvus will use
+      rootPath: milvus/my-release
   dependencies: 
     etcd:
       external: true
-      endpoints: ["etcdAddr-1:2379", "etcdAddr-2:2379", "etcdAddr-3:2379"]
+      endpoints: ["<etcdAddr-1:2379>", "<etcdAddr-2:2379>", "<etcdAddr-3:2379>"]
     storage:
       external: true
-      endpoint: "storageAddr:9000"
-      secretRef: "secret-name"
+      endpoint: "<storageAddr:9000>"
+      secretRef: "<my-storage-secret>"
+      # if you want to use s3 check ./milvus_s3.yaml
       type: MinIO

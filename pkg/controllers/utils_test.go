@@ -456,6 +456,30 @@ func TestGetMinioSecure(t *testing.T) {
 	assert.False(t, GetMinioSecure(conf))
 }
 
+func TestGetMinioUseIAM(t *testing.T) {
+	conf := map[string]interface{}{
+		"minio": map[string]interface{}{
+			"useIAM": true,
+		},
+	}
+	assert.True(t, GetMinioUseIAM(conf))
+
+	conf = map[string]interface{}{}
+	assert.False(t, GetMinioUseIAM(conf))
+}
+
+func TestGetMinioIAMEndpoint(t *testing.T) {
+	conf := map[string]interface{}{
+		"minio": map[string]interface{}{
+			"iamEndpoint": "e",
+		},
+	}
+	assert.Equal(t, "e", GetMinioIAMEndpoint(conf))
+
+	conf = map[string]interface{}{}
+	assert.Empty(t, GetMinioIAMEndpoint(conf))
+}
+
 func TestDiffObject(t *testing.T) {
 	obj1 := &v1beta1.Milvus{
 		ObjectMeta: metav1.ObjectMeta{

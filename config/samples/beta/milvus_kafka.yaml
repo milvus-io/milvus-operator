@@ -1,0 +1,16 @@
+apiVersion: milvus.io/v1beta1
+kind: Milvus
+metadata:
+  name: my-release
+  labels:
+    app: milvus
+spec:
+  components:
+    image: milvusdb/milvus-dev:master-latest
+  dependencies:
+    msgStreamType: kafka
+    kafka:
+      inCluster:
+        deletionPolicy: Delete
+        pvcDeletion: true
+
