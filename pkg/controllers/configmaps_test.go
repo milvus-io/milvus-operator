@@ -99,4 +99,23 @@ func TestReconcileConfigMaps_Existed(t *testing.T) {
 	)
 	err = r.ReconcileConfigMaps(ctx, mc)
 	assert.NoError(t, err)
+
+	// iam no update
+	gomock.InOrder(
+		mockClient.EXPECT().
+			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).
+			DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+				cm := obj.(*corev1.ConfigMap)
+				cm.Namespace = "ns"
+				cm.Name = "cm1"
+				r.updateConfigMap(ctx, mc, cm)
+				return nil
+			}),
+		// get secret of minio
+		mockClient.EXPECT().
+			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).
+			Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")).Times(2),
+	)
+	err = r.ReconcileConfigMaps(ctx, mc)
+	assert.NoError(t, err)
 }

@@ -16,6 +16,9 @@ import (
 )
 
 func (r *MilvusReconciler) getMinioAccessInfo(ctx context.Context, mc v1beta1.Milvus) (string, string) {
+	if mc.Spec.Dep.Storage.SecretRef == "" {
+		return "", ""
+	}
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{Namespace: mc.Namespace, Name: mc.Spec.Dep.Storage.SecretRef}
 	if err := r.Get(ctx, key, secret); err != nil {

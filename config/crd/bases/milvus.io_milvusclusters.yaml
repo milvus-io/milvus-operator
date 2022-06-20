@@ -2372,6 +2372,8 @@ spec:
                           type: object
                         type: array
                     type: object
+                  metricInterval:
+                    type: string
                   mixCoord:
                     properties:
                       affinity:
@@ -5357,6 +5359,10 @@ spec:
                           type: string
                       type: object
                     type: array
+                  toolImage:
+                    type: string
+                  updateToolImage:
+                    type: boolean
                 type: object
               config:
                 type: object

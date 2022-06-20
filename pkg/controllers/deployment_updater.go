@@ -23,6 +23,7 @@ type deploymentUpdater interface {
 	GetArgs() []string
 	GetSecretRef() string
 	GetPersistenceConfig() *v1beta1.Persistence
+	GetMilvus() *v1beta1.Milvus
 }
 
 func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) error {
@@ -39,8 +40,15 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 		deployment.Spec.Selector.MatchLabels = appLabels
 	}
 	template := &deployment.Spec.Template
-	template.Spec.InitContainers = []corev1.Container{
-		getInitContainer(),
+	configContainerIdx := GetContainerIndex(template.Spec.InitContainers, configContainerName)
+	spec := updater.GetMilvus().Spec
+	if configContainerIdx < 0 {
+		if len(template.Spec.InitContainers) < 1 {
+			template.Spec.InitContainers = []corev1.Container{}
+		}
+		template.Spec.InitContainers = append(template.Spec.InitContainers, getInitContainer(spec.Com.ToolImage))
+	} else if spec.Com.UpdateToolImage {
+		template.Spec.InitContainers[configContainerIdx] = getInitContainer(spec.Com.ToolImage)
 	}
 	if template.Labels == nil {
 		template.Labels = map[string]string{}
@@ -177,4 +185,8 @@ func (m milvusDeploymentUpdater) GetArgs() []string {
 }
 func (m milvusDeploymentUpdater) GetSecretRef() string {
 	return m.Spec.Dep.Storage.SecretRef
+}
+
+func (m milvusDeploymentUpdater) GetMilvus() *v1beta1.Milvus {
+	return &m.Milvus
 }
