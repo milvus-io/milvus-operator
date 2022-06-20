@@ -198,8 +198,13 @@ func addVolumeMount(volumeMounts *[]corev1.VolumeMount, volumeMount corev1.Volum
 	}
 }
 
-func getInitContainer() corev1.Container {
+const configContainerName = "config"
+
+func getInitContainer(toolImage string) corev1.Container {
 	imageInfo := globalCommonInfo.OperatorImageInfo
+	if toolImage == "" {
+		toolImage = imageInfo.Image
+	}
 	copyToolsCommand := []string{"/cp", "/run.sh,/merge", RunScriptPath + "," + MergeToolPath}
 	return corev1.Container{
 		Name:            "config",

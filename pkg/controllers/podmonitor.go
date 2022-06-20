@@ -22,10 +22,14 @@ func (r *MilvusReconciler) updatePodMonitor(
 		return err
 	}
 
+	interval := mc.Spec.Com.MetricInterval
+	if interval == "" {
+		interval = "30s"
+	}
 	podmonitor.Spec.PodMetricsEndpoints = []monitoringv1.PodMetricsEndpoint{
 		{
 			HonorLabels: true,
-			Interval:    "30s",
+			Interval:    interval,
 			Path:        MetricPath,
 			Port:        MetricPortName,
 		},

@@ -66,6 +66,18 @@ type MilvusComponents struct {
 	// +kubebuilder:validation:Optional
 	DisableMetric bool `json:"disableMetric"`
 
+	// MetricInterval the interval of podmonitor metric scraping in string
+	// +kubebuilder:validation:Optional
+	MetricInterval string `json:"metricInterval"`
+
+	// ToolImage specify tool image to merge milvus config to original one in image, default uses same image as milvus-operator
+	// +kubebuilder:validation:Optional
+	ToolImage string `json:"toolImage,omitempty"`
+
+	// UpdateToolImage when milvus-operator upgraded, whether milvus should restart to update the tool image, too
+	// +kubebuilder:validation:Optional
+	UpdateToolImage bool `json:"updateToolImage,omitempty"`
+
 	// +kubebuilder:validation:Optional
 	Proxy *MilvusProxy `json:"proxy,omitempty"`
 
