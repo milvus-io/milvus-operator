@@ -1,10 +1,10 @@
 
 # Image URL to use all building/pushing image targets
 IMG ?= milvusdb/milvus-operator:dev-latest
-RELEASE_IMG ?= milvusdb/milvus-operator:main-latest
 SIT_IMG ?= milvus-operator:sit
-VERSION ?= 0.4.1
+VERSION ?= 0.5.0
 MILVUS_HELM_VERSION ?= milvus-3.0.16
+RELEASE_IMG ?= milvusdb/milvus-operator:v$(VERSION)
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:preserveUnknownFields=false,maxDescLen=0"
@@ -54,7 +54,7 @@ manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and Cust
 generate: controller-gen go-generate ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
 	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
-generate-all: generate deploy-manifests helm-generate
+generate-all: generate deploy-manifests
 
 go-generate:
 	go install github.com/golang/mock/mockgen@v1.6.0
@@ -150,8 +150,11 @@ deploy-cert-manager:
 undeploy-cert-manager:
     kubectl delete -f ${CERT_MANAGER_MANIFEST}
 
-deploy-manifests: manifests kustomize
-	$(KUSTOMIZE) build config/default > deploy/manifests/deployment.yaml
+deploy-manifests: manifests kustomize helm-generate
+	# add namespace
+	echo "---" > deploy/manifests/deployment.yaml
+	cat config/manager/namespace.yaml >> deploy/manifests/deployment.yaml
+	helm template milvus-operator --create-namespace -n milvus-operator ./charts/milvus-operator-$(VERSION).tgz  >> deploy/manifests/deployment.yaml
 
 kind-dev: kind
 	sudo $(KIND) create cluster --config config/kind/kind-dev.yaml --name kind-dev
@@ -378,6 +381,6 @@ deploy-by-manifest: sit-prepare-operator-images sit-load-operator-images sit-gen
 	kubectl apply -f ./test/test_gen.yaml
 	@echo "Waiting for the operator to be ready..."
 	kubectl -n milvus-operator wait --for=condition=complete job/milvus-operator-checker --timeout=6m
-	kubectl -n milvus-operator rollout restart deploy/milvus-operator-controller-manager
-	kubectl -n milvus-operator wait --timeout=3m --for=condition=available deployments/milvus-operator-controller-manager
+	kubectl -n milvus-operator rollout restart deploy/milvus-operator
+	kubectl -n milvus-operator wait --timeout=3m --for=condition=available deployments/milvus-operator
 	sleep 5 #wait for the service to be ready

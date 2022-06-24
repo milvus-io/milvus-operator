@@ -26,7 +26,7 @@ var (
 	defaultConfig *Config
 	// set by run flag in main
 	OperatorNamespace = "milvus-operator"
-	OperatorName      = "milvus-operator-controller-manager"
+	OperatorName      = "milvus-operator"
 )
 
 func Init(workDir string) error {

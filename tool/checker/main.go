@@ -15,7 +15,7 @@ import (
 
 func main() {
 	flag.StringVar(&config.OperatorNamespace, "namespace", "milvus-operator", "The namespace of self")
-	flag.StringVar(&config.OperatorName, "name", "milvus-operator-controller-manager", "The namespace of self")
+	flag.StringVar(&config.OperatorName, "name", "milvus-operator", "The namespace of self")
 	flag.BoolVar(&provisioner.DisableCertManagerInstall, provisioner.DisableCertManagerInstallFlag, provisioner.DisableCertManagerInstall, "Disable auto install cert-manager if not exist")
 	flag.BoolVar(&provisioner.DisableCertManagerCheck, provisioner.DisableCertManagerCheckFlag, provisioner.DisableCertManagerCheck, "Disable auto check & install cert-manager")
 	flag.Parse()

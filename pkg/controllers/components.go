@@ -296,7 +296,6 @@ func (c MilvusComponent) GetDeploymentStrategy() appsv1.DeploymentStrategy {
 		Type: appsv1.RollingUpdateDeploymentStrategyType,
 		RollingUpdate: &appsv1.RollingUpdateDeployment{
 			MaxUnavailable: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
-			MaxSurge:       &intstr.IntOrString{Type: intstr.Int, IntVal: 1},
 		},
 	}
 }

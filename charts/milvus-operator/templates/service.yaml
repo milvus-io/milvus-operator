@@ -2,22 +2,23 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
+    service-kind: metrics
     {{- include "chart.labels" . | nindent 4 }}
-  name: '{{ include "chart.fullname" . }}-controller-manager-metrics-service'
+  name: '{{ include "chart.fullname" . }}-metrics-service'
   namespace: {{ .Release.Namespace | quote }}
 spec:
   ports:
-  - name: https
+  - name: metrics
     port: 8443
-    targetPort: https
-  selector:
-    control-plane: controller-manager
+    targetPort: metrics
+  selector: 
+    {{- include "chart.selectorLabels" . | nindent 4 }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   labels:
-    control-plane: controller-manager
+    {{- include "chart.labels" . | nindent 4 }}
   name: '{{ include "chart.fullname" . }}-webhook-service'
   namespace: {{ .Release.Namespace | quote }}
 spec:

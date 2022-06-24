@@ -1,0 +1,23 @@
+
+# Prometheus Monitor Service (Metrics)
+{{- if .Values.monitoringEnabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    {{- include "chart.labels" . | nindent 4 }}
+  name: '{{ include "chart.fullname" . }}-metrics-monitor'
+  namespace: {{ .Release.Namespace | quote }}
+spec:
+  endpoints:
+    - path: /metrics
+      port: metrics
+      scheme: http
+  selector:
+    matchLabels:
+      service-kind: metrics
+      {{- include "chart.selectorLabels" . | nindent 6 }}
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace | quote }}
+{{- end }}
