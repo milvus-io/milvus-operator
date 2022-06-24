@@ -346,7 +346,6 @@ func TestMilvusComponent_GetDeploymentStrategy(t *testing.T) {
 	strategy := com.GetDeploymentStrategy()
 	assert.Equal(t, appsv1.RollingUpdateDeploymentStrategyType, strategy.Type)
 	assert.Equal(t, intstr.FromInt(0), *strategy.RollingUpdate.MaxUnavailable)
-	assert.Equal(t, intstr.FromInt(1), *strategy.RollingUpdate.MaxSurge)
 
 	com = DataCoord
 	assert.Equal(t, appsv1.RecreateDeploymentStrategyType, com.GetDeploymentStrategy().Type)

@@ -21,13 +21,13 @@ Install with helm:
 ```shell
 helm install milvus-operator \
   -n milvus-operator --create-namespace \
-  https://github.com/milvus-io/milvus-operator/releases/download/v0.4.1/milvus-operator-0.4.1.tgz
+  https://github.com/milvus-io/milvus-operator/releases/download/v0.5.0/milvus-operator-0.5.0.tgz
 ```
 
 Or install with kubectl & raw manifests:
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.4.1/deploy/manifests/deployment.yaml
+kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.5.0/deploy/manifests/deployment.yaml
 ```
 
 For more infomation Check [instructions on how to install/uninstall milvus operator](docs/installation/installation.md)
@@ -47,7 +47,7 @@ Versions, v2.0.2 `[1]`, 2.8.2 / 3.1.0, 3.5.0,2021.2.14 -->
 
 |Components| Milvus| Pulsar / Kafka| Etcd| MinIO|
 |---|---|---|---|---|
-|Versions| v2.0.1 `[1]`| 2.8.2 / 3.1.0 | 3.5.0|2021.2.14|
+|Versions| v2.0.2 `[1]`| 2.8.2 / 3.1.0 | 3.5.0|2021.2.14|
 
 
 **NOTES:**
@@ -70,9 +70,9 @@ Compatibility, :heavy_multiplication_x:, :heavy_check_mark:, :heavy_check_mark: 
 Milvus Operator Versions, <0.4.0, 0.4.x
 Compatibility, :heavy_multiplication_x:, :heavy_check_mark:  -->
 
-|Milvus Operator Versions| <0.4.0| 0.4.x|
-|---|---|---|
-|Compatibility| :heavy_multiplication_x:| :heavy_check_mark:|
+|Milvus Operator Versions| <0.4.0| 0.4.x| 0.5.x|
+|---|---|---|---|
+|Compatibility| :heavy_multiplication_x:| :heavy_check_mark:|:heavy_check_mark:|
 
 **NOTES:**
 

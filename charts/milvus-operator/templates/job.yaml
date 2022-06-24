@@ -1,7 +1,9 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
+  labels: {{- include "chart.labels" . | nindent 4 }}
   name: "{{ .Release.Name }}-checker"
+  namespace: {{ .Release.Namespace | quote }}
 spec:
   ttlSecondsAfterFinished: 100
   template:

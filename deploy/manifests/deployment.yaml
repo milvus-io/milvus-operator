@@ -1,12 +1,41 @@
-apiVersion: v1
+---
+apiVersion: "v1"
 kind: Namespace
 metadata:
   name: milvus-operator
 ---
+# Source: milvus-operator/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "milvus-operator"
+  namespace: "milvus-operator"
+  labels:
+    helm.sh/chart: milvus-operator-0.5.0
+    app.kubernetes.io/name: milvus-operator
+    app.kubernetes.io/instance: milvus-operator
+    app.kubernetes.io/version: "0.5.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: milvus-operator/templates/serviceaccount.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "milvus-operator-checker"
+  namespace: "milvus-operator"
+  labels:
+    helm.sh/chart: milvus-operator-0.5.0
+    app.kubernetes.io/name: milvus-operator
+    app.kubernetes.io/instance: milvus-operator
+    app.kubernetes.io/version: "0.5.0"
+    app.kubernetes.io/managed-by: Helm
+---
+# Source: milvus-operator/templates/crds.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
+    cert-manager.io/inject-ca-from: 'milvus-operator/milvus-operator-serving-cert'
     controller-gen.kubebuilder.io/version: v0.6.0
   creationTimestamp: null
   name: milvusclusters.milvus.io
@@ -5671,11 +5700,12 @@ status:
   conditions: []
   storedVersions: []
 ---
+# Source: milvus-operator/templates/crds.yaml
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: milvus-operator/milvus-operator-serving-cert
+    cert-manager.io/inject-ca-from: 'milvus-operator/milvus-operator-serving-cert'
     controller-gen.kubebuilder.io/version: v0.6.0
   name: milvuses.milvus.io
 spec:
@@ -5684,7 +5714,7 @@ spec:
     webhook:
       clientConfig:
         service:
-          name: milvus-operator-webhook-service
+          name: 'milvus-operator-webhook-service'
           namespace: milvus-operator
           path: /convert
       conversionReviewVersions:
@@ -12259,61 +12289,12 @@ status:
   conditions: []
   storedVersions: []
 ---
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: milvus-operator-checker
-  namespace: milvus-operator
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: milvus-operator-controller-manager
-  namespace: milvus-operator
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: milvus-operator-leader-election-role
-  namespace: milvus-operator
-rules:
-- apiGroups:
-  - ""
-  resources:
-  - configmaps
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - coordination.k8s.io
-  resources:
-  - leases
-  verbs:
-  - get
-  - list
-  - watch
-  - create
-  - update
-  - patch
-  - delete
-- apiGroups:
-  - ""
-  resources:
-  - events
-  verbs:
-  - create
-  - patch
----
+# Source: milvus-operator/templates/clusterrole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: milvus-operator-checker-role
+  name: 'milvus-operator-checker-role'
 rules:
 - apiGroups:
   - ""
@@ -12655,11 +12636,12 @@ rules:
   - watch
   - sign
 ---
+# Source: milvus-operator/templates/clusterrole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   creationTimestamp: null
-  name: milvus-operator-manager-role
+  name: 'milvus-operator-manager-role'
 rules:
 - apiGroups:
   - ""
@@ -12941,20 +12923,22 @@ rules:
   - update
   - watch
 ---
+# Source: milvus-operator/templates/clusterrole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: milvus-operator-metrics-reader
+  name: 'milvus-operator-metrics-reader'
 rules:
 - nonResourceURLs:
   - /metrics
   verbs:
   - get
 ---
+# Source: milvus-operator/templates/clusterrole.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: milvus-operator-proxy-role
+  name: 'milvus-operator-proxy-role'
 rules:
 - apiGroups:
   - authentication.k8s.io
@@ -12969,133 +12953,186 @@ rules:
   verbs:
   - create
 ---
+# Source: milvus-operator/templates/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: 'milvus-operator-checker-rolebinding'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: 'milvus-operator-checker-role'
+subjects:
+- kind: ServiceAccount
+  name: 'milvus-operator-checker'
+  namespace: "milvus-operator"
+---
+# Source: milvus-operator/templates/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: 'milvus-operator-manager-rolebinding'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: 'milvus-operator-manager-role'
+subjects:
+- kind: ServiceAccount
+  name: "milvus-operator"
+  namespace: "milvus-operator"
+---
+# Source: milvus-operator/templates/clusterrolebinding.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: 'milvus-operator-proxy-rolebinding'
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: 'milvus-operator-proxy-role'
+subjects:
+- kind: ServiceAccount
+  name: 'milvus-operator'
+  namespace: "milvus-operator"
+---
+# Source: milvus-operator/templates/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: 'milvus-operator-leader-election-role'
+  namespace: "milvus-operator"
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+# Source: milvus-operator/templates/rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: milvus-operator-leader-election-rolebinding
-  namespace: milvus-operator
+  name: 'milvus-operator-leader-election-rolebinding'
+  namespace: "milvus-operator"
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: milvus-operator-leader-election-role
+  name: 'milvus-operator-leader-election-role'
 subjects:
 - kind: ServiceAccount
-  name: milvus-operator-controller-manager
-  namespace: milvus-operator
+  name: "milvus-operator"
+  namespace: "milvus-operator"
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: milvus-operator-checker-rolebinding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: milvus-operator-checker-role
-subjects:
-- kind: ServiceAccount
-  name: milvus-operator-checker
-  namespace: milvus-operator
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: milvus-operator-manager-rolebinding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: milvus-operator-manager-role
-subjects:
-- kind: ServiceAccount
-  name: milvus-operator-controller-manager
-  namespace: milvus-operator
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: milvus-operator-proxy-rolebinding
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: milvus-operator-proxy-role
-subjects:
-- kind: ServiceAccount
-  name: milvus-operator-controller-manager
-  namespace: milvus-operator
----
-apiVersion: v1
-data:
-  controller_manager_config.yaml: |
-    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
-    kind: ControllerManagerConfig
-    health:
-      healthProbeBindAddress: :8081
-    metrics:
-      bindAddress: 127.0.0.1:8080
-    webhook:
-      port: 9443
-    leaderElection:
-      leaderElect: true
-      resourceName: 71808ec5.milvus.io
-kind: ConfigMap
-metadata:
-  name: milvus-operator-manager-config
-  namespace: milvus-operator
----
+# Source: milvus-operator/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
   labels:
-    control-plane: controller-manager
-  name: milvus-operator-controller-manager-metrics-service
-  namespace: milvus-operator
+    service-kind: metrics
+    helm.sh/chart: milvus-operator-0.5.0
+    app.kubernetes.io/name: milvus-operator
+    app.kubernetes.io/instance: milvus-operator
+    app.kubernetes.io/version: "0.5.0"
+    app.kubernetes.io/managed-by: Helm
+  name: 'milvus-operator-metrics-service'
+  namespace: "milvus-operator"
 spec:
   ports:
-  - name: https
+  - name: metrics
     port: 8443
-    targetPort: https
+    targetPort: metrics
   selector:
-    control-plane: controller-manager
+    app.kubernetes.io/name: milvus-operator
+    app.kubernetes.io/instance: milvus-operator
 ---
+# Source: milvus-operator/templates/service.yaml
 apiVersion: v1
 kind: Service
 metadata:
-  name: milvus-operator-webhook-service
-  namespace: milvus-operator
+  labels:
+    helm.sh/chart: milvus-operator-0.5.0
+    app.kubernetes.io/name: milvus-operator
+    app.kubernetes.io/instance: milvus-operator
+    app.kubernetes.io/version: "0.5.0"
+    app.kubernetes.io/managed-by: Helm
+  name: 'milvus-operator-webhook-service'
+  namespace: "milvus-operator"
 spec:
   ports:
   - port: 443
-    targetPort: 9443
+    targetPort: webhook-server
+    protocol: TCP
+    name: https
   selector:
-    control-plane: controller-manager
+    app.kubernetes.io/name: milvus-operator
+    app.kubernetes.io/instance: milvus-operator
 ---
+# Source: milvus-operator/templates/deployment.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    control-plane: controller-manager
-  name: milvus-operator-controller-manager
-  namespace: milvus-operator
+    helm.sh/chart: milvus-operator-0.5.0
+    app.kubernetes.io/name: milvus-operator
+    app.kubernetes.io/instance: milvus-operator
+    app.kubernetes.io/version: "0.5.0"
+    app.kubernetes.io/managed-by: Helm
+  name: "milvus-operator"
+  namespace: "milvus-operator"
 spec:
   selector:
     matchLabels:
-      control-plane: controller-manager
+      app.kubernetes.io/name: milvus-operator
+      app.kubernetes.io/instance: milvus-operator
   template:
     metadata:
+      annotations:
+        {}
       labels:
-        control-plane: controller-manager
+        app.kubernetes.io/name: milvus-operator
+        app.kubernetes.io/instance: milvus-operator
     spec:
+      affinity:
+        {}
       containers:
       - args:
         - -namespace
-        - milvus-operator
+        - "milvus-operator"
         - -name
-        - milvus-operator-controller-manager
+        - "milvus-operator"
         - --health-probe-bind-address=:8081
         - --metrics-bind-address=:8080
         - --leader-elect
         command:
         - /manager
-        image: milvusdb/milvus-operator:main-latest
+        image: 'milvusdb/milvus-operator:v0.5.0'
+        imagePullPolicy: "IfNotPresent"
         livenessProbe:
           httpGet:
             path: /healthz
@@ -13107,6 +13144,9 @@ spec:
         - containerPort: 9443
           name: webhook-server
           protocol: TCP
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
         readinessProbe:
           httpGet:
             path: /readyz
@@ -13115,74 +13155,89 @@ spec:
           periodSeconds: 10
         resources:
           limits:
-            cpu: 2
-            memory: 4Gi
+            cpu: 1000m
+            memory: 1Gi
           requests:
-            cpu: 200m
-            memory: 200Mi
+            cpu: 100m
+            memory: 100Mi
         securityContext:
           allowPrivilegeEscalation: false
         volumeMounts:
         - mountPath: /tmp/k8s-webhook-server/serving-certs
           name: cert
           readOnly: true
+      nodeSelector:
+        {}
       securityContext:
         runAsNonRoot: true
-      serviceAccountName: milvus-operator-controller-manager
+        runAsUser: 65532
+      serviceAccountName: "milvus-operator"
       terminationGracePeriodSeconds: 10
+      tolerations:
+        []
       volumes:
       - name: cert
         secret:
           defaultMode: 420
-          secretName: milvus-operator-controller-manager-webhook-cert
+          secretName: 'milvus-operator-webhook-cert'
 ---
+# Source: milvus-operator/templates/job.yaml
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: milvus-operator-checker
-  namespace: milvus-operator
+  labels:
+    helm.sh/chart: milvus-operator-0.5.0
+    app.kubernetes.io/name: milvus-operator
+    app.kubernetes.io/instance: milvus-operator
+    app.kubernetes.io/version: "0.5.0"
+    app.kubernetes.io/managed-by: Helm
+  name: "milvus-operator-checker"
+  namespace: "milvus-operator"
 spec:
+  ttlSecondsAfterFinished: 100
   template:
     spec:
+      securityContext:
+        runAsNonRoot: true
+      serviceAccountName: "milvus-operator-checker"
+      restartPolicy: OnFailure
       containers:
-      - args:
-        - -namespace
-        - milvus-operator
-        - -name
-        - milvus-operator-controller-manager
-        command:
-        - /checker
-        image: milvusdb/milvus-operator:main-latest
-        name: checker
+      - name: checker
+        image: 'milvusdb/milvus-operator:v0.5.0'
+        imagePullPolicy: "IfNotPresent"
+        command: ["/checker"]
+        args:
+          - "-namespace=milvus-operator"
+          - "-name=milvus-operator"
         resources:
           limits:
             cpu: 500m
             memory: 1Gi
           requests:
-            cpu: 200m
-            memory: 200Mi
+            cpu: 50m
+            memory: 100Mi
         securityContext:
           allowPrivilegeEscalation: false
-      restartPolicy: OnFailure
-      securityContext:
-        runAsNonRoot: true
-      serviceAccountName: milvus-operator-checker
-  ttlSecondsAfterFinished: 100
 ---
+# Source: milvus-operator/templates/servicemonitor.yaml
+# Prometheus Monitor Service (Metrics)
+---
+# Source: milvus-operator/templates/mutatingwebhookconfiguration.yaml
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: milvus-operator/milvus-operator-serving-cert
-  name: milvus-operator-mutating-webhook-configuration
+    cert-manager.io/inject-ca-from: 'milvus-operator/milvus-operator-serving-cert'
+  name: 'milvus-operator-mutating-webhook-configuration'
 webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
     service:
-      name: milvus-operator-webhook-service
-      namespace: milvus-operator
+      name: 'milvus-operator-webhook-service'
+      namespace: "milvus-operator"
       path: /mutate-milvus-io-v1beta1-milvus
+      port: 443
   failurePolicy: Fail
   name: mmilvus.kb.io
   rules:
@@ -13197,20 +13252,22 @@ webhooks:
     - milvuses
   sideEffects: None
 ---
+# Source: milvus-operator/templates/validatingwebhookconfiguration.yaml
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
   annotations:
-    cert-manager.io/inject-ca-from: milvus-operator/milvus-operator-serving-cert
-  name: milvus-operator-validating-webhook-configuration
+    cert-manager.io/inject-ca-from: 'milvus-operator/milvus-operator-serving-cert'
+  name: 'milvus-operator-validating-webhook-configuration'
 webhooks:
 - admissionReviewVersions:
   - v1
   clientConfig:
     service:
-      name: milvus-operator-webhook-service
-      namespace: milvus-operator
+      name: 'milvus-operator-webhook-service'
+      namespace: "milvus-operator"
       path: /validate-milvus-io-v1beta1-milvus
+      port: 443
   failurePolicy: Fail
   name: vmilvus.kb.io
   rules:
