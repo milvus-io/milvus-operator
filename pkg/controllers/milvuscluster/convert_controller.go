@@ -74,10 +74,13 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 		return ctrl.Result{}, fmt.Errorf("error get milvus : %w", err)
 	}
-	err := r.Status().Update(ctx, betaMilvus)
+
+	milvus.UpdateStatusFrom(betaMilvus)
+	err := r.Status().Update(ctx, milvus)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error update milvus status: %w", err)
 	}
+
 	milvus.ConvertToMilvus(betaMilvus)
 	if err := ctrl.SetControllerReference(milvus, betaMilvus, r.Scheme); err != nil {
 		return ctrl.Result{}, pkgErrs.Wrap(err, "set controller reference")

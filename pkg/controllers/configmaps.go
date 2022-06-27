@@ -4,10 +4,9 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/yaml"
 
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
@@ -82,9 +81,7 @@ func (r *MilvusReconciler) updateConfigMap(ctx context.Context, mc v1beta1.Milvu
 	}
 
 	configmap.Labels = MergeLabels(configmap.Labels, NewAppLabels(mc.Name))
-
-	if err := ctrl.SetControllerReference(&mc, configmap, r.Scheme); err != nil {
-		r.logger.Error(err, "configmap SetControllerReference error")
+	if err := SetControllerReference(&mc, configmap, r.Scheme); err != nil {
 		return err
 	}
 
@@ -102,7 +99,7 @@ func (r *MilvusReconciler) ReconcileConfigMaps(ctx context.Context, mc v1beta1.M
 	namespacedName := NamespacedName(mc.Namespace, mc.Name)
 	old := &corev1.ConfigMap{}
 	err := r.Get(ctx, namespacedName, old)
-	if errors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) {
 		new := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      mc.Name,

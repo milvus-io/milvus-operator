@@ -10,7 +10,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,7 +26,7 @@ func reconcileIngress(ctx context.Context, logger logr.Logger,
 
 	new := ingressRenderer.Render(crd, ingress)
 
-	if err := ctrl.SetControllerReference(crd, new, scheme); err != nil {
+	if err := SetControllerReference(crd, new, scheme); err != nil {
 		return errors.Wrap(err, "failed to set controller reference")
 	}
 

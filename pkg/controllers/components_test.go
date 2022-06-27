@@ -239,10 +239,15 @@ func TestMilvusComponent_GetServiceType(t *testing.T) {
 	com := QueryNode
 	spec := newSpecCluster()
 	assert.Equal(t, corev1.ServiceTypeClusterIP, com.GetServiceType(spec))
-
 	com = Proxy
 	spec.Com.Proxy.ServiceType = corev1.ServiceTypeNodePort
 	assert.Equal(t, corev1.ServiceTypeNodePort, com.GetServiceType(spec))
+
+	spec.Mode = v1beta1.MilvusModeStandalone
+	com = MilvusStandalone
+	spec.Com.Standalone = &v1beta1.MilvusStandalone{}
+	spec.Com.Standalone.ServiceType = corev1.ServiceTypeLoadBalancer
+	assert.Equal(t, corev1.ServiceTypeLoadBalancer, com.GetServiceType(spec))
 }
 
 func TestMilvusComponent_GetServicePorts(t *testing.T) {

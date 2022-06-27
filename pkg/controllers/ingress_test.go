@@ -12,7 +12,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var mockSetControllerReference = func(owner, controlled metav1.Object, scheme *runtime.Scheme) error {
@@ -23,7 +22,7 @@ var mockSetControllerReferenceErr error
 
 func mockSetCtrlRef(err error) {
 	mockSetControllerReferenceErr = err
-	ctrl.SetControllerReference = mockSetControllerReference
+	SetControllerReference = mockSetControllerReference
 }
 
 func TestMilvusClusterReconciler_ReconcileIngress(t *testing.T) {

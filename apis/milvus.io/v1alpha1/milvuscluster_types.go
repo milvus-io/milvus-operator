@@ -172,9 +172,6 @@ func (r *MilvusCluster) ConvertToMilvus(dst *v1beta1.Milvus) {
 
 // UpdateStatusFrom updates status from v1beta1.Milvus
 func (r *MilvusCluster) UpdateStatusFrom(src *v1beta1.Milvus) {
-	r.Spec.Com = src.Spec.Com
-	r.Spec.Conf = src.Spec.Conf
-	r.Spec.Dep = src.Spec.Dep
 	r.Status = src.Status
 }
 

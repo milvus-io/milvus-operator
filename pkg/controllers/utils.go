@@ -12,12 +12,16 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/util"
+	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 const (
@@ -436,3 +440,19 @@ func LoopWithInterval(ctx context.Context, loopFunc func() error, interval time.
 		}
 	}
 }
+
+var (
+	alreadyOwnedErrorType  = reflect.TypeOf(&controllerutil.AlreadyOwnedError{})
+	milvusclusterOwnerKind = "MilvusCluster"
+	SetControllerReference = func(owner, controlled metav1.Object, scheme *kruntime.Scheme) error {
+		if err := ctrl.SetControllerReference(owner, controlled, scheme); err != nil {
+			if reflect.TypeOf(err) == alreadyOwnedErrorType {
+				if err.(*controllerutil.AlreadyOwnedError).Owner.Kind == milvusclusterOwnerKind {
+					return nil
+				}
+			}
+			return errors.Wrap(err, "set controller reference")
+		}
+		return nil
+	}
+)
