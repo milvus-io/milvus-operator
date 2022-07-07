@@ -8,7 +8,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 )
@@ -18,7 +17,7 @@ func (r *MilvusReconciler) updateService(
 ) error {
 	appLabels := NewComponentAppLabels(mc.Name, component.GetName())
 	service.Labels = MergeLabels(service.Labels, appLabels)
-	if err := ctrl.SetControllerReference(&mc, service, r.Scheme); err != nil {
+	if err := SetControllerReference(&mc, service, r.Scheme); err != nil {
 		return err
 	}
 	service.Spec.Ports = MergeServicePort(service.Spec.Ports, component.GetServicePorts(mc.Spec))

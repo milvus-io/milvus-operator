@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
@@ -517,4 +518,30 @@ func TestLoopWithInterval(t *testing.T) {
 	go LoopWithInterval(ctx, loopFunc, time.Second/10, logger)
 	time.Sleep(time.Second)
 	assert.Less(t, int32(9), atomic.LoadInt32(&callCnt))
+}
+
+func TestSetControllerReference(t *testing.T) {
+	t.Run("MilvusCluster to v1beta1 Milvus OK", func(t *testing.T) {
+		controlled := &appsv1.Deployment{}
+		oldScheme, err := v1alpha1.SchemeBuilder.Build()
+		assert.NoError(t, err)
+		err = SetControllerReference(&v1alpha1.MilvusCluster{}, controlled, oldScheme)
+		assert.NoError(t, err)
+		scheme, err := v1beta1.SchemeBuilder.Build()
+		assert.NoError(t, err)
+		err = SetControllerReference(&v1beta1.Milvus{}, controlled, scheme)
+		assert.NoError(t, err)
+	})
+
+	t.Run("v1alpha1 Milvus to v1beta1 Milvus error", func(t *testing.T) {
+		controlled := &appsv1.Deployment{}
+		oldScheme, err := v1alpha1.SchemeBuilder.Build()
+		assert.NoError(t, err)
+		err = SetControllerReference(&v1alpha1.Milvus{}, controlled, oldScheme)
+		assert.NoError(t, err)
+		scheme, err := v1beta1.SchemeBuilder.Build()
+		assert.NoError(t, err)
+		err = SetControllerReference(&v1beta1.Milvus{}, controlled, scheme)
+		assert.NoError(t, err)
+	})
 }

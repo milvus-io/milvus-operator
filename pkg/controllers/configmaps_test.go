@@ -60,62 +60,65 @@ func TestReconcileConfigMaps_Existed(t *testing.T) {
 	ctx := env.ctx
 	mc := env.Inst
 
-	// call client.Update if changed configmap
-	gomock.InOrder(
-		mockClient.EXPECT().
-			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).
-			DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-				cm := obj.(*corev1.ConfigMap)
-				cm.Namespace = "ns"
-				cm.Name = "cm1"
-				return nil
-			}),
-		// get secret of minio
-		mockClient.EXPECT().
-			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).
-			Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")),
-		mockClient.EXPECT().
-			Update(gomock.Any(), gomock.Any()).Return(nil),
-	)
+	t.Run("call client.Update if changed configmap", func(t *testing.T) {
+		gomock.InOrder(
+			mockClient.EXPECT().
+				Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).
+				DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+					cm := obj.(*corev1.ConfigMap)
+					cm.Namespace = "ns"
+					cm.Name = "cm1"
+					return nil
+				}),
+			// get secret of minio
+			mockClient.EXPECT().
+				Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).
+				Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")),
+			mockClient.EXPECT().
+				Update(gomock.Any(), gomock.Any()).Return(nil),
+		)
+	})
 
 	err := r.ReconcileConfigMaps(ctx, mc)
 	assert.NoError(t, err)
 
-	// not call client.Update if configmap not changed
-	gomock.InOrder(
-		mockClient.EXPECT().
-			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).
-			DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-				cm := obj.(*corev1.ConfigMap)
-				cm.Namespace = "ns"
-				cm.Name = "cm1"
-				r.updateConfigMap(ctx, mc, cm)
-				return nil
-			}),
-		// get secret of minio
-		mockClient.EXPECT().
-			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).
-			Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")).Times(2),
-	)
-	err = r.ReconcileConfigMaps(ctx, mc)
-	assert.NoError(t, err)
+	t.Run("not call client.Update if configmap not changed", func(t *testing.T) {
+		gomock.InOrder(
+			mockClient.EXPECT().
+				Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).
+				DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+					cm := obj.(*corev1.ConfigMap)
+					cm.Namespace = "ns"
+					cm.Name = "cm1"
+					r.updateConfigMap(ctx, mc, cm)
+					return nil
+				}),
+			// get secret of minio
+			mockClient.EXPECT().
+				Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).
+				Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")).Times(2),
+		)
+		err = r.ReconcileConfigMaps(ctx, mc)
+		assert.NoError(t, err)
+	})
 
-	// iam no update
-	gomock.InOrder(
-		mockClient.EXPECT().
-			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).
-			DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-				cm := obj.(*corev1.ConfigMap)
-				cm.Namespace = "ns"
-				cm.Name = "cm1"
-				r.updateConfigMap(ctx, mc, cm)
-				return nil
-			}),
-		// get secret of minio
-		mockClient.EXPECT().
-			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).
-			Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")).Times(2),
-	)
-	err = r.ReconcileConfigMaps(ctx, mc)
-	assert.NoError(t, err)
+	t.Run("iam no update", func(t *testing.T) {
+		gomock.InOrder(
+			mockClient.EXPECT().
+				Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ConfigMap{})).
+				DoAndReturn(func(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+					cm := obj.(*corev1.ConfigMap)
+					cm.Namespace = "ns"
+					cm.Name = "cm1"
+					r.updateConfigMap(ctx, mc, cm)
+					return nil
+				}),
+			// get secret of minio
+			mockClient.EXPECT().
+				Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).
+				Return(k8sErrors.NewNotFound(schema.GroupResource{}, "mockErr")).Times(2),
+		)
+		err = r.ReconcileConfigMaps(ctx, mc)
+		assert.NoError(t, err)
+	})
 }

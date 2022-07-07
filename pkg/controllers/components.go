@@ -196,11 +196,11 @@ func (c MilvusComponent) GetContainerPorts(spec v1beta1.MilvusSpec) []corev1.Con
 
 // GetServiceType returns the type of the component service
 func (c MilvusComponent) GetServiceType(spec v1beta1.MilvusSpec) corev1.ServiceType {
-	if c != Proxy {
-		return corev1.ServiceTypeClusterIP
+	if c == Proxy || c == MilvusStandalone {
+		return spec.GetServiceComponent().ServiceType
 	}
+	return corev1.ServiceTypeClusterIP
 
-	return spec.Com.Proxy.ServiceType
 }
 
 // GetServicePorts returns the ports of the component service

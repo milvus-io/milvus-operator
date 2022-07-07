@@ -7,7 +7,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 type deploymentUpdater interface {
@@ -29,7 +28,7 @@ type deploymentUpdater interface {
 func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) error {
 	appLabels := NewComponentAppLabels(updater.GetIntanceName(), updater.GetComponentName())
 	deployment.Labels = MergeLabels(deployment.Labels, appLabels)
-	if err := ctrl.SetControllerReference(updater.GetControllerRef(), deployment, updater.GetScheme()); err != nil {
+	if err := SetControllerReference(updater.GetControllerRef(), deployment, updater.GetScheme()); err != nil {
 		return pkgErrs.Wrap(err, "set controller reference")
 	}
 

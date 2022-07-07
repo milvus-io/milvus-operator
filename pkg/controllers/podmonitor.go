@@ -7,7 +7,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	meta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 )
@@ -17,7 +16,7 @@ func (r *MilvusReconciler) updatePodMonitor(
 
 	appLabels := NewAppLabels(mc.Name)
 	podmonitor.Labels = MergeLabels(podmonitor.Labels, appLabels)
-	if err := ctrl.SetControllerReference(&mc, podmonitor, r.Scheme); err != nil {
+	if err := SetControllerReference(&mc, podmonitor, r.Scheme); err != nil {
 		r.logger.Error(err, "PodMonitor SetControllerReference error", "name", mc.Name, "namespace", mc.Namespace)
 		return err
 	}
