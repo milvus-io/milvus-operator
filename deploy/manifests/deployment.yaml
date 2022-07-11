@@ -5598,6 +5598,7 @@ spec:
                         enum:
                         - MinIO
                         - S3
+                        - ""
                         type: string
                     type: object
                 type: object
@@ -6297,6 +6298,7 @@ spec:
                         enum:
                         - MinIO
                         - S3
+                        - ""
                         type: string
                     type: object
                 type: object
@@ -12181,6 +12183,7 @@ spec:
                         enum:
                         - MinIO
                         - S3
+                        - ""
                         type: string
                     type: object
                 type: object
@@ -12923,36 +12926,6 @@ rules:
   - update
   - watch
 ---
-# Source: milvus-operator/templates/clusterrole.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: 'milvus-operator-metrics-reader'
-rules:
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
----
-# Source: milvus-operator/templates/clusterrole.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: 'milvus-operator-proxy-role'
-rules:
-- apiGroups:
-  - authentication.k8s.io
-  resources:
-  - tokenreviews
-  verbs:
-  - create
-- apiGroups:
-  - authorization.k8s.io
-  resources:
-  - subjectaccessreviews
-  verbs:
-  - create
----
 # Source: milvus-operator/templates/clusterrolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -12979,20 +12952,6 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: "milvus-operator"
-  namespace: "milvus-operator"
----
-# Source: milvus-operator/templates/clusterrolebinding.yaml
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: 'milvus-operator-proxy-rolebinding'
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: 'milvus-operator-proxy-role'
-subjects:
-- kind: ServiceAccount
-  name: 'milvus-operator'
   namespace: "milvus-operator"
 ---
 # Source: milvus-operator/templates/role.yaml
