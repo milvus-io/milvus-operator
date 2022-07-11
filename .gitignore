@@ -46,3 +46,4 @@ charts/milvus-operator/charts/*.tgz
 
 # output
 out/
+*.bak
