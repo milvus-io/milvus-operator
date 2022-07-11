@@ -70,7 +70,7 @@ type InClusterConfig struct {
 
 type MilvusStorage struct {
 	// +kubebuilder:default:="MinIO"
-	// +kubebuilder:validation:Enum:={"MinIO", "S3"}
+	// +kubebuilder:validation:Enum:={"MinIO", "S3", ""}
 	// +kubebuilder:validation:Optional
 	Type string `json:"type"`
 

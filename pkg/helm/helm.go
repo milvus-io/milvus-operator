@@ -2,7 +2,10 @@ package helm
 
 import (
 	"errors"
+	"reflect"
 
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
+	"github.com/milvus-io/milvus-operator/pkg/helm/values"
 	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/release"
@@ -118,4 +121,19 @@ func (d *LocalClient) Uninstall(cfg *action.Configuration, releaseName string) e
 	}
 
 	return nil
+}
+
+func GetChartPathByName(chart string) string {
+	return "config/assets/charts/" + chart
+}
+
+func GetChartRequest(mc v1beta1.Milvus, dep values.DependencyKind, chart string) ChartRequest {
+	inCluster := reflect.ValueOf(mc.Spec.Dep).FieldByName(string(dep)).
+		FieldByName("InCluster").Interface().(*v1beta1.InClusterConfig)
+	return ChartRequest{
+		ReleaseName: mc.Name + "-" + chart,
+		Namespace:   mc.Namespace,
+		Chart:       GetChartPathByName(chart),
+		Values:      inCluster.Values.Data,
+	}
 }

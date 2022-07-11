@@ -18,8 +18,10 @@ package v1beta1
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/milvus-io/milvus-operator/pkg/config"
+	"github.com/milvus-io/milvus-operator/pkg/helm/values"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -49,167 +51,11 @@ var _ webhook.Defaulter = &Milvus{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Milvus) Default() {
 	milvuslog.Info("default", "name", r.Name)
-
-	if r.Namespace == "" {
-		r.Namespace = "default"
-	}
-
-	if r.Spec.Mode == "" {
-		r.Spec.Mode = MilvusModeStandalone
-	}
-
-	if r.Spec.Dep.Storage.Type == "" {
-		r.Spec.Dep.Storage.Type = "MinIO"
-	}
-
-	if r.Spec.Conf.Data == nil {
-		r.Spec.Conf.Data = map[string]interface{}{}
-	} else {
-		deleteUnsettableConf(r.Spec.Conf.Data)
-	}
-
-	if r.Spec.Com.Image == "" {
-		r.Spec.Com.Image = config.DefaultMilvusImage
-	}
-
-	// default components
-	if r.Spec.Mode == MilvusModeCluster {
-		if r.Spec.Com.Proxy == nil {
-			r.Spec.Com.Proxy = &MilvusProxy{}
-		}
-		if r.Spec.Com.MixCoord == nil {
-			r.Spec.Com.RootCoord = &MilvusRootCoord{}
-			r.Spec.Com.IndexCoord = &MilvusIndexCoord{}
-			r.Spec.Com.DataCoord = &MilvusDataCoord{}
-			r.Spec.Com.QueryCoord = &MilvusQueryCoord{}
-		}
-		if r.Spec.Com.DataNode == nil {
-			r.Spec.Com.DataNode = &MilvusDataNode{}
-		}
-		if r.Spec.Com.IndexNode == nil {
-			r.Spec.Com.IndexNode = &MilvusIndexNode{}
-		}
-		if r.Spec.Com.QueryNode == nil {
-			r.Spec.Com.QueryNode = &MilvusQueryNode{}
-		}
-	} else {
-		// standalone
-		if r.Spec.Com.Standalone == nil {
-			r.Spec.Com.Standalone = &MilvusStandalone{}
-		}
-	}
-
-	// defaultReplicas
-	defaultReplicas := int32(1)
-	if r.Spec.Mode == MilvusModeCluster {
-
-		if r.Spec.Com.MixCoord != nil {
-			if r.Spec.Com.MixCoord.Replicas == nil {
-				r.Spec.Com.MixCoord.Replicas = &defaultReplicas
-			}
-		} else {
-			if r.Spec.Com.Proxy.Replicas == nil {
-				r.Spec.Com.Proxy.Replicas = &defaultReplicas
-			}
-			if r.Spec.Com.RootCoord.Replicas == nil {
-				r.Spec.Com.RootCoord.Replicas = &defaultReplicas
-			}
-			if r.Spec.Com.DataCoord.Replicas == nil {
-				r.Spec.Com.DataCoord.Replicas = &defaultReplicas
-			}
-			if r.Spec.Com.IndexCoord.Replicas == nil {
-				r.Spec.Com.IndexCoord.Replicas = &defaultReplicas
-			}
-			if r.Spec.Com.QueryCoord.Replicas == nil {
-				r.Spec.Com.QueryCoord.Replicas = &defaultReplicas
-			}
-			if r.Spec.Com.DataNode.Replicas == nil {
-				r.Spec.Com.DataNode.Replicas = &defaultReplicas
-			}
-			if r.Spec.Com.IndexNode.Replicas == nil {
-				r.Spec.Com.IndexNode.Replicas = &defaultReplicas
-			}
-			if r.Spec.Com.QueryNode.Replicas == nil {
-				r.Spec.Com.QueryNode.Replicas = &defaultReplicas
-			}
-		}
-	} else {
-		if r.Spec.Com.Standalone.Replicas == nil {
-			r.Spec.Com.Standalone.Replicas = &defaultReplicas
-		}
-	}
-
-	// etcd
-	if !r.Spec.Dep.Etcd.External {
-		r.Spec.Dep.Etcd.Endpoints = []string{fmt.Sprintf("%s-etcd.%s:2379", r.Name, r.Namespace)}
-		if r.Spec.Dep.Etcd.InCluster == nil {
-			r.Spec.Dep.Etcd.InCluster = &InClusterConfig{}
-		}
-		if r.Spec.Dep.Etcd.InCluster.Values.Data == nil {
-			r.Spec.Dep.Etcd.InCluster.Values.Data = map[string]interface{}{}
-		}
-		if r.Spec.Dep.Etcd.InCluster.DeletionPolicy == "" {
-			r.Spec.Dep.Etcd.InCluster.DeletionPolicy = DeletionPolicyRetain
-		}
-		if r.Spec.Dep.Etcd.Endpoints == nil {
-			r.Spec.Dep.Etcd.Endpoints = []string{}
-		}
-	}
-
-	// mq
-	if r.Spec.Dep.MsgStreamType == "" {
-		switch r.Spec.Mode {
-		case MilvusModeStandalone:
-			r.Spec.Dep.MsgStreamType = MsgStreamTypeRocksMQ
-		case MilvusModeCluster:
-			r.Spec.Dep.MsgStreamType = MsgStreamTypePulsar
-		}
-	}
-	switch r.Spec.Dep.MsgStreamType {
-	case MsgStreamTypeKafka:
-		if !r.Spec.Dep.Kafka.External {
-			r.Spec.Dep.Kafka.BrokerList = []string{fmt.Sprintf("%s-kafka.%s:9092", r.Name, r.Namespace)}
-			if r.Spec.Dep.Kafka.InCluster == nil {
-				r.Spec.Dep.Kafka.InCluster = &InClusterConfig{}
-			}
-			if r.Spec.Dep.Kafka.InCluster.Values.Data == nil {
-				r.Spec.Dep.Kafka.InCluster.Values.Data = map[string]interface{}{}
-			}
-			if r.Spec.Dep.Kafka.InCluster.DeletionPolicy == "" {
-				r.Spec.Dep.Kafka.InCluster.DeletionPolicy = DeletionPolicyRetain
-			}
-		}
-	case MsgStreamTypePulsar:
-		if !r.Spec.Dep.Pulsar.External {
-			r.Spec.Dep.Pulsar.Endpoint = fmt.Sprintf("%s-pulsar-proxy.%s:6650", r.Name, r.Namespace)
-			if r.Spec.Dep.Pulsar.InCluster == nil {
-				r.Spec.Dep.Pulsar.InCluster = &InClusterConfig{}
-			}
-			if r.Spec.Dep.Pulsar.InCluster.Values.Data == nil {
-				r.Spec.Dep.Pulsar.InCluster.Values.Data = map[string]interface{}{}
-			}
-			if r.Spec.Dep.Pulsar.InCluster.DeletionPolicy == "" {
-				r.Spec.Dep.Pulsar.InCluster.DeletionPolicy = DeletionPolicyRetain
-			}
-		}
-	case MsgStreamTypeRocksMQ:
-		// do nothing
-	}
-
-	// storage
-	if !r.Spec.Dep.Storage.External {
-		r.Spec.Dep.Storage.Endpoint = fmt.Sprintf("%s-minio.%s:9000", r.Name, r.Namespace)
-		if r.Spec.Dep.Storage.InCluster == nil {
-			r.Spec.Dep.Storage.InCluster = &InClusterConfig{}
-		}
-		if r.Spec.Dep.Storage.InCluster.Values.Data == nil {
-			r.Spec.Dep.Storage.InCluster.Values.Data = map[string]interface{}{}
-		}
-		if r.Spec.Dep.Storage.InCluster.DeletionPolicy == "" {
-			r.Spec.Dep.Storage.InCluster.DeletionPolicy = DeletionPolicyRetain
-		}
-		r.Spec.Dep.Storage.SecretRef = r.Name + "-minio"
-	}
+	r.DefaultMeta()
+	r.DefaultMode()
+	r.DefaultComponents()
+	r.DefaultDependencies()
+	r.DefaultConf()
 }
 
 // TODO(user): change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
@@ -293,14 +139,6 @@ func required(mainPath *field.Path) *field.Error {
 	return field.Required(mainPath, fmt.Sprintf("%s should be configured", mainPath.String()))
 }
 
-func invalid(mainPath *field.Path, value interface{}, details string) *field.Error {
-	return field.Invalid(mainPath, value, details)
-}
-
-func forbidden(mainPath fmt.Stringer, conflictPath *field.Path) *field.Error {
-	return field.Forbidden(conflictPath, fmt.Sprintf("conflicts: %s should not be configured as %s has been configured already", conflictPath.String(), mainPath.String()))
-}
-
 func deleteUnsettableConf(conf map[string]interface{}) {
 	util.DeleteValue(conf, "minio", "address")
 	util.DeleteValue(conf, "minio", "port")
@@ -313,5 +151,256 @@ func deleteUnsettableConf(conf map[string]interface{}) {
 	}
 	for _, t := range MilvusCoordTypes {
 		util.DeleteValue(conf, t.String(), "address")
+	}
+}
+
+const (
+	MilvusIO             = "milvus.io"
+	OperatorVersionLabel = MilvusIO + "/operator-version"
+	// DependencyValuesLegacySyncedAnnotation : For legacy versions before v0.5.1, default value is not set to CR.
+	// So if they upgrade to v0.5.1+, if the dependency default values in milvus-helm updated
+	// the inCluster dependencies will get restarted. So we sync defaults first to prevent this
+	DependencyValuesLegacySyncedAnnotation = MilvusIO + "/dependency-values-legacy-synced"
+	DependencyValuesMergedAnnotation       = MilvusIO + "/dependency-values-merged"
+	Version                                = "v0.5.0"
+	LegacyVersion                          = "v0.5.0-legacy"
+	FalseStr                               = "false"
+	TrueStr                                = "true"
+)
+
+func setDefaultStr(ptr *string, defaultValue string) {
+	if len(*ptr) < 1 {
+		*ptr = defaultValue
+	}
+}
+
+func (r *Milvus) DefaultMeta() {
+	setDefaultStr(&r.Namespace, "default")
+	if len(r.Labels) < 1 {
+		r.Labels = make(map[string]string)
+	}
+	if len(r.Annotations) < 1 {
+		r.Annotations = make(map[string]string)
+	}
+	if len(r.Labels[OperatorVersionLabel]) < 1 {
+		if len(r.Status.Status) > 0 {
+			r.Labels[OperatorVersionLabel] = LegacyVersion
+			r.Labels[DependencyValuesLegacySyncedAnnotation] = FalseStr
+		} else {
+			r.Labels[OperatorVersionLabel] = Version
+		}
+	}
+}
+
+func (r *Milvus) DefaultMode() {
+	if r.Spec.Mode == "" {
+		r.Spec.Mode = MilvusModeStandalone
+	}
+}
+
+func (r *Milvus) DefaultComponents() {
+	spec := &r.Spec
+	setDefaultStr(&spec.Com.Image, config.DefaultMilvusImage)
+	if spec.Mode == MilvusModeCluster {
+		if spec.Com.Proxy == nil {
+			spec.Com.Proxy = &MilvusProxy{}
+		}
+		if spec.Com.MixCoord == nil {
+			spec.Com.RootCoord = &MilvusRootCoord{}
+			spec.Com.IndexCoord = &MilvusIndexCoord{}
+			spec.Com.DataCoord = &MilvusDataCoord{}
+			spec.Com.QueryCoord = &MilvusQueryCoord{}
+		}
+		if spec.Com.DataNode == nil {
+			spec.Com.DataNode = &MilvusDataNode{}
+		}
+		if spec.Com.IndexNode == nil {
+			spec.Com.IndexNode = &MilvusIndexNode{}
+		}
+		if spec.Com.QueryNode == nil {
+			spec.Com.QueryNode = &MilvusQueryNode{}
+		}
+	} else {
+		// standalone
+		if spec.Com.Standalone == nil {
+			spec.Com.Standalone = &MilvusStandalone{}
+		}
+	}
+	r.defaultComponentsReplicas()
+}
+
+func (r *Milvus) defaultComponentsReplicas() {
+	spec := &r.Spec
+	defaultReplicas := int32(1)
+	if spec.Mode == MilvusModeCluster {
+
+		if spec.Com.MixCoord != nil {
+			if spec.Com.MixCoord.Replicas == nil {
+				spec.Com.MixCoord.Replicas = &defaultReplicas
+			}
+		} else {
+			if spec.Com.Proxy.Replicas == nil {
+				spec.Com.Proxy.Replicas = &defaultReplicas
+			}
+			if spec.Com.RootCoord.Replicas == nil {
+				spec.Com.RootCoord.Replicas = &defaultReplicas
+			}
+			if spec.Com.DataCoord.Replicas == nil {
+				spec.Com.DataCoord.Replicas = &defaultReplicas
+			}
+			if spec.Com.IndexCoord.Replicas == nil {
+				spec.Com.IndexCoord.Replicas = &defaultReplicas
+			}
+			if spec.Com.QueryCoord.Replicas == nil {
+				spec.Com.QueryCoord.Replicas = &defaultReplicas
+			}
+			if spec.Com.DataNode.Replicas == nil {
+				spec.Com.DataNode.Replicas = &defaultReplicas
+			}
+			if spec.Com.IndexNode.Replicas == nil {
+				spec.Com.IndexNode.Replicas = &defaultReplicas
+			}
+			if spec.Com.QueryNode.Replicas == nil {
+				spec.Com.QueryNode.Replicas = &defaultReplicas
+			}
+		}
+	} else {
+		if spec.Com.Standalone.Replicas == nil {
+			spec.Com.Standalone.Replicas = &defaultReplicas
+		}
+	}
+}
+
+func (r *Milvus) DefaultDependencies() {
+	r.defaultEtcd()
+	r.defaultMsgStream()
+	r.defaultStorage()
+	r.setDefaultValueMerged()
+}
+
+func (r *Milvus) defaultEtcd() {
+	if !r.Spec.Dep.Etcd.External {
+		r.Spec.Dep.Etcd.Endpoints = []string{fmt.Sprintf("%s-etcd.%s:2379", r.Name, r.Namespace)}
+		if r.Spec.Dep.Etcd.InCluster == nil {
+			r.Spec.Dep.Etcd.InCluster = &InClusterConfig{}
+		}
+		if r.Spec.Dep.Etcd.InCluster.Values.Data == nil {
+			r.Spec.Dep.Etcd.InCluster.Values.Data = map[string]interface{}{}
+		}
+		r.defaultValuesByDependency(values.DependencyKindEtcd)
+		if r.Spec.Dep.Etcd.InCluster.DeletionPolicy == "" {
+			r.Spec.Dep.Etcd.InCluster.DeletionPolicy = DeletionPolicyRetain
+		}
+		if r.Spec.Dep.Etcd.Endpoints == nil {
+			r.Spec.Dep.Etcd.Endpoints = []string{}
+		}
+	}
+
+}
+
+// make sure r.Spec.Dep.$(dependency).InCluster not nil
+func (r *Milvus) defaultValuesByDependency(dependency values.DependencyKind) {
+	if r.isLegacy() {
+		r.setDefaultValueMerged()
+	}
+	if r.defaultValuesMerged() {
+		return
+	}
+	valuesPtr := reflect.ValueOf(r.Spec.Dep).FieldByName(string(dependency)).
+		FieldByName("InCluster").Elem().FieldByName("Values").Addr().Interface().(*Values)
+	valueData := util.DeepCopyValues(
+		values.GetDefaultValuesProvider().
+			GetDefaultValues(dependency))
+
+	util.MergeValues(valueData, valuesPtr.Data)
+	valuesPtr.Data = valueData
+}
+
+func (r *Milvus) LegacyNeedSyncValues() bool {
+	return r.isLegacy() && r.Annotations[DependencyValuesLegacySyncedAnnotation] != TrueStr
+}
+
+func (r *Milvus) SetLegacySynced() {
+	r.Annotations[DependencyValuesLegacySyncedAnnotation] = TrueStr
+}
+
+func (r *Milvus) isLegacy() bool {
+	return r.Labels[OperatorVersionLabel] == LegacyVersion
+}
+
+func (r *Milvus) setDefaultValueMerged() {
+	r.Annotations[DependencyValuesMergedAnnotation] = TrueStr
+}
+
+func (r *Milvus) defaultValuesMerged() bool {
+	return r.Annotations[DependencyValuesMergedAnnotation] == TrueStr
+}
+
+func (r *Milvus) defaultMsgStream() {
+	if r.Spec.Dep.MsgStreamType == "" {
+		switch r.Spec.Mode {
+		case MilvusModeStandalone:
+			r.Spec.Dep.MsgStreamType = MsgStreamTypeRocksMQ
+		case MilvusModeCluster:
+			r.Spec.Dep.MsgStreamType = MsgStreamTypePulsar
+		}
+	}
+	switch r.Spec.Dep.MsgStreamType {
+	case MsgStreamTypeKafka:
+		if !r.Spec.Dep.Kafka.External {
+			r.Spec.Dep.Kafka.BrokerList = []string{fmt.Sprintf("%s-kafka.%s:9092", r.Name, r.Namespace)}
+			if r.Spec.Dep.Kafka.InCluster == nil {
+				r.Spec.Dep.Kafka.InCluster = &InClusterConfig{}
+			}
+			if r.Spec.Dep.Kafka.InCluster.Values.Data == nil {
+				r.Spec.Dep.Kafka.InCluster.Values.Data = map[string]interface{}{}
+			}
+			r.defaultValuesByDependency(values.DependencyKindKafka)
+			if r.Spec.Dep.Kafka.InCluster.DeletionPolicy == "" {
+				r.Spec.Dep.Kafka.InCluster.DeletionPolicy = DeletionPolicyRetain
+			}
+		}
+	case MsgStreamTypePulsar:
+		if !r.Spec.Dep.Pulsar.External {
+			r.Spec.Dep.Pulsar.Endpoint = fmt.Sprintf("%s-pulsar-proxy.%s:6650", r.Name, r.Namespace)
+			if r.Spec.Dep.Pulsar.InCluster == nil {
+				r.Spec.Dep.Pulsar.InCluster = &InClusterConfig{}
+			}
+			if r.Spec.Dep.Pulsar.InCluster.Values.Data == nil {
+				r.Spec.Dep.Pulsar.InCluster.Values.Data = map[string]interface{}{}
+			}
+			r.defaultValuesByDependency(values.DependencyKindPulsar)
+			if r.Spec.Dep.Pulsar.InCluster.DeletionPolicy == "" {
+				r.Spec.Dep.Pulsar.InCluster.DeletionPolicy = DeletionPolicyRetain
+			}
+		}
+	case MsgStreamTypeRocksMQ:
+		// do nothing
+	}
+}
+
+func (r *Milvus) defaultStorage() {
+	setDefaultStr(&r.Spec.Dep.Storage.Type, "MinIO")
+	if !r.Spec.Dep.Storage.External {
+		r.Spec.Dep.Storage.Endpoint = fmt.Sprintf("%s-minio.%s:9000", r.Name, r.Namespace)
+		if r.Spec.Dep.Storage.InCluster == nil {
+			r.Spec.Dep.Storage.InCluster = &InClusterConfig{}
+		}
+		if r.Spec.Dep.Storage.InCluster.Values.Data == nil {
+			r.Spec.Dep.Storage.InCluster.Values.Data = map[string]interface{}{}
+		}
+		r.defaultValuesByDependency(values.DependencyKindStorage)
+		if r.Spec.Dep.Storage.InCluster.DeletionPolicy == "" {
+			r.Spec.Dep.Storage.InCluster.DeletionPolicy = DeletionPolicyRetain
+		}
+		r.Spec.Dep.Storage.SecretRef = r.Name + "-minio"
+	}
+}
+
+func (r *Milvus) DefaultConf() {
+	if r.Spec.Conf.Data == nil {
+		r.Spec.Conf.Data = map[string]interface{}{}
+	} else {
+		deleteUnsettableConf(r.Spec.Conf.Data)
 	}
 }

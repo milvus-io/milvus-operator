@@ -16,6 +16,7 @@ import (
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	milvusv1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
+	"github.com/milvus-io/milvus-operator/pkg/helm"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 )
 
@@ -138,4 +139,75 @@ func TestClusterReconciler_ReconcileFinalizer(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+}
+
+func TestMilvusReconciler_ReconcileLegacyValues(t *testing.T) {
+	config.Init(util.GetGitRepoRootDir())
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	testEnv := newTestEnv(t)
+	r := testEnv.Reconciler
+	helm.SetDefaultClient(&helm.LocalClient{})
+	template := v1beta1.Milvus{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "ns",
+			Name:      "mc",
+		},
+		Status: v1beta1.MilvusStatus{
+			Status: v1beta1.StatusCreating,
+		},
+	}
+	ctx := context.Background()
+
+	t.Run("not legacy, no need to sync", func(t *testing.T) {
+		defer ctrl.Finish()
+		old := template.DeepCopy()
+		old.Status.Status = ""
+		old.Default()
+		obj := old.DeepCopy()
+		updated, err := r.ReconcileLegacyValues(ctx, old, obj)
+		assert.NoError(t, err)
+		assert.Equal(t, false, updated)
+	})
+
+	t.Run("legacy, update", func(t *testing.T) {
+		defer ctrl.Finish()
+		old := template.DeepCopy()
+		old.Default()
+		testEnv.MockClient.EXPECT().Update(gomock.Any(), gomock.Any())
+		obj := old.DeepCopy()
+		updated, err := r.ReconcileLegacyValues(ctx, old, obj)
+		assert.NoError(t, err)
+		assert.Equal(t, true, updated)
+	})
+
+	t.Run("standalone all internal ok", func(t *testing.T) {
+		obj := template.DeepCopy()
+		obj.Default()
+		assert.Equal(t, true, obj.LegacyNeedSyncValues())
+		err := r.syncLegacyValues(ctx, obj)
+		assert.NoError(t, err)
+		assert.Equal(t, false, obj.LegacyNeedSyncValues())
+	})
+
+	t.Run("cluster with pulsar all internal ok", func(t *testing.T) {
+		obj := template.DeepCopy()
+		obj.Spec.Mode = v1beta1.MilvusModeCluster
+
+		obj.Default()
+		assert.Equal(t, true, obj.LegacyNeedSyncValues())
+		err := r.syncLegacyValues(ctx, obj)
+		assert.NoError(t, err)
+		assert.Equal(t, false, obj.LegacyNeedSyncValues())
+	})
+	t.Run("cluster with kafka all internal ok", func(t *testing.T) {
+		obj := template.DeepCopy()
+		obj.Spec.Dep.MsgStreamType = v1beta1.MsgStreamTypeKafka
+		obj.Default()
+		assert.Equal(t, true, obj.LegacyNeedSyncValues())
+		err := r.syncLegacyValues(ctx, obj)
+		assert.NoError(t, err)
+		assert.Equal(t, false, obj.LegacyNeedSyncValues())
+	})
 }

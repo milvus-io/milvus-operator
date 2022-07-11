@@ -237,7 +237,7 @@ sit-generate-manifest:
 
 sit-deploy: sit-load-images
 	@echo "Deploying"
-	$(HELM) install --set image.repository=milvus-operator,image.tag=sit,resources.requests.cpu=10m -n milvus-operator --create-namespace milvus-operator ./charts/milvus-operator
+	$(HELM) -n milvus-operator install --set image.repository=milvus-operator,image.tag=sit,resources.requests.cpu=10m --create-namespace milvus-operator ./charts/milvus-operator
 	kubectl -n milvus-operator describe pods
 	@echo "Waiting for operator to be ready"
 	kubectl -n milvus-operator wait --for=condition=complete job/milvus-operator-checker --timeout=6m
@@ -250,7 +250,9 @@ sit-test:
 
 cleanup-sit:
 	kubectl delete -f test/test_gen.yaml
-
+	
+test-upgrade:
+	./test/upgrade.sh
 
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))

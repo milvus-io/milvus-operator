@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -69,7 +68,7 @@ func TestLocalHelmReconciler_Reconcile(t *testing.T) {
 	})
 
 	t.Run("not existed, install pulsar", func(t *testing.T) {
-		request.Chart = PulsarChart
+		request.Chart = helm.GetChartPathByName(Pulsar)
 		request.Values = make(map[string]interface{})
 		mockHelm.EXPECT().
 			ReleaseExist(gomock.Any(), gomock.Any()).
@@ -110,7 +109,7 @@ func TestLocalHelmReconciler_Reconcile(t *testing.T) {
 		mockHelm.EXPECT().
 			ReleaseExist(gomock.Any(), gomock.Any()).
 			Return(true, nil)
-		mockHelm.EXPECT().GetValues(gomock.Any(), gomock.Any()).Return(rec.chartDefaultValues[Pulsar], nil)
+		mockHelm.EXPECT().GetValues(gomock.Any(), gomock.Any()).Return(map[string]interface{}{}, nil)
 		mockHelm.EXPECT().GetStatus(gomock.Any(), gomock.Any()).Return(release.StatusDeployed, nil)
 		err := rec.Reconcile(ctx, request)
 		assert.NoError(t, err)
@@ -118,7 +117,7 @@ func TestLocalHelmReconciler_Reconcile(t *testing.T) {
 
 	// existed, pulsar update
 	t.Run("existed, pulsar update", func(t *testing.T) {
-		request.Chart = PulsarChart
+		request.Chart = helm.GetChartPathByName(Pulsar)
 		request.Values["val2"] = true
 		mockHelm.EXPECT().
 			ReleaseExist(gomock.Any(), gomock.Any()).
@@ -152,7 +151,7 @@ func TestClusterReconciler_ReconcileDeps(t *testing.T) {
 	// internal reconcile helm
 	mockHelm.EXPECT().Reconcile(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, request helm.ChartRequest) error {
-			assert.Equal(t, request.Chart, EtcdChart)
+			assert.Equal(t, request.Chart, helm.GetChartPathByName(Etcd))
 			return nil
 		})
 	assert.NoError(t, r.ReconcileEtcd(ctx, m))
@@ -165,7 +164,7 @@ func TestClusterReconciler_ReconcileDeps(t *testing.T) {
 	// internal reconcile helm
 	mockHelm.EXPECT().Reconcile(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, request helm.ChartRequest) error {
-			assert.Equal(t, request.Chart, MinioChart)
+			assert.Equal(t, request.Chart, helm.GetChartPathByName(Minio))
 			return nil
 		})
 	assert.NoError(t, r.ReconcileMinio(ctx, m))
@@ -178,7 +177,7 @@ func TestClusterReconciler_ReconcileDeps(t *testing.T) {
 	// internal reconcile helm
 	mockHelm.EXPECT().Reconcile(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, request helm.ChartRequest) error {
-			assert.Equal(t, request.Chart, PulsarChart)
+			assert.Equal(t, request.Chart, helm.GetChartPathByName(Pulsar))
 			return nil
 		})
 	assert.NoError(t, r.ReconcilePulsar(ctx, m))
@@ -186,25 +185,4 @@ func TestClusterReconciler_ReconcileDeps(t *testing.T) {
 	// external ignored
 	m.Spec.Dep.Pulsar.External = true
 	assert.NoError(t, r.ReconcilePulsar(ctx, m))
-}
-
-func TestGetChartNameByPath(t *testing.T) {
-	assert.Equal(t, Etcd, getChartNameByPath(EtcdChart))
-	assert.Equal(t, Minio, getChartNameByPath(MinioChart))
-	assert.Equal(t, Pulsar, getChartNameByPath(PulsarChart))
-	assert.Equal(t, "", getChartNameByPath("unknown"))
-}
-
-func TestL1(t *testing.T) {
-	reflect.DeepEqual(map[string]interface{}{
-		"a": map[string]interface{}{
-			"b": "a",
-			"a": "b",
-		},
-	}, Values{
-		"a": Values{
-			"a": "b",
-			"b": "a",
-		},
-	})
 }

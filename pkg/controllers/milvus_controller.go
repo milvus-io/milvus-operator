@@ -32,6 +32,7 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	milvusv1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 )
@@ -127,18 +128,21 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		return ctrl.Result{}, nil
 	}
 
-	// Start reconcile
-	r.logger.Info("start reconcile")
 	old := milvus.DeepCopy()
 	milvus.Default()
 
 	if !IsEqual(old.Spec, milvus.Spec) {
 		diff, _ := diffObject(old, milvus)
-		r.logger.Info("SetDefault: "+string(diff), "name", old.Name, "namespace", old.Namespace)
+		r.logger.Info("SetDefault: " + string(diff))
 		return ctrl.Result{}, r.Update(ctx, milvus)
 	}
 
-	updated, err := r.SetDefaultStatus(ctx, milvus)
+	updated, err := r.ReconcileLegacyValues(ctx, old, milvus)
+	if updated || err != nil {
+		return ctrl.Result{}, err
+	}
+
+	updated, err = r.SetDefaultStatus(ctx, milvus)
 	if updated || err != nil {
 		return ctrl.Result{}, err
 	}
@@ -203,4 +207,62 @@ func (*MilvusPredicate) Update(e event.UpdateEvent) bool {
 	}
 
 	return true
+}
+
+func (r *MilvusReconciler) ReconcileLegacyValues(ctx context.Context, old, milvus *v1beta1.Milvus) (updated bool, err error) {
+	if !milvus.LegacyNeedSyncValues() {
+		return false, nil
+	}
+
+	err = r.syncLegacyValues(ctx, milvus)
+	if err != nil {
+		return false, err
+	}
+	diff, _ := diffObject(old, milvus)
+	r.logger.Info("SyncValues: " + string(diff))
+	err = r.Update(ctx, milvus)
+	return true, err
+}
+
+func (r *MilvusReconciler) syncLegacyValues(ctx context.Context, m *v1beta1.Milvus) error {
+	// sync etcd
+	if !m.Spec.Dep.Etcd.External {
+		releaseValues, err := r.helmReconciler.GetValues(m.Namespace, m.Name+"-etcd")
+		if err != nil {
+			return err
+		}
+		m.Spec.Dep.Etcd.InCluster.Values.Data = releaseValues
+	}
+
+	// sync mq
+	switch m.Spec.Dep.MsgStreamType {
+	case v1beta1.MsgStreamTypePulsar:
+		if !m.Spec.Dep.Pulsar.External {
+			releaseValues, err := r.helmReconciler.GetValues(m.Namespace, m.Name+"-pulsar")
+			if err != nil {
+				return err
+			}
+			m.Spec.Dep.Pulsar.InCluster.Values.Data = releaseValues
+		}
+	case v1beta1.MsgStreamTypeKafka:
+		if !m.Spec.Dep.Kafka.External {
+			releaseValues, err := r.helmReconciler.GetValues(m.Namespace, m.Name+"-kafka")
+			if err != nil {
+				return err
+			}
+			m.Spec.Dep.Kafka.InCluster.Values.Data = releaseValues
+		}
+	}
+
+	// sync minio
+	if !m.Spec.Dep.Storage.External {
+		releaseValues, err := r.helmReconciler.GetValues(m.Namespace, m.Name+"-minio")
+		if err != nil {
+			return err
+		}
+		m.Spec.Dep.Storage.InCluster.Values.Data = releaseValues
+	}
+
+	m.SetLegacySynced()
+	return nil
 }

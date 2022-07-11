@@ -61,6 +61,17 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 		assert.Equal(t, standaloneDefault, mc.Spec)
 	})
 
+	t.Run("standalone already set default ok", func(t *testing.T) {
+		mc := Milvus{ObjectMeta: metav1.ObjectMeta{Name: crName}}
+		mc.Spec.Mode = MilvusModeStandalone
+		mc.Default()
+		assert.Equal(t, int32(1), *mc.Spec.Com.Standalone.Replicas)
+		newReplica := int32(2)
+		mc.Spec.Com.Standalone.Replicas = &newReplica
+		mc.Default()
+		assert.Equal(t, newReplica, *mc.Spec.Com.Standalone.Replicas)
+	})
+
 	clusterDefault := *standaloneDefault.DeepCopy()
 	clusterDefault.Mode = MilvusModeCluster
 	clusterDefault.Dep.MsgStreamType = MsgStreamTypePulsar
@@ -153,7 +164,9 @@ func TestMilvus_Default_DeleteUnSetableOK(t *testing.T) {
 
 	var conf = Values{
 		Data: map[string]interface{}{
-			"minio": map[string]interface{}{},
+			"minio": map[string]interface{}{
+				"conf": "value",
+			},
 		},
 	}
 
@@ -164,6 +177,7 @@ func TestMilvus_Default_DeleteUnSetableOK(t *testing.T) {
 				Data: map[string]interface{}{
 					"minio": map[string]interface{}{
 						"address": "myHost",
+						"conf":    "value",
 					},
 				},
 			},
@@ -239,4 +253,11 @@ func TestMilvus_ValidateUpdate_KindAssertionFailed(t *testing.T) {
 	old := appsv1.Deployment{}
 	err := new.ValidateUpdate(&old)
 	assert.Error(t, err)
+}
+
+func Test_DefaultLabels_Legacy(t *testing.T) {
+	new := Milvus{}
+	new.Status.Status = StatusHealthy
+	new.DefaultMeta()
+	assert.Equal(t, new.Labels[OperatorVersionLabel], LegacyVersion)
 }
