@@ -2,8 +2,8 @@
 # Image URL to use all building/pushing image targets
 IMG ?= milvusdb/milvus-operator:dev-latest
 SIT_IMG ?= milvus-operator:sit
-VERSION ?= 0.5.0
-MILVUS_HELM_VERSION ?= milvus-3.0.16
+VERSION ?= 0.5.1
+MILVUS_HELM_VERSION ?= milvus-3.0.28
 RELEASE_IMG ?= milvusdb/milvus-operator:v$(VERSION)
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
@@ -213,7 +213,7 @@ sit-prepare-images: sit-prepare-operator-images
 	
 	docker pull -q apachepulsar/pulsar:2.8.2
 	docker pull -q bitnami/kafka:3.1.0-debian-10-r52
-	docker pull -q bitnami/etcd:3.5.0-debian-10-r24
+	docker pull -q milvusdb/etcd:3.5.0-r6
 	docker pull -q minio/minio:RELEASE.2021-02-14T04-01-33Z
 	docker pull -q minio/mc:RELEASE.2021-02-14T04-28-06Z
 	docker pull -q zilliz/milvus_cli:latest
@@ -230,7 +230,7 @@ sit-load-images: sit-load-operator-images
 	kind load docker-image milvusdb/milvus:v2.0.2
 	kind load docker-image apachepulsar/pulsar:2.8.2
 	kind load docker-image bitnami/kafka:3.1.0-debian-10-r52
-	kind load docker-image bitnami/etcd:3.5.0-debian-10-r24
+	kind load docker-image milvusdb/etcd:3.5.0-r6
 	kind load docker-image minio/minio:RELEASE.2021-02-14T04-01-33Z
 	kind load docker-image minio/mc:RELEASE.2021-02-14T04-28-06Z
 	kind load docker-image zilliz/milvus_cli:latest

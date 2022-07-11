@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCheckMinIOFailed(t *testing.T) {
+func TestCheckMinIO(t *testing.T) {
 	// badendpoint
 	err := CheckMinIO(CheckMinIOArgs{
 		Type:     v1beta1.StorageTypeS3,
@@ -38,7 +38,7 @@ func TestCheckMinIOFailed(t *testing.T) {
 		SK:       "dummy",
 		Endpoint: "minio-endpoint.dummy",
 		Bucket:   "dummy",
-		UseSSL:   true,
+		UseSSL:   false,
 	})
 	assert.Error(t, err)
 
@@ -68,11 +68,19 @@ func TestIsHealthyByServerInfo(t *testing.T) {
 	st := madmin.InfoMessage{
 		Servers: []madmin.ServerProperties{
 			{},
+			{},
 		},
 	}
 	err := isHealthyByServerInfo(st)
 	assert.Error(t, err)
+	st.Servers[0].State = "online"
+	err = isHealthyByServerInfo(st)
+	assert.NoError(t, err)
 	st.Servers[0].State = "ok"
+	err = isHealthyByServerInfo(st)
+	assert.NoError(t, err)
+	st.Servers[0].State = "offline"
+	st.Servers[1].State = "online"
 	err = isHealthyByServerInfo(st)
 	assert.NoError(t, err)
 }
