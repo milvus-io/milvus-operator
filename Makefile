@@ -80,26 +80,27 @@ test-only:
 	source ${ENVTEST_ASSETS_DIR}/setup-envtest.sh; fetch_envtest_tools $(ENVTEST_ASSETS_DIR); setup_envtest_env $(ENVTEST_ASSETS_DIR); CGO_ENABLED=1 go test -race ./... -coverprofile tmp.out; cat tmp.out | sed '/zz_generated.deepcopy.go/d' | sed '/_mock.go/d'  > cover.out
 
 ##@ Build
+VERSION_PATH=github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1
+BUILD_LDFLAGS=-X '$(VERSION_PATH).Version=$(VERSION)' -X '$(VERSION_PATH).MilvusHelmVersion=$(MILVUS_HELM_VERSION)'
 
 build: generate fmt vet ## Build manager binary.
-	go build -o bin/manager main.go
+	go build -o bin/manager -ldflags="$(BUILD_LDFLAGS)" main.go
 
 build-only:
-	go build -o bin/manager main.go
+	go build -o bin/manager -ldflags="$(BUILD_LDFLAGS)" main.go
 
 build-release:
 	mkdir -p out
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o out/manager main.go
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o out/checker ./tool/checker
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o out/merge ./tool/merge
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "-s -w" -o out/cp ./tool/cp
-
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="$(BUILD_LDFLAGS)" -o out/manager main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o out/checker ./tool/checker
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o out/merge ./tool/merge
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o out/cp ./tool/cp
 
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
 
-docker-build: test build ## Build docker image with the manager.
-	docker build --build-arg MILVUS_HELM_VERSION=$(MILVUS_HELM_VERSION) -t ${IMG} . 
+docker-build: ## Build docker image with the manager.
+	docker build -t ${IMG} . 
 
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
@@ -108,19 +109,21 @@ out/config/assets/templates:
 	mkdir -p out/config/assets
 	cp -r config/assets/templates out/config/assets/templates
 
-docker-local-prepare: build-release out/config/assets/templates
+docker-prepare: build-release out/config/assets/templates
 	mkdir -p ./out/config/assets/charts/
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/etcd-6.3.3.tgz -O ./etcd.tgz
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/minio-8.0.11.tgz -O ./minio.tgz
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/pulsar-2.7.8.tgz -O ./pulsar.tgz
+	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/kafka-15.5.1.tgz -O ./kafka.tgz
 	tar -xf ./etcd.tgz -C ./out/config/assets/charts/
 	tar -xf ./minio.tgz -C ./out/config/assets/charts/
 	tar -xf ./pulsar.tgz -C ./out/config/assets/charts/
+	tar -xf ./kafka.tgz -C ./out/config/assets/charts/
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/values.yaml -O ./out/config/assets/charts/values.yaml
-	cp scripts/run.sh out/run.sh
+	cp ./scripts/run.sh ./out/run.sh
 
 docker-local-build:
-	docker build --build-arg MILVUS_HELM_VERSION=$(MILVUS_HELM_VERSION) -t ${IMG} -f local.Dockerfile . 
+	docker build -t ${IMG} -f local.Dockerfile . 
 
 ##@ Deployment
 
@@ -197,7 +200,7 @@ kind: ## Download kind locally if necessary.
 ##@ system integration test
 sit-prepare-operator-images:
 	@echo "Preparing operator images"
-	docker build --build-arg MILVUS_HELM_VERSION=${MILVUS_HELM_VERSION} -t ${SIT_IMG} .
+	docker build -t ${SIT_IMG} .
 	docker pull -q quay.io/jetstack/cert-manager-controller:v1.5.3
 	docker pull -q quay.io/jetstack/cert-manager-webhook:v1.5.3
 	docker pull -q quay.io/jetstack/cert-manager-cainjector:v1.5.3

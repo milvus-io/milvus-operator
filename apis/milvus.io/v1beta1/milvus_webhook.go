@@ -162,10 +162,14 @@ const (
 	// the inCluster dependencies will get restarted. So we sync defaults first to prevent this
 	DependencyValuesLegacySyncedAnnotation = MilvusIO + "/dependency-values-legacy-synced"
 	DependencyValuesMergedAnnotation       = MilvusIO + "/dependency-values-merged"
-	Version                                = "v0.5.0"
 	LegacyVersion                          = "v0.5.0-legacy"
 	FalseStr                               = "false"
 	TrueStr                                = "true"
+)
+
+var (
+	Version           = "unknown"
+	MilvusHelmVersion = "unknown"
 )
 
 func setDefaultStr(ptr *string, defaultValue string) {

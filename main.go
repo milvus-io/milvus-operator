@@ -18,6 +18,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -25,6 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/milvus-io/milvus-operator/pkg/controllers"
 	"github.com/milvus-io/milvus-operator/pkg/helm/values"
@@ -40,6 +42,7 @@ func main() {
 	var enableLeaderElection bool
 	var probeAddr string
 	var workDir string
+	showVersion := flag.Bool("version", false, "Show version")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
@@ -54,6 +57,11 @@ func main() {
 	}
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
+	if *showVersion {
+		fmt.Println("version: " + v1beta1.Version)
+		fmt.Println("milvus-helm version: " + v1beta1.MilvusHelmVersion)
+		os.Exit(0)
+	}
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	if err := config.Init(workDir); err != nil {
@@ -78,7 +86,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("starting manager")
+	setupLog.Info("starting manager", "version", v1beta1.Version, "milvus-helm version", v1beta1.MilvusHelmVersion)
 	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
