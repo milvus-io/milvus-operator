@@ -127,3 +127,25 @@ jobs:
       - name: Integration Test
         run: |
           make sit-test test_mode=mixture
+  sit-upgrade:
+    name: System Integration Test for Upgrade
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu18.04]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup KinD Cluster
+        uses: engineerd/setup-kind@v0.5.0
+        with:
+          version: "v0.11.1"
+      - name: Prepare Docker Images
+        run: |
+          make sit-prepare-images
+          make sit-load-images
+      - name: Test Upgrade
+        run: |
+          make test-upgrade

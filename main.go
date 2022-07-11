@@ -27,6 +27,7 @@ import (
 
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/milvus-io/milvus-operator/pkg/controllers"
+	"github.com/milvus-io/milvus-operator/pkg/helm/values"
 	"github.com/milvus-io/milvus-operator/pkg/manager"
 )
 
@@ -59,6 +60,8 @@ func main() {
 		setupLog.Error(err, "unable to init config")
 		os.Exit(1)
 	}
+
+	values.MustInitDefaultValuesProvider()
 
 	mgr, err := manager.NewManager(metricsAddr, probeAddr, enableLeaderElection)
 	if err != nil {

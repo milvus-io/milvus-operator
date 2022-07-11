@@ -427,12 +427,10 @@ func LoopWithInterval(ctx context.Context, loopFunc func() error, interval time.
 	logger.Info("setup loop", "func", funcName, "interval", interval.String())
 	ticker := time.NewTicker(interval)
 	for {
-		logger.Info("loopfunc run", "func", funcName)
 		err := loopFunc()
 		if err != nil {
 			logger.Error(err, "loopFunc err", "func", funcName)
 		}
-		logger.Info("loopfunc end", "func", funcName)
 		select {
 		case <-ctx.Done():
 			return
