@@ -5566,6 +5566,7 @@ spec:
                         enum:
                         - MinIO
                         - S3
+                        - ""
                         type: string
                     type: object
                 type: object
