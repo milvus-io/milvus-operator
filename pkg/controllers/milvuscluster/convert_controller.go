@@ -81,10 +81,31 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, fmt.Errorf("error update milvus status: %w", err)
 	}
 
+	if betaMilvus.LegacyNeedSyncValues() {
+		return ctrl.Result{}, nil
+	}
+
+	// value synced, milvuscluster need sync values back
+	if len(milvus.Annotations) < 1 {
+		milvus.Annotations = make(map[string]string)
+	}
+	if milvus.Annotations[v1beta1.DependencyValuesMergedAnnotation] != v1beta1.TrueStr {
+		logger := logr.FromContext(ctx)
+		logger.Info("sync values from beta to alpha")
+		milvus.Labels = betaMilvus.Labels
+		milvus.Annotations = betaMilvus.Annotations
+		milvus.Spec.Dep = betaMilvus.Spec.Dep
+		err := r.Update(ctx, milvus)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error update beta to alpha: %w", err)
+		}
+	}
+
 	milvus.ConvertToMilvus(betaMilvus)
 	if err := ctrl.SetControllerReference(milvus, betaMilvus, r.Scheme); err != nil {
 		return ctrl.Result{}, pkgErrs.Wrap(err, "set controller reference")
 	}
+
 	err = r.Update(ctx, betaMilvus)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("error update milvus spec : %w", err)
