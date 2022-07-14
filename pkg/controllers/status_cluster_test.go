@@ -206,7 +206,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 	s := NewMilvusStatusSyncer(ctx, mockCli, logger)
 
 	// default status not set
-	err := s.UpdateStatus(ctx, m)
+	err := s.UpdateStatusRoutine(ctx, m)
 	assert.NoError(t, err)
 
 	// get condition failed
@@ -219,7 +219,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 		})
 
 	m.Status.Status = v1beta1.StatusCreating
-	err = s.UpdateStatus(ctx, m)
+	err = s.UpdateStatusRoutine(ctx, m)
 	assert.Error(t, err)
 
 	t.Run("update ingress status failed", func(t *testing.T) {
@@ -230,7 +230,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 			})
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
 		m.Status.Status = v1beta1.StatusCreating
-		err = s.UpdateStatus(ctx, m)
+		err = s.UpdateStatusRoutine(ctx, m)
 		assert.Error(t, err)
 	})
 
@@ -249,7 +249,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockReplicaUpdater.EXPECT().UpdateReplicas(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
 		m.Status.Status = v1beta1.StatusCreating
-		err = s.UpdateStatus(ctx, m)
+		err = s.UpdateStatusRoutine(ctx, m)
 		assert.Error(t, err)
 	})
 
@@ -264,7 +264,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockCli.EXPECT().Update(gomock.Any(), gomock.Any())
 		m.Status.Status = v1beta1.StatusCreating
-		err = s.UpdateStatus(ctx, m)
+		err = s.UpdateStatusRoutine(ctx, m)
 		assert.NoError(t, err)
 	})
 }
@@ -280,7 +280,7 @@ func TestStatusSyncer_UpdateReplicas(t *testing.T) {
 
 	t.Run("all ok", func(t *testing.T) {
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, _, deploy interface{}) {
-			deploy.(*appsv1.Deployment).Status.Replicas = 2
+			deploy.(*appsv1.Deployment).Status.UpdatedReplicas = 2
 		}).Return(nil).Times(len(MilvusComponents))
 		err := s.UpdateReplicas(ctx, m, mockCli)
 		assert.NoError(t, err)

@@ -83,6 +83,14 @@ type MilvusStatus struct {
 	// +kubebuilder:validation:Optional
 	// Replicas is the number of updated replicas in ready status
 	Replicas MilvusReplicas `json:"replicas,omitempty"`
+
+	// same usage as deployment.status.observedGeneration
+	// observedGeneration represents the .metadata.generation that the condition was set based upon.
+	// For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+	// with respect to the current state of the instance.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,3,opt,name=observedGeneration"`
 }
 
 // MilvusReplicas is the replicas of milvus components

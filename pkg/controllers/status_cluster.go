@@ -20,6 +20,8 @@ import (
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 )
 
+//go:generate mockgen -package=controllers -source=status_cluster.go -destination=status_cluster_mock.go
+
 const (
 	MessageEtcdReady         = "Etcd endpoints is healthy"
 	MessageEtcdNotReady      = "All etcd endpoints are unhealthy"
@@ -45,6 +47,12 @@ type EtcdEndPointHealth struct {
 	Ep     string `json:"endpoint"`
 	Health bool   `json:"health"`
 	Error  string `json:"error,omitempty"`
+}
+
+// MilvusStatusSyncerInterface abstracts MilvusStatusSyncer
+type MilvusStatusSyncerInterface interface {
+	RunIfNot()
+	UpdateStatusForNewGeneration(ctx context.Context, mc *v1beta1.Milvus) error
 }
 
 type MilvusStatusSyncer struct {
@@ -133,7 +141,7 @@ func (r *MilvusStatusSyncer) syncUnhealthy() error {
 		}
 		argsArray = append(argsArray, Args{mc})
 	}
-	err = defaultGroupRunner.RunDiffArgs(r.UpdateStatus, r.ctx, argsArray)
+	err = defaultGroupRunner.RunDiffArgs(r.UpdateStatusRoutine, r.ctx, argsArray)
 	return errors.Wrap(err, "UpdateStatus failed")
 }
 
@@ -150,26 +158,33 @@ func (r *MilvusStatusSyncer) syncHealthy() error {
 			argsArray = append(argsArray, Args{mc})
 		}
 	}
-	err = defaultGroupRunner.RunDiffArgs(r.UpdateStatus, r.ctx, argsArray)
+	err = defaultGroupRunner.RunDiffArgs(r.UpdateStatusRoutine, r.ctx, argsArray)
 	return errors.Wrap(err, "UpdateStatus failed")
 }
 
-func (r *MilvusStatusSyncer) UpdateStatus(ctx context.Context, mc *v1beta1.Milvus) error {
+func (r *MilvusStatusSyncer) UpdateStatusRoutine(ctx context.Context, mc *v1beta1.Milvus) error {
 	// ignore if default status not set
 	if !IsSetDefaultDone(mc) {
+		return nil
+	}
+	// ObservedGeneration not up to date meaning it is being reconciled
+	if mc.Status.ObservedGeneration < mc.Generation {
 		return nil
 	}
 	// some default values may not be set if there's an upgrade
 	// so we call default again to ensure
 	mc.Default()
 
+	return r.UpdateStatusForNewGeneration(ctx, mc)
+}
+
+func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, mc *v1beta1.Milvus) error {
 	funcs := []Func{
 		r.GetEtcdCondition,
 		r.GetMinioCondition,
 		r.GetMsgStreamCondition,
 	}
 	ress := defaultGroupRunner.RunWithResult(funcs, ctx, *mc)
-
 	errTexts := []string{}
 	for _, res := range ress {
 		if res.Err == nil {
@@ -210,8 +225,6 @@ func (r *MilvusStatusSyncer) UpdateStatus(ctx context.Context, mc *v1beta1.Milvu
 }
 
 var replicaUpdater replicaUpdaterInterface = new(replicaUpdaterImpl)
-
-//go:generate mockgen -package=controllers -source=status_cluster.go -destination=status_cluster_mock.go
 
 type replicaUpdaterInterface interface {
 	UpdateReplicas(ctx context.Context, obj *v1beta1.Milvus, cli client.Client) error
