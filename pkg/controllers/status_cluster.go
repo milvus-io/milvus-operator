@@ -233,7 +233,10 @@ func updateReplicas(ctx context.Context, key client.ObjectKey, status *v1beta1.M
 		}
 		replica := 0
 		if deploy != nil {
-			replica = int(deploy.Status.Replicas)
+			replica = int(deploy.Status.UpdatedReplicas - deploy.Status.UnavailableReplicas)
+			if replica < 0 {
+				replica = 0
+			}
 		}
 		component.SetStatusReplicas(&status.Replicas, replica)
 	}

@@ -81,6 +81,7 @@ type MilvusStatus struct {
 	IngressStatus networkv1.IngressStatus `json:"ingress,omitempty"`
 
 	// +kubebuilder:validation:Optional
+	// Replicas is the number of updated replicas in ready status
 	Replicas MilvusReplicas `json:"replicas,omitempty"`
 }
 
