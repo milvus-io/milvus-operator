@@ -189,7 +189,7 @@ func (r *Milvus) DefaultMeta() {
 	if len(r.Labels[OperatorVersionLabel]) < 1 {
 		if len(r.Status.Status) > 0 {
 			r.Labels[OperatorVersionLabel] = LegacyVersion
-			r.Labels[DependencyValuesLegacySyncedAnnotation] = FalseStr
+			r.Annotations[DependencyValuesLegacySyncedAnnotation] = FalseStr
 		} else {
 			r.Labels[OperatorVersionLabel] = Version
 		}

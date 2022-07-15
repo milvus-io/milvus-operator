@@ -120,6 +120,11 @@ func (l LocalHelmReconciler) Reconcile(ctx context.Context, request helm.ChartRe
 	if deepEqual && !needUpdate {
 		return nil
 	}
+
+	if request.Chart == helm.GetChartPathByName(Pulsar) {
+		request.Values["initialize"] = false
+	}
+
 	l.logger.Info("update helm", "namespace", request.Namespace, "release", request.ReleaseName, "needUpdate", needUpdate, "deepEqual", deepEqual)
 	if !deepEqual {
 		l.logger.Info("update helm values", "old", vals, "new", request.Values)

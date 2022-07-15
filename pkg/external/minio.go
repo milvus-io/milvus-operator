@@ -3,7 +3,6 @@ package external
 import (
 	"context"
 	"errors"
-	"log"
 	"strings"
 	"time"
 
@@ -71,16 +70,10 @@ func CheckMinIO(args CheckMinIOArgs) error {
 }
 
 func isHealthyByServerInfo(st madmin.InfoMessage) error {
-	ready := false
 	for _, server := range st.Servers {
-		log.Print(server)
 		if server.State == "ok" || server.State == "online" {
-			ready = true
-			break
+			return nil
 		}
 	}
-	if !ready {
-		return errors.New("no server ready in server info")
-	}
-	return nil
+	return errors.New("no server ready in server info")
 }
