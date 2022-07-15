@@ -3,7 +3,7 @@ kind: Milvus
 metadata:
   name: my-release
 spec:
-  components:
+  dependencies:
     rocksmq:
       persistence:
         enabled: true
