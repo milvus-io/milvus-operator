@@ -47,7 +47,7 @@ type MilvusReconciler struct {
 	Scheme         *runtime.Scheme
 	logger         logr.Logger
 	helmReconciler HelmReconciler
-	statusSyncer   *MilvusStatusSyncer
+	statusSyncer   MilvusStatusSyncerInterface
 }
 
 //+kubebuilder:rbac:groups=milvus.io,resources=milvuses,verbs=get;list;watch;create;update;patch;delete
@@ -139,29 +139,26 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	updated, err := r.ReconcileLegacyValues(ctx, old, milvus)
 	if updated || err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	updated, err = r.SetDefaultStatus(ctx, milvus)
 	if updated || err != nil {
-		return ctrl.Result{}, err
+		return ctrl.Result{Requeue: true}, err
 	}
 
 	if err := r.ReconcileAll(ctx, *milvus); err != nil {
 		return ctrl.Result{}, err
 	}
 
-	// status will be updated by syncer
-
-	if milvus.Status.Status == milvusv1beta1.StatusUnHealthy {
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	milvus.Status.ObservedGeneration = milvus.Generation
+	if err := r.statusSyncer.UpdateStatusForNewGeneration(ctx, milvus); err != nil {
+		return ctrl.Result{}, err
 	}
 
-	if config.IsDebug() {
-		diff, err := client.MergeFrom(old).Data(milvus)
-		if err != nil {
-			r.logger.Info("Update diff", "diff", string(diff))
-		}
+	// status will be updated by syncer
+	if milvus.Status.Status == milvusv1beta1.StatusUnHealthy {
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	return ctrl.Result{}, nil

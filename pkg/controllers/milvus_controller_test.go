@@ -68,15 +68,16 @@ var _ = Describe("Milvus controller", func() {
 
 })
 
-func TestClusterReconciler_ReconcileFinalizer(t *testing.T) {
+func TestClusterReconciler(t *testing.T) {
 	config.Init(util.GetGitRepoRootDir())
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	r := newMilvusReconcilerForTest(ctrl)
-	r.statusSyncer = &MilvusStatusSyncer{}
+	mockSyncer := NewMockMilvusStatusSyncerInterface(ctrl)
+	r.statusSyncer = mockSyncer
 	// syncer need not to run in this test
-	r.statusSyncer.Once.Do(func() {})
+	mockSyncer.EXPECT().RunIfNot().AnyTimes()
 	globalCommonInfo.once.Do(func() {})
 
 	mockClient := r.Client.(*MockK8sClient)
@@ -138,7 +139,6 @@ func TestClusterReconciler_ReconcileFinalizer(t *testing.T) {
 		_, err := r.Reconcile(ctx, reconcile.Request{})
 		assert.NoError(t, err)
 	})
-
 }
 
 func TestMilvusReconciler_ReconcileLegacyValues(t *testing.T) {

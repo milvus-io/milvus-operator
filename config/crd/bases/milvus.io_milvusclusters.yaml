@@ -5628,6 +5628,10 @@ spec:
                         type: array
                     type: object
                 type: object
+              observedGeneration:
+                format: int64
+                minimum: 0
+                type: integer
               replicas:
                 properties:
                   dataCoord:
