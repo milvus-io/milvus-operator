@@ -34,7 +34,8 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 
 	deployment.Spec.Replicas = updater.GetReplicas()
 	deployment.Spec.Strategy = updater.GetDeploymentStrategy()
-	if deployment.Spec.Selector == nil {
+	isCreating := deployment.Spec.Selector == nil
+	if isCreating {
 		deployment.Spec.Selector = new(metav1.LabelSelector)
 		deployment.Spec.Selector.MatchLabels = appLabels
 	}
@@ -119,9 +120,12 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	container.ImagePullPolicy = *mergedComSpec.ImagePullPolicy
 	container.Image = mergedComSpec.Image
 	container.Resources = *mergedComSpec.Resources
-	container.LivenessProbe = GetLivenessProbe()
-	container.ReadinessProbe = GetReadinessProbe()
-
+	// only set at first time render avoid trigling restart
+	if isCreating {
+		container.StartupProbe = GetStartupProbe()
+		container.LivenessProbe = GetLivenessProbe()
+		container.ReadinessProbe = GetReadinessProbe()
+	}
 	return nil
 }
 
