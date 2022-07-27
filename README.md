@@ -21,13 +21,13 @@ Install with helm:
 ```shell
 helm install milvus-operator \
   -n milvus-operator --create-namespace \
-  https://github.com/milvus-io/milvus-operator/releases/download/v0.5.2/milvus-operator-0.5.2.tgz
+  https://github.com/milvus-io/milvus-operator/releases/download/v0.6.0/milvus-operator-0.6.0.tgz
 ```
 
 Or install with kubectl & raw manifests:
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.5.2/deploy/manifests/deployment.yaml
+kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.6.0/deploy/manifests/deployment.yaml
 ```
 
 For more infomation Check [instructions on how to install/uninstall milvus operator](docs/installation/installation.md)
@@ -43,11 +43,11 @@ Versions of the underlying components are listed below:
 
 <!-- source csv for table
 Components, Milvus, Pulsar / Kafka, Etcd, MinIO
-Versions, v2.0.2 `[1]`, 2.8.2 / 3.1.0, 3.5.0, RELEASE.2022-03-17T06-34-49Z -->
+Versions, v2.1.0 `[1]`, 2.8.2 / 3.1.0, 3.5.0, RELEASE.2022-03-17T06-34-49Z -->
 
 |Components| Milvus| Pulsar / Kafka| Etcd| MinIO|
 |---|---|---|---|---|
-|Versions| v2.0.2 `[1]`| 2.8.2 / 3.1.0 | 3.5.0|RELEASE.2022-03-17T06-34-49Z|
+|Versions| v2.1.0 `[1]`| 2.8.2 / 3.1.0 | 3.5.0|RELEASE.2022-03-17T06-34-49Z|
 
 
 **NOTES:**
@@ -57,22 +57,22 @@ Versions, v2.0.2 `[1]`, 2.8.2 / 3.1.0, 3.5.0, RELEASE.2022-03-17T06-34-49Z -->
 ## Compatibility With Milvus Releases
 
 <!-- source csv for table
-Milvus Versions, <=v2.0.0-rc8, v2.0.0-pre-ga, v2.0.0~v2.0.2
+Milvus Versions, <=v2.0.0-rc8, v2.0.0-pre-ga, >=v2.0.0
 Compatibility, :heavy_multiplication_x:, :heavy_check_mark:, :heavy_check_mark:  -->
 
-|Milvus Versions| <=v2.0.0-rc8| v2.0.0-pre-ga| v2.0.0~v2.0.2|
+|Milvus Versions| <=v2.0.0-rc8| v2.0.0-pre-ga| >=v2.0.0|
 |---|---|---|---|
 |Compatibility| :heavy_multiplication_x:| :heavy_check_mark:| :heavy_check_mark:|
 
 ## Compatibility With Milvus-Operator Earlier Releases
 
 <!-- source csv for table
-Milvus Operator Versions, <0.4.0, 0.4.x
+Milvus Operator Versions, <0.4.0, >=0.4.0
 Compatibility, :heavy_multiplication_x:, :heavy_check_mark:  -->
 
-|Milvus Operator Versions| <0.4.0| 0.4.x| 0.5.x|
-|---|---|---|---|
-|Compatibility| :heavy_multiplication_x:| :heavy_check_mark:|:heavy_check_mark:|
+|Milvus Operator Versions| <0.4.0| >=0.4.0|
+|---|---|---|
+|Compatibility| :heavy_multiplication_x:| :heavy_check_mark:|
 
 **NOTES:**
 
