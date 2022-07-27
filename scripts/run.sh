@@ -5,4 +5,4 @@ MilvusOriginalConfigPath="/milvus/configs/milvus.yaml"
 # merge config
 /milvus/tools/merge -s ${MilvusUserConfigMountPath} -d ${MilvusOriginalConfigPath}
 # run commands
-$@
+exec $@
