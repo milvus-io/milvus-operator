@@ -266,6 +266,22 @@ func GetMilvusConfCheckSum(spec v1beta1.MilvusSpec) string {
 	return util.CheckSum(b)
 }
 
+func GetStartupProbe() *corev1.Probe {
+	return &corev1.Probe{
+		Handler: corev1.Handler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path:   "/healthz",
+				Port:   intstr.FromInt(9091),
+				Scheme: corev1.URISchemeHTTP,
+			},
+		},
+		TimeoutSeconds:   3,
+		PeriodSeconds:    10,
+		FailureThreshold: 18, // 3 mintues timeout in startup as used to be
+		SuccessThreshold: 1,
+	}
+}
+
 func GetLivenessProbe() *corev1.Probe {
 	return &corev1.Probe{
 		Handler: corev1.Handler{
@@ -275,11 +291,10 @@ func GetLivenessProbe() *corev1.Probe {
 				Scheme: corev1.URISchemeHTTP,
 			},
 		},
-		InitialDelaySeconds: 120,
-		TimeoutSeconds:      3,
-		PeriodSeconds:       30,
-		FailureThreshold:    2,
-		SuccessThreshold:    1,
+		TimeoutSeconds:   3,
+		PeriodSeconds:    30,
+		FailureThreshold: 2,
+		SuccessThreshold: 1,
 	}
 }
 
