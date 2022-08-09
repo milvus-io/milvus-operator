@@ -84,6 +84,6 @@ Compatibility, :heavy_multiplication_x:, :heavy_check_mark:  -->
 - [How it works](docs/arch/arch.md)
 - [Installation](docs/installation/installation.md)
 - [How to configure the MilvusCluster](docs/CRD/milvus-cluster.md)
-- [How to configure the standalone Milvus](docs/CRD/milvu.md)
+- [How to configure the standalone Milvus](docs/CRD/milvus.md)
 - [Install KinD for development](docs/installation/kind-installation.md)
 
