@@ -40,6 +40,7 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 		deployment.Spec.Selector.MatchLabels = appLabels
 	}
 	template := &deployment.Spec.Template
+	mergedComSpec := updater.GetMergedComponentSpec()
 	configContainerIdx := GetContainerIndex(template.Spec.InitContainers, configContainerName)
 	spec := updater.GetMilvus().Spec
 	if configContainerIdx < 0 {
@@ -64,6 +65,11 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	volumes := &template.Spec.Volumes
 	addVolume(volumes, configVolumeByName(updater.GetIntanceName()))
 	addVolume(volumes, toolVolume)
+	for _, volumeValues := range mergedComSpec.Volumes {
+		var volume corev1.Volume
+		volumeValues.MustAsObj(&volume)
+		addVolume(volumes, volume)
+	}
 	if persistence := updater.GetPersistenceConfig(); persistence != nil && persistence.Enabled {
 		if len(persistence.PersistentVolumeClaim.ExistingClaim) > 0 {
 			addVolume(volumes, persisentVolumeByName(persistence.PersistentVolumeClaim.ExistingClaim))
@@ -72,7 +78,6 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 		}
 	}
 
-	mergedComSpec := updater.GetMergedComponentSpec()
 	template.Spec.Affinity = mergedComSpec.Affinity
 	template.Spec.Tolerations = mergedComSpec.Tolerations
 	template.Spec.NodeSelector = mergedComSpec.NodeSelector
@@ -115,6 +120,9 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	addVolumeMount(&container.VolumeMounts, toolVolumeMount)
 	if persistence := updater.GetPersistenceConfig(); persistence != nil && persistence.Enabled {
 		addVolumeMount(&container.VolumeMounts, persistentVolumeMount(*persistence))
+	}
+	for _, volumeMount := range mergedComSpec.VolumeMounts {
+		addVolumeMount(&container.VolumeMounts, volumeMount)
 	}
 
 	container.ImagePullPolicy = *mergedComSpec.ImagePullPolicy
