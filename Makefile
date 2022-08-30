@@ -2,8 +2,8 @@
 # Image URL to use all building/pushing image targets
 IMG ?= milvusdb/milvus-operator:dev-latest
 SIT_IMG ?= milvus-operator:sit
-VERSION ?= 0.6.1
-MILVUS_HELM_VERSION ?= milvus-3.1.3
+VERSION ?= 0.6.2
+MILVUS_HELM_VERSION ?= milvus-3.1.7
 RELEASE_IMG ?= milvusdb/milvus-operator:v$(VERSION)
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
