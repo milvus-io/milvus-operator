@@ -372,5 +372,14 @@ func MergeComponentSpec(src, dst ComponentSpec) ComponentSpec {
 	if dst.Resources == nil {
 		dst.Resources = &corev1.ResourceRequirements{}
 	}
+
+	if src.VolumeMounts != nil {
+		dst.VolumeMounts = src.VolumeMounts
+	}
+
+	if src.Volumes != nil {
+		dst.Volumes = src.Volumes
+	}
+
 	return dst
 }

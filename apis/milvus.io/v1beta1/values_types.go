@@ -1,6 +1,10 @@
 package v1beta1
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	"reflect"
+)
 
 type Values struct {
 	// Work around for https://github.com/kubernetes-sigs/kubebuilder/issues/528
@@ -47,4 +51,23 @@ func (v *Values) DeepCopyInto(out *Values) {
 	}
 
 	out.Data = c
+}
+
+func (v Values) MustAsObj(obj interface{}) {
+	err := v.AsObject(obj)
+	if err != nil {
+		panic(err)
+	}
+	return
+}
+
+func (v Values) AsObject(obj interface{}) error {
+	marshaled, err := json.Marshal(v)
+	if err != nil {
+		return fmt.Errorf("failed to marshal values: %v", err)
+	}
+	if err := json.Unmarshal(marshaled, obj); err != nil {
+		return fmt.Errorf("failed to unmarshal values as obj[%s]: %v", reflect.TypeOf(obj), err)
+	}
+	return nil
 }

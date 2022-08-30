@@ -8,6 +8,7 @@ import (
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -19,9 +20,9 @@ func TestClusterReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
 	r := env.Reconciler
 	mockClient := env.MockClient
 	ctx := env.ctx
-	mc := env.Inst
-	mc.Spec.Mode = v1beta1.MilvusModeCluster
-	mc.Default()
+	mcDefault := env.Inst
+	mcDefault.Spec.Mode = v1beta1.MilvusModeCluster
+	mcDefault.Default()
 	// all ok
 	t.Run("all ok", func(t *testing.T) {
 		mockClient.EXPECT().List(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DeploymentList{}), gomock.Any()).Return(nil)
@@ -34,7 +35,7 @@ func TestClusterReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
 			Return(nil).
 			Times(len(MilvusComponents))
 
-		err := r.ReconcileDeployments(ctx, mc)
+		err := r.ReconcileDeployments(ctx, *mcDefault.DeepCopy())
 		assert.NoError(t, err)
 	})
 
@@ -51,6 +52,28 @@ func TestClusterReconciler_ReconcileDeployments_CreateIfNotFound(t *testing.T) {
 			assert.Equal(t, oldDeploy.Name, deploy.(*appsv1.Deployment).Name)
 			return nil
 		})
+		mockClient.EXPECT().
+			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+			Return(k8sErrors.NewNotFound(schema.GroupResource{}, "")).
+			Times(len(MilvusComponents))
+		mockClient.EXPECT().
+			Create(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
+			Return(nil).
+			Times(len(MilvusComponents))
+
+		err := r.ReconcileDeployments(ctx, *mcDefault.DeepCopy())
+		assert.NoError(t, err)
+	})
+
+	t.Run("has volume& volumemounts ok", func(t *testing.T) {
+		mc := *mcDefault.DeepCopy()
+		mc.Spec.Com.Volumes = []v1beta1.Values{
+			{},
+		}
+		mc.Spec.Com.VolumeMounts = []corev1.VolumeMount{
+			{},
+		}
+		mockClient.EXPECT().List(gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DeploymentList{}), gomock.Any()).Return(nil)
 		mockClient.EXPECT().
 			Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.Deployment{})).
 			Return(k8sErrors.NewNotFound(schema.GroupResource{}, "")).

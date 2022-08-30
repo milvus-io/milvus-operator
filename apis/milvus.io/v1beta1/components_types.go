@@ -55,6 +55,14 @@ type ComponentSpec struct {
 	// +kubebuilder:validation:Optional
 	Resources *corev1.ResourceRequirements `json:"resources,omitempty"`
 
+	// +kubebuilder:validation:Optional
+	VolumeMounts []corev1.VolumeMount `json:"volumeMounts,omitempty"`
+
+	// Volumes is same as corev1.Volume, we use a Values here to avoid the CRD become too large
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Volumes []Values `json:"volumes,omitempty"`
+
 	// ServiceAccountName usually used for situations like accessing s3 with IAM role
 	// +kubebuilder:validation:Optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
