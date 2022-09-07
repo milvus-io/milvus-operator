@@ -2,8 +2,8 @@
 # Image URL to use all building/pushing image targets
 IMG ?= milvusdb/milvus-operator:dev-latest
 SIT_IMG ?= milvus-operator:sit
-VERSION ?= 0.6.2
-MILVUS_HELM_VERSION ?= milvus-3.1.7
+VERSION ?= 0.6.3
+MILVUS_HELM_VERSION ?= milvus-3.1.9
 RELEASE_IMG ?= milvusdb/milvus-operator:v$(VERSION)
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
@@ -112,7 +112,7 @@ out/config/assets/templates:
 docker-prepare: build-release out/config/assets/templates
 	mkdir -p ./out/config/assets/charts/
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/etcd-6.3.3.tgz -O ./etcd.tgz
-	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/minio-8.0.11.tgz -O ./minio.tgz
+	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/minio-8.0.14.tgz -O ./minio.tgz
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/pulsar-2.7.8.tgz -O ./pulsar.tgz
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/kafka-15.5.1.tgz -O ./kafka.tgz
 	tar -xf ./etcd.tgz -C ./out/config/assets/charts/
