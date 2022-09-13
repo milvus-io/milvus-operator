@@ -1,5 +1,3 @@
-
-# Prometheus Monitor Service (Metrics)
 {{- if .Values.monitoringEnabled -}}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
