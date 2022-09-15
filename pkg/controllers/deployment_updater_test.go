@@ -19,6 +19,18 @@ func TestMilvus_UpdateDeployment(t *testing.T) {
 	})
 	env.Inst.Spec.Mode = v1beta1.MilvusModeStandalone
 	env.Inst.Spec.Dep.MsgStreamType = v1beta1.MsgStreamTypeRocksMQ
+	t.Run("custom command", func(t *testing.T) {
+		inst := env.Inst.DeepCopy()
+		inst.Spec.GetServiceComponent().Commands = []string{"milvus", "run", "mycomponent"}
+		updater := newMilvusDeploymentUpdater(*inst, env.Reconciler.Scheme, MilvusStandalone)
+		deployment := &appsv1.Deployment{}
+		deployment.Name = "deploy"
+		deployment.Namespace = "ns"
+		err := updateDeployment(deployment, updater)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"/milvus/tools/run.sh", "milvus", "run", "mycomponent"}, deployment.Spec.Template.Spec.Containers[0].Args)
+	})
+
 	t.Run("persistence disabled", func(t *testing.T) {
 		env.Inst.Spec.Dep.RocksMQ.Persistence.Enabled = false
 		updater := newMilvusDeploymentUpdater(env.Inst, env.Reconciler.Scheme, MilvusStandalone)

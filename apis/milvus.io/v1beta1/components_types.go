@@ -34,6 +34,10 @@ type ComponentSpec struct {
 	// +kubebuilder:validation:Optional
 	Image string `json:"image,omitempty"`
 
+	// Commands override the default commands & args of the container
+	// +kubebuilder:validation:Optional
+	Commands []string `json:"commands,omitempty"`
+
 	// +kubebuilder:validation:Optional
 	ImagePullPolicy *corev1.PullPolicy `json:"imagePullPolicy,omitempty"`
 

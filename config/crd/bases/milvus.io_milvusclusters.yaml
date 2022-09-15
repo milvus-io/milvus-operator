@@ -387,6 +387,10 @@ spec:
                             type: array
                         type: object
                     type: object
+                  commands:
+                    items:
+                      type: string
+                    type: array
                   dataCoord:
                     properties:
                       affinity:
@@ -743,6 +747,10 @@ spec:
                                 type: array
                             type: object
                         type: object
+                      commands:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           properties:
@@ -1246,6 +1254,10 @@ spec:
                                 type: array
                             type: object
                         type: object
+                      commands:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           properties:
@@ -1822,6 +1834,10 @@ spec:
                                 type: array
                             type: object
                         type: object
+                      commands:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           properties:
@@ -2325,6 +2341,10 @@ spec:
                                 type: array
                             type: object
                         type: object
+                      commands:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           properties:
@@ -2830,6 +2850,10 @@ spec:
                                 type: array
                             type: object
                         type: object
+                      commands:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           properties:
@@ -3337,6 +3361,10 @@ spec:
                                 type: array
                             type: object
                         type: object
+                      commands:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           properties:
@@ -3878,6 +3906,10 @@ spec:
                                 type: array
                             type: object
                         type: object
+                      commands:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           properties:
@@ -4381,6 +4413,10 @@ spec:
                                 type: array
                             type: object
                         type: object
+                      commands:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           properties:
@@ -4903,6 +4939,10 @@ spec:
                                 type: array
                             type: object
                         type: object
+                      commands:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           properties:
@@ -5408,6 +5448,10 @@ spec:
                                 type: array
                             type: object
                         type: object
+                      commands:
+                        items:
+                          type: string
+                        type: array
                       env:
                         items:
                           properties:
