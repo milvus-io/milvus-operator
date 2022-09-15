@@ -77,7 +77,6 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 			addVolume(volumes, persisentVolumeByName(getPVCNameByInstName(updater.GetIntanceName())))
 		}
 	}
-
 	template.Spec.Affinity = mergedComSpec.Affinity
 	template.Spec.Tolerations = mergedComSpec.Tolerations
 	template.Spec.NodeSelector = mergedComSpec.NodeSelector
@@ -192,6 +191,9 @@ func (m milvusDeploymentUpdater) GetMergedComponentSpec() ComponentSpec {
 	)
 }
 func (m milvusDeploymentUpdater) GetArgs() []string {
+	if len(m.GetMergedComponentSpec().Commands) > 0 {
+		return append([]string{RunScriptPath}, m.GetMergedComponentSpec().Commands...)
+	}
 	return append([]string{RunScriptPath, "milvus", "run"}, m.component.GetRunCommands()...)
 }
 func (m milvusDeploymentUpdater) GetSecretRef() string {

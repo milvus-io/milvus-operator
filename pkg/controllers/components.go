@@ -339,6 +339,10 @@ func MergeComponentSpec(src, dst ComponentSpec) ComponentSpec {
 		dst.Image = src.Image
 	}
 
+	if len(src.Commands) > 0 {
+		dst.Commands = src.Commands
+	}
+
 	if src.ImagePullPolicy != nil {
 		dst.ImagePullPolicy = src.ImagePullPolicy
 	}

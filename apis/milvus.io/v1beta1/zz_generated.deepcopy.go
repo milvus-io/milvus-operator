@@ -29,6 +29,11 @@ import (
 func (in *Component) DeepCopyInto(out *Component) {
 	*out = *in
 	in.ComponentSpec.DeepCopyInto(&out.ComponentSpec)
+	if in.Commands != nil {
+		in, out := &in.Commands, &out.Commands
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(int32)
