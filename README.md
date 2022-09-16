@@ -21,13 +21,13 @@ Install with helm:
 ```shell
 helm install milvus-operator \
   -n milvus-operator --create-namespace \
-  https://github.com/milvus-io/milvus-operator/releases/download/v0.6.4/milvus-operator-0.6.4.tgz
+  https://github.com/milvus-io/milvus-operator/releases/download/v0.6.5/milvus-operator-0.6.5.tgz
 ```
 
 Or install with kubectl & raw manifests:
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.6.4/deploy/manifests/deployment.yaml
+kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.6.5/deploy/manifests/deployment.yaml
 ```
 
 For more infomation Check [instructions on how to install/uninstall milvus operator](docs/installation/installation.md)
@@ -43,11 +43,11 @@ Versions of the underlying components are listed below:
 
 <!-- source csv for table
 Components, Milvus, Pulsar / Kafka, Etcd, MinIO
-Versions, v2.1.1 `[1]`, 2.8.2 / 3.1.0, 3.5.0, RELEASE.2022-03-17T06-34-49Z -->
+Versions, v2.1.2 `[1]`, 2.8.2 / 3.1.0, 3.5.0, RELEASE.2022-03-17T06-34-49Z -->
 
 |Components| Milvus| Pulsar / Kafka| Etcd| MinIO|
 |---|---|---|---|---|
-|Versions| v2.1.1 `[1]`| 2.8.2 / 3.1.0 | 3.5.0|RELEASE.2022-03-17T06-34-49Z|
+|Versions| v2.1.2 `[1]`| 2.8.2 / 3.1.0 | 3.5.0|RELEASE.2022-03-17T06-34-49Z|
 
 
 **NOTES:**

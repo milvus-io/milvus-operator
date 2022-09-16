@@ -6,10 +6,9 @@
 # 5. search, query, and hybrid search on entities
 # 6. delete entities by PK
 # 7. drop collection
-
-import random
 import time
 
+import numpy as np
 from pymilvus import (
     connections,
     utility,
@@ -19,6 +18,7 @@ from pymilvus import (
 
 fmt = "\n=== {:30} ===\n"
 search_latency_fmt = "search latency = {:.4f}s"
+num_entities, dim = 3000, 8
 
 #################################################################################
 # 1. connect to Milvus
@@ -40,7 +40,7 @@ print(f"Does collection hello_milvus exist in Milvus: {has}")
 # +-+------------+------------+------------------+------------------------------+
 # | | field name | field type | other attributes |       field description      |
 # +-+------------+------------+------------------+------------------------------+
-# |1|    "pk"    |    Int64   |  is_primary=True |      "primary field"         |
+# |1|    "pk"    |   VarChar  |  is_primary=True |      "primary field"         |
 # | |            |            |   auto_id=False  |                              |
 # +-+------------+------------+------------------+------------------------------+
 # |2|  "random"  |    Double  |                  |      "a double field"        |
@@ -48,9 +48,9 @@ print(f"Does collection hello_milvus exist in Milvus: {has}")
 # |3|"embeddings"| FloatVector|     dim=8        |  "float vector with dim 8"   |
 # +-+------------+------------+------------------+------------------------------+
 fields = [
-    FieldSchema(name="pk", dtype=DataType.INT64, is_primary=True, auto_id=False),
+    FieldSchema(name="pk", dtype=DataType.VARCHAR, is_primary=True, auto_id=False, max_length=100),
     FieldSchema(name="random", dtype=DataType.DOUBLE),
-    FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=8)
+    FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=dim)
 ]
 
 schema = CollectionSchema(fields, "hello_milvus is the simplest demo to introduce the APIs")
@@ -66,13 +66,14 @@ hello_milvus = Collection("hello_milvus", schema, consistency_level="Strong")
 # The insert() method returns:
 # - either automatically generated primary keys by Milvus if auto_id=True in the schema;
 # - or the existing primary key field from the entities if auto_id=False in the schema.
+
 print(fmt.format("Start inserting entities"))
-num_entities = 3000
+rng = np.random.default_rng(seed=19530)
 entities = [
     # provide the pk field because `auto_id` is set to False
-    [i for i in range(num_entities)],
-    [float(random.randrange(-20, -10)) for _ in range(num_entities)],  # field random
-    [[random.random() for _ in range(8)] for _ in range(num_entities)],  # field embeddings
+    [str(i) for i in range(num_entities)],
+    rng.random(num_entities).tolist(),  # field random, only supports list
+    rng.random((num_entities, dim)),    # field embeddings, supports numpy.ndarray and list
 ]
 
 insert_result = hello_milvus.insert(entities)
@@ -109,7 +110,7 @@ hello_milvus.load()
 print(fmt.format("Start searching based on vector similarity"))
 vectors_to_search = entities[-1][-2:]
 search_params = {
-    "metric_type": "l2",
+    "metric_type": "L2",
     "params": {"nprobe": 10},
 }
 
@@ -124,10 +125,10 @@ print(search_latency_fmt.format(end_time - start_time))
 
 # -----------------------------------------------------------------------------
 # query based on scalar filtering(boolean, int, etc.)
-print(fmt.format("Start querying with `random > -14`"))
+print(fmt.format("Start querying with `random > 0.5`"))
 
 start_time = time.time()
-result = hello_milvus.query(expr="random > -14", output_fields=["random", "embeddings"])
+result = hello_milvus.query(expr="random > 0.5", output_fields=["random", "embeddings"])
 end_time = time.time()
 
 print(f"query result:\n-{result[0]}")
@@ -135,10 +136,10 @@ print(search_latency_fmt.format(end_time - start_time))
 
 # -----------------------------------------------------------------------------
 # hybrid search
-print(fmt.format("Start hybrid searching with `random > -12`"))
+print(fmt.format("Start hybrid searching with `random > 0.5`"))
 
 start_time = time.time()
-result = hello_milvus.search(vectors_to_search, "embeddings", search_params, limit=3, expr="random > -12", output_fields=["random"])
+result = hello_milvus.search(vectors_to_search, "embeddings", search_params, limit=3, expr="random > 0.5", output_fields=["random"])
 end_time = time.time()
 
 for hits in result:
@@ -150,7 +151,8 @@ print(search_latency_fmt.format(end_time - start_time))
 # 6. delete entities by PK
 # You can delete entities by their PK values using boolean expressions.
 ids = insert_result.primary_keys
-expr = f"pk in [{ids[0]}, {ids[1]}]"
+
+expr = f'pk in ["{ids[0]}" , "{ids[1]}"]'
 print(fmt.format(f"Start deleting with expr `{expr}`"))
 
 result = hello_milvus.query(expr=expr, output_fields=["random", "embeddings"])

@@ -28,7 +28,7 @@ check_milvus_available(){
     kubectl -n $1 create -f test/hello-milvus-job.yaml
     kubectl -n $1 get -l myLabel=value service |wc -l 
     if [ $? -ne 0 ]; then
-        log "kubectl check label failed"
+        log "kubectl check label failed, printing logs"
         return 1
     fi
 
@@ -45,6 +45,7 @@ check_milvus_available(){
     if [ $? -eq 1 ]; then
         log "Error: $1 job failed"
         kubectl -n $1 describe -f test/hello-milvus-job.yaml
+        kubectl -n $1 logs job/hello-milvus
         return 1
     fi
 }
