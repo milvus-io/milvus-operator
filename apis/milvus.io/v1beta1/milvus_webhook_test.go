@@ -22,6 +22,12 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 		},
 	}
 
+	etcdStandaloneDefaultInClusterConfig := defaultInClusterConfig.DeepCopy()
+	etcdStandaloneDefaultInClusterConfig.Values.Data["replicaCount"] = 1
+
+	minioStandAloneDefaultInClusterConfig := defaultInClusterConfig.DeepCopy()
+	minioStandAloneDefaultInClusterConfig.Values.Data["mode"] = "standalone"
+
 	var crName = "mc"
 
 	var standaloneDefault = MilvusSpec{
@@ -29,14 +35,14 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 		Dep: MilvusDependencies{
 			Etcd: MilvusEtcd{
 				Endpoints: []string{"mc-etcd.default:2379"},
-				InCluster: defaultInClusterConfig,
+				InCluster: etcdStandaloneDefaultInClusterConfig,
 			},
 			MsgStreamType: MsgStreamTypeRocksMQ,
 			Storage: MilvusStorage{
-				Type:      "MinIO",
+				Type:      StorageTypeMinIO,
 				Endpoint:  "mc-minio.default:9000",
 				SecretRef: crName + "-minio",
-				InCluster: defaultInClusterConfig,
+				InCluster: minioStandAloneDefaultInClusterConfig,
 			},
 		},
 		Com: MilvusComponents{
@@ -79,6 +85,8 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 		Endpoint:  "mc-pulsar-proxy.default:6650",
 		InCluster: defaultInClusterConfig,
 	}
+	delete(clusterDefault.Dep.Etcd.InCluster.Values.Data, "replicaCount")
+	delete(clusterDefault.Dep.Storage.InCluster.Values.Data, "mode")
 	clusterDefault.Com = MilvusComponents{
 		ComponentSpec: ComponentSpec{
 			Image: config.DefaultMilvusImage,
@@ -110,7 +118,7 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 			Component: defaultComponent,
 		},
 	}
-	t.Run("standalone not external ok", func(t *testing.T) {
+	t.Run("cluster not external ok", func(t *testing.T) {
 		mc := Milvus{ObjectMeta: metav1.ObjectMeta{Name: crName}}
 		mc.Spec.Mode = MilvusModeCluster
 		mc.Default()
