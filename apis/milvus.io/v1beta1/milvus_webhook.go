@@ -291,6 +291,11 @@ func (r *Milvus) defaultEtcd() {
 		if r.Spec.Dep.Etcd.InCluster.Values.Data == nil {
 			r.Spec.Dep.Etcd.InCluster.Values.Data = map[string]interface{}{}
 		}
+		if r.Spec.Mode == MilvusModeStandalone {
+			if _, exists := r.Spec.Dep.Etcd.InCluster.Values.Data["replicaCount"]; !exists {
+				r.Spec.Dep.Etcd.InCluster.Values.Data["replicaCount"] = 1
+			}
+		}
 		r.defaultValuesByDependency(values.DependencyKindEtcd)
 		if r.Spec.Dep.Etcd.InCluster.DeletionPolicy == "" {
 			r.Spec.Dep.Etcd.InCluster.DeletionPolicy = DeletionPolicyRetain
@@ -392,6 +397,11 @@ func (r *Milvus) defaultStorage() {
 		}
 		if r.Spec.Dep.Storage.InCluster.Values.Data == nil {
 			r.Spec.Dep.Storage.InCluster.Values.Data = map[string]interface{}{}
+		}
+		if r.Spec.Mode == MilvusModeStandalone {
+			if _, exists := r.Spec.Dep.Storage.InCluster.Values.Data["mode"]; !exists {
+				r.Spec.Dep.Storage.InCluster.Values.Data["mode"] = "standalone"
+			}
 		}
 		r.defaultValuesByDependency(values.DependencyKindStorage)
 		if r.Spec.Dep.Storage.InCluster.DeletionPolicy == "" {
