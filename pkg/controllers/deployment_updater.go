@@ -54,11 +54,12 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	if template.Labels == nil {
 		template.Labels = map[string]string{}
 	}
+	template.Labels = MergeLabels(template.Labels, mergedComSpec.PodLabels)
 	template.Labels = MergeLabels(template.Labels, appLabels)
-
 	if template.Annotations == nil {
 		template.Annotations = map[string]string{}
 	}
+	template.Annotations = MergeAnnotations(template.Annotations, mergedComSpec.PodAnnotations)
 	template.Annotations[AnnotationCheckSum] = updater.GetConfCheckSum()
 
 	// update configmap volume

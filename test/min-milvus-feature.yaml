@@ -16,17 +16,12 @@ spec:
   components:
     disableMetric: true
     standalone:
-      commands: ["milvus", "run", "standalone"]
-      ingress:
-        labels:
-          ingressLabel: value
-        annotations:
-          ingressAnnotation: value
-        hosts: ["mc-sit.milvus.io"]
-      serviceLabels:
+      podLabels:
         myLabel: value
-      serviceAnnotations:
+      podAnnotations:
         myAnnotation: value
+      ingress:
+        hosts: ["mc-sit.milvus.io"]
   dependencies:
     etcd:
       inCluster:

@@ -45,6 +45,29 @@ func TestMilvusComponent_IsNode(t *testing.T) {
 }
 
 func TestMergeComponentSpec(t *testing.T) {
+	t.Run("merge label annotations", func(t *testing.T) {
+		src := ComponentSpec{}
+		dst := ComponentSpec{}
+		src.PodLabels = map[string]string{
+			"a": "1",
+			"b": "1",
+		}
+		src.PodAnnotations = src.PodLabels
+		dst.PodLabels = map[string]string{
+			"b": "2",
+			"c": "2",
+		}
+		dst.PodAnnotations = dst.PodLabels
+		ret := MergeComponentSpec(src, dst)
+		expect := map[string]string{
+			"a": "1",
+			"b": "2",
+			"c": "2",
+		}
+		assert.Equal(t, expect, ret.PodLabels)
+		assert.Equal(t, expect, ret.PodAnnotations)
+	})
+
 	t.Run("merge image", func(t *testing.T) {
 		src := ComponentSpec{}
 		dst := ComponentSpec{}

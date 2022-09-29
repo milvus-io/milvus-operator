@@ -224,6 +224,8 @@ func NewAppLabels(instance string) map[string]string {
 	}
 }
 
+var MergeAnnotations = MergeLabels
+
 // MergeLabels merges all labels together and returns a new label.
 func MergeLabels(allLabels ...map[string]string) map[string]string {
 	lb := make(map[string]string)
