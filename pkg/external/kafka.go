@@ -1,27 +1,25 @@
 package external
 
 import (
-	"net"
+	"context"
+	"time"
 
 	"github.com/pkg/errors"
+	"github.com/segmentio/kafka-go"
 )
 
-// CheckKafka checks if the kafka is available
-// TODO: use same client as milvus
 func CheckKafka(brokerList []string) error {
-	if len(brokerList) < 1 {
-		return errors.Errorf("no broker")
+	// make a new reader that consumes from _milvus-operator, partition 0, at offset 0
+	if len(brokerList) == 0 {
+		return errors.New("broker list is empty")
 	}
-	var err error
-	for _, broker := range brokerList {
-		var conn net.Conn
-		conn, err = net.Dial("tcp", broker)
-		if conn != nil {
-			defer conn.Close()
-		}
-		if err == nil {
-			return nil
-		}
-	}
-	return errors.Wrap(err, "no broker available, one of the err")
+	r := kafka.NewReader(kafka.ReaderConfig{
+		Brokers: brokerList,
+		Topic:   "_milvus-operator",
+	})
+	defer r.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	err := r.SetOffsetAt(ctx, time.Now())
+	return errors.Wrap(err, "check consume offset from borker failed")
 }

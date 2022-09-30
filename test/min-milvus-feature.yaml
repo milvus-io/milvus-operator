@@ -16,10 +16,6 @@ spec:
   components:
     disableMetric: true
     standalone:
-      podLabels:
-        myLabel: value
-      podAnnotations:
-        myAnnotation: value
       ingress:
         hosts: ["mc-sit.milvus.io"]
   dependencies:
@@ -29,6 +25,12 @@ spec:
         pvcDeletion: true
         values:
           replicaCount: 1
+    msgStreamType: kafka
+    kafka:
+      inCluster:
+        deletionPolicy: Delete
+        pvcDeletion: true
+        values: {}
     storage:
       inCluster:
         deletionPolicy: Delete
