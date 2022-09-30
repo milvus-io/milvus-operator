@@ -14,18 +14,12 @@ metadata:
 spec:
   mode: "cluster"
   components:
-    disableMetric: true
     proxy:
-      commands: ["milvus", "run", "proxy"]
-      serviceLabels:
+      podLabels:
         myLabel: value
-      serviceAnnotations:
+      podAnnotations:
         myAnnotation: value
       ingress:
-        labels:
-          ingressLabel: value
-        annotations:
-          ingressAnnotation: value
         hosts: ["mc-sit.milvus.io"]
   dependencies:
     etcd:

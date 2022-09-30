@@ -32,6 +32,12 @@ func (t ComponentType) String() string {
 
 type ComponentSpec struct {
 	// +kubebuilder:validation:Optional
+	PodLabels map[string]string `json:"podLabels,omitempty"`
+
+	// +kubebuilder:validation:Optional
+	PodAnnotations map[string]string `json:"podAnnotations,omitempty"`
+
+	// +kubebuilder:validation:Optional
 	Image string `json:"image,omitempty"`
 
 	// Commands override the default commands & args of the container

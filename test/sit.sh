@@ -26,7 +26,8 @@ check_milvus_available(){
     # if $1 equals milvus-sit
     kubectl -n $1 create cm hello-milvus --from-file=test/hello-milvus.py
     kubectl -n $1 create -f test/hello-milvus-job.yaml
-    kubectl -n $1 get -l myLabel=value service |wc -l 
+    # print services
+    kubectl -n $1 get service -o yaml
     if [ $? -ne 0 ]; then
         log "kubectl check label failed, printing logs"
         return 1
@@ -48,6 +49,8 @@ check_milvus_available(){
         kubectl -n $1 logs job/hello-milvus
         return 1
     fi
+    # print deploys
+    kubectl -n $1 get deploy -o yaml
 }
 
 delete_milvus_cluster(){
@@ -93,7 +96,6 @@ case_create_delete_cluster(){
         delete_milvus_cluster
         return 1
     fi
-
     delete_milvus_cluster
 }
 

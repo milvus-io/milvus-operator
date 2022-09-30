@@ -858,6 +858,14 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
                       port:
                         format: int32
                         maximum: 65535
@@ -1362,6 +1370,14 @@ spec:
                           type: object
                         type: array
                       nodeSelector:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
                         additionalProperties:
                           type: string
                         type: object
@@ -1945,6 +1961,14 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
                       port:
                         format: int32
                         maximum: 65535
@@ -2449,6 +2473,14 @@ spec:
                           type: object
                         type: array
                       nodeSelector:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
                         additionalProperties:
                           type: string
                         type: object
@@ -2961,6 +2993,14 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
                       port:
                         format: int32
                         maximum: 65535
@@ -3034,6 +3074,14 @@ spec:
                         x-kubernetes-preserve-unknown-fields: true
                     type: object
                   nodeSelector:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  podAnnotations:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  podLabels:
                     additionalProperties:
                       type: string
                     type: object
@@ -3492,6 +3540,14 @@ spec:
                             type: object
                         type: object
                       nodeSelector:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
                         additionalProperties:
                           type: string
                         type: object
@@ -4017,6 +4073,14 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
                       port:
                         format: int32
                         maximum: 65535
@@ -4521,6 +4585,14 @@ spec:
                           type: object
                         type: array
                       nodeSelector:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
                         additionalProperties:
                           type: string
                         type: object
@@ -5047,6 +5119,14 @@ spec:
                           type: object
                         type: array
                       nodeSelector:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
                         additionalProperties:
                           type: string
                         type: object
@@ -5579,6 +5659,14 @@ spec:
                             type: object
                         type: object
                       nodeSelector:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
                         additionalProperties:
                           type: string
                         type: object
@@ -6816,6 +6904,14 @@ spec:
                   pvcDeletion:
                     type: boolean
                 type: object
+              podAnnotations:
+                additionalProperties:
+                  type: string
+                type: object
+              podLabels:
+                additionalProperties:
+                  type: string
+                type: object
               replicas:
                 format: int32
                 type: integer
@@ -7799,6 +7895,14 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
                       port:
                         format: int32
                         maximum: 65535
@@ -8303,6 +8407,14 @@ spec:
                           type: object
                         type: array
                       nodeSelector:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
                         additionalProperties:
                           type: string
                         type: object
@@ -8886,6 +8998,14 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
                       port:
                         format: int32
                         maximum: 65535
@@ -9390,6 +9510,14 @@ spec:
                           type: object
                         type: array
                       nodeSelector:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
                         additionalProperties:
                           type: string
                         type: object
@@ -9902,6 +10030,14 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
                       port:
                         format: int32
                         maximum: 65535
@@ -9975,6 +10111,14 @@ spec:
                         x-kubernetes-preserve-unknown-fields: true
                     type: object
                   nodeSelector:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  podAnnotations:
+                    additionalProperties:
+                      type: string
+                    type: object
+                  podLabels:
                     additionalProperties:
                       type: string
                     type: object
@@ -10433,6 +10577,14 @@ spec:
                             type: object
                         type: object
                       nodeSelector:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
                         additionalProperties:
                           type: string
                         type: object
@@ -10958,6 +11110,14 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
+                        additionalProperties:
+                          type: string
+                        type: object
                       port:
                         format: int32
                         maximum: 65535
@@ -11462,6 +11622,14 @@ spec:
                           type: object
                         type: array
                       nodeSelector:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
                         additionalProperties:
                           type: string
                         type: object
@@ -11988,6 +12156,14 @@ spec:
                           type: object
                         type: array
                       nodeSelector:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
                         additionalProperties:
                           type: string
                         type: object
@@ -12520,6 +12696,14 @@ spec:
                             type: object
                         type: object
                       nodeSelector:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podAnnotations:
+                        additionalProperties:
+                          type: string
+                        type: object
+                      podLabels:
                         additionalProperties:
                           type: string
                         type: object
