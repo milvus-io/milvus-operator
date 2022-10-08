@@ -238,7 +238,7 @@ func TestGetEtcdCondition(t *testing.T) {
 	mockEtcdCli := NewMockEtcdClient(ctrl)
 	etcdNewClient = getMockNewEtcdClient(mockEtcdCli, nil)
 	gomock.InOrder(
-		mockEtcdCli.EXPECT().Get(gomock.Any(), gomock.Any()).Return(nil, errTest),
+		mockEtcdCli.EXPECT().Get(gomock.Any(), etcdHealthKey, gomock.Any()).Return(nil, errTest),
 		mockEtcdCli.EXPECT().Close(),
 	)
 	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
@@ -248,7 +248,7 @@ func TestGetEtcdCondition(t *testing.T) {
 	// etcd get, err permession denied, alarm failed
 	etcdNewClient = getMockNewEtcdClient(mockEtcdCli, nil)
 	gomock.InOrder(
-		mockEtcdCli.EXPECT().Get(gomock.Any(), gomock.Any()).Return(nil, rpctypes.ErrPermissionDenied),
+		mockEtcdCli.EXPECT().Get(gomock.Any(), etcdHealthKey, gomock.Any()).Return(nil, rpctypes.ErrPermissionDenied),
 		mockEtcdCli.EXPECT().AlarmList(gomock.Any()).Return(nil, errTest),
 		mockEtcdCli.EXPECT().Close(),
 	)
@@ -259,7 +259,7 @@ func TestGetEtcdCondition(t *testing.T) {
 	// etcd get, err permession denied, no alarm ok
 	etcdNewClient = getMockNewEtcdClient(mockEtcdCli, nil)
 	gomock.InOrder(
-		mockEtcdCli.EXPECT().Get(gomock.Any(), gomock.Any()).Return(nil, rpctypes.ErrPermissionDenied),
+		mockEtcdCli.EXPECT().Get(gomock.Any(), etcdHealthKey, gomock.Any()).Return(nil, rpctypes.ErrPermissionDenied),
 		mockEtcdCli.EXPECT().AlarmList(gomock.Any()).Return(&clientv3.AlarmResponse{
 			Alarms: []*pb.AlarmMember{
 				{Alarm: pb.AlarmType_NOSPACE},
