@@ -186,6 +186,8 @@ var etcdNewClient NewEtcdClientFunc = func(cfg clientv3.Config) (EtcdClient, err
 	return clientv3.New(cfg)
 }
 
+const etcdHealthKey = "health"
+
 func GetEndpointsHealth(endpoints []string) map[string]EtcdEndPointHealth {
 	hch := make(chan EtcdEndPointHealth, len(endpoints))
 	var wg sync.WaitGroup
@@ -206,7 +208,7 @@ func GetEndpointsHealth(endpoints []string) map[string]EtcdEndPointHealth {
 
 			eh := EtcdEndPointHealth{Ep: ep, Health: false}
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			_, err = cli.Get(ctx, "health")
+			_, err = cli.Get(ctx, etcdHealthKey, clientv3.WithSerializable()) // use serializable to avoid linear read overhead
 			// permission denied is OK since proposal goes through consensus to get it
 			if err == nil || err == rpctypes.ErrPermissionDenied {
 				eh.Health = true
