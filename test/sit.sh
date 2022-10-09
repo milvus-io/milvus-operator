@@ -69,18 +69,19 @@ case_create_delete_cluster(){
     log "Creating MilvusCluster..."
     kubectl apply -f $mcManifest
 
-    # Check CR status every 10 seconds (max 10 minutes) until complete.
+    # Check CR status every 30 seconds (max 10 minutes) until complete.
     ATTEMPTS=0
     CR_STATUS=""
-    until [ $ATTEMPTS -eq 60 ]; 
+    until [ $ATTEMPTS -eq 20 ]; 
     do
         CR_STATUS=$(kubectl get -n mc-sit milvus/milvus -o=jsonpath='{.status.status}')
         if [ "$CR_STATUS" = "Healthy" ]; then
             break
         fi
         log "MilvusCluster status: $CR_STATUS"
+        kubectl get -f $mcManifest -o yaml
         ATTEMPTS=$((ATTEMPTS + 1))
-        sleep 10
+        sleep 30
     done
 
     if [ "$CR_STATUS" != "Healthy" ]; then
@@ -119,18 +120,19 @@ case_create_delete_milvus(){
     log "Creating Milvus..."
     kubectl apply -f $milvusManifest
 
-    # Check CR status every 10 seconds (max 10 minutes) until complete.
+    # Check CR status every 30 seconds (max 10 minutes) until complete.
     ATTEMPTS=0
     CR_STATUS=""
-    until [ $ATTEMPTS -eq 60 ]; 
+    until [ $ATTEMPTS -eq 20 ]; 
     do
         CR_STATUS=$(kubectl get -n milvus-sit milvus/milvus -o=jsonpath='{.status.status}')
         if [ "$CR_STATUS" = "Healthy" ]; then
             break
         fi
         log "Milvus status: $CR_STATUS"
+        kubectl get -f $milvusManifest -o yaml
         ATTEMPTS=$((ATTEMPTS + 1))
-        sleep 10
+        sleep 30
     done
 
     if [ "$CR_STATUS" != "Healthy" ]; then

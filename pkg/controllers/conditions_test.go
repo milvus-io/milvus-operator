@@ -18,6 +18,7 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -370,8 +371,10 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
 			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
 				list.Items = []appsv1.Deployment{
-
 					{},
+				}
+				list.Items[0].Labels = map[string]string{
+					AppLabelComponent: StandaloneName,
 				}
 				list.Items[0].OwnerReferences = []metav1.OwnerReference{
 					{Controller: &trueVal, UID: "uid"},
@@ -394,6 +397,9 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 					{}, {}, {}, {},
 				}
 				for i := 0; i < 8; i++ {
+					list.Items[i].Labels = map[string]string{
+						AppLabelComponent: MilvusComponents[i].Name,
+					}
 					list.Items[i].OwnerReferences = []metav1.OwnerReference{
 						{Controller: &trueVal, UID: "uid"},
 					}
@@ -417,6 +423,9 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 					{},
 				}
 				for i := 0; i < 5; i++ {
+					list.Items[i].Labels = map[string]string{
+						AppLabelComponent: MixtureComponents[i].Name,
+					}
 					list.Items[i].OwnerReferences = []metav1.OwnerReference{
 						{Controller: &trueVal, UID: "uid"},
 					}
@@ -460,4 +469,16 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 func TestCheckMinIOFailed(t *testing.T) {
 	err := checkMinIO(external.CheckMinIOArgs{})
 	assert.Error(t, err)
+}
+
+func TestMakeComponentDeploymentMap(t *testing.T) {
+	mc := v1beta1.Milvus{}
+	deploy := appsv1.Deployment{}
+	deploy.Labels = map[string]string{
+		AppLabelComponent: ProxyName,
+	}
+	scheme, _ := v1beta1.SchemeBuilder.Build()
+	ctrl.SetControllerReference(&mc, &deploy, scheme)
+	ret := makeComponentDeploymentMap(mc, []appsv1.Deployment{deploy})
+	assert.NotNil(t, ret[ProxyName])
 }
