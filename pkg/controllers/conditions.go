@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sort"
 	"sync"
 	"time"
 
@@ -305,7 +304,9 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1bet
 	}
 
 	deployList := &appsv1.DeploymentList{}
-	opts := &client.ListOptions{}
+	opts := &client.ListOptions{
+		Namespace: mc.Namespace,
+	}
 	opts.LabelSelector = labels.SelectorFromSet(map[string]string{
 		AppLabelInstance: mc.GetName(),
 		AppLabelName:     "milvus",
@@ -314,7 +315,6 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1bet
 		return v1beta1.MilvusCondition{}, err
 	}
 
-	ready := 0
 	allComponents := GetComponentsBySpec(mc.Spec)
 	var notReadyComponents []string
 	var errDetail *ComponentErrorDetail
@@ -323,7 +323,6 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1bet
 	for _, component := range allComponents {
 		deployment := componentDeploy[component.Name]
 		if deployment != nil && DeploymentReady(*deployment) {
-			ready++
 			continue
 		}
 		notReadyComponents = append(notReadyComponents, component.Name)
@@ -339,16 +338,13 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1bet
 		Type: v1beta1.MilvusReady,
 	}
 
-	var readyNeeded = len(GetComponentsBySpec(mc.Spec))
-
-	if ready >= readyNeeded {
+	if len(notReadyComponents) == 0 {
 		cond.Status = corev1.ConditionTrue
 		cond.Reason = v1beta1.ReasonMilvusHealthy
 		cond.Message = MessageMilvusHealthy
 	} else {
 		cond.Status = corev1.ConditionFalse
 		cond.Reason = v1beta1.ReasonMilvusComponentNotHealthy
-		sort.Strings(notReadyComponents)
 		cond.Message = fmt.Sprintf("%s not ready, detail: %s", notReadyComponents, errDetail)
 	}
 
@@ -357,7 +353,8 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1bet
 
 func makeComponentDeploymentMap(mc v1beta1.Milvus, deploys []appsv1.Deployment) map[string]*appsv1.Deployment {
 	m := make(map[string]*appsv1.Deployment)
-	for _, deploy := range deploys {
+	for i := range deploys {
+		deploy := deploys[i]
 		if metav1.IsControlledBy(&deploy, &mc) {
 			m[deploy.Labels[AppLabelComponent]] = &deploy
 		}

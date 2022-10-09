@@ -221,21 +221,8 @@ func TestIsEqual(t *testing.T) {
 }
 
 func TestDeploymentReady(t *testing.T) {
-	// Ready
-	deployment := appsv1.Deployment{
-		Status: appsv1.DeploymentStatus{
-			Conditions: []appsv1.DeploymentCondition{
-				{
-					Type:   appsv1.DeploymentAvailable,
-					Status: corev1.ConditionTrue,
-				},
-			},
-		},
-	}
-	assert.True(t, DeploymentReady(deployment))
-
 	// Not Ready
-	deployment = appsv1.Deployment{
+	deployment := appsv1.Deployment{
 		Status: appsv1.DeploymentStatus{
 			Conditions: []appsv1.DeploymentCondition{
 				{
@@ -253,21 +240,23 @@ func TestDeploymentReady(t *testing.T) {
 			Conditions: []appsv1.DeploymentCondition{
 				{
 					Type:   appsv1.DeploymentProgressing,
-					Status: corev1.ConditionTrue,
+					Status: corev1.ConditionFalse,
 				},
 			},
 		},
 	}
 	assert.False(t, DeploymentReady(deployment))
 
-	// Has Progressing With NewReplicaSetAvailable Ignored
 	deployment = appsv1.Deployment{
 		Status: appsv1.DeploymentStatus{
 			Conditions: []appsv1.DeploymentCondition{
 				{
+					Type:   appsv1.DeploymentAvailable,
+					Status: corev1.ConditionTrue,
+				},
+				{
 					Type:   appsv1.DeploymentProgressing,
 					Status: corev1.ConditionTrue,
-					Reason: "NewReplicaSetAvailable",
 				},
 			},
 		},

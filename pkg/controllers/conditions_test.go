@@ -381,6 +381,7 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 				}
 				list.Items[0].Status.Conditions = []appsv1.DeploymentCondition{
 					{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
+					{Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue},
 				}
 			})
 		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
@@ -405,6 +406,7 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 					}
 					list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
 						{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
+						{Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue},
 					}
 				}
 			})
@@ -431,6 +433,7 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 					}
 					list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
 						{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
+						{Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue},
 					}
 				}
 			})

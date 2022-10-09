@@ -91,19 +91,21 @@ func GetComponentErrorDetail(ctx context.Context, cli client.Client, component s
 func GetDeploymentFalseCondition(deploy appsv1.Deployment) (*appsv1.DeploymentCondition, error) {
 	conditions := deploy.Status.Conditions
 	var conditionsToCheck = []appsv1.DeploymentConditionType{
-		appsv1.DeploymentReplicaFailure,
 		appsv1.DeploymentProgressing,
 		appsv1.DeploymentAvailable,
+	}
+
+	condition := GetDeploymentConditionByType(conditions, appsv1.DeploymentReplicaFailure)
+	if condition != DeploymentConditionNotSet {
+		return &condition, nil
 	}
 
 	var progressingMessage = "creating"
 
 	for _, conditionType := range conditionsToCheck {
 		condition := GetDeploymentConditionByType(conditions, conditionType)
-		// // DeploymentReplicaFailure only exists when the replicaset create pod failed
-		if conditionType == appsv1.DeploymentReplicaFailure && condition.Status != corev1.ConditionFalse {
-			continue
-		}
+		// DeploymentReplicaFailure only exists when the replicaset create pod failed
+		// condition == true means there is error
 		if condition == DeploymentConditionNotSet {
 			return &appsv1.DeploymentCondition{
 				Type:    conditionType,
