@@ -11,6 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/external"
+	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	appsv1 "k8s.io/api/apps/v1"
@@ -293,13 +294,6 @@ func GetMilvusEndpoint(ctx context.Context, logger logr.Logger, client client.Cl
 	return ""
 }
 
-// MilvusConditionInfo info for calculate the milvus condition
-// type MilvusConditionInfo struct {
-// 	Object     metav1.Object
-// 	Conditions []v1beta1.MilvusCondition
-// 	IsCluster  bool
-// }
-
 func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
 	if !IsDependencyReady(mc.Status.Conditions) {
 		return v1beta1.MilvusCondition{
@@ -310,24 +304,33 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1bet
 		}, nil
 	}
 
-	deployments := &appsv1.DeploymentList{}
+	deployList := &appsv1.DeploymentList{}
 	opts := &client.ListOptions{}
 	opts.LabelSelector = labels.SelectorFromSet(map[string]string{
 		AppLabelInstance: mc.GetName(),
 		AppLabelName:     "milvus",
 	})
-	if err := cli.List(ctx, deployments, opts); err != nil {
+	if err := cli.List(ctx, deployList, opts); err != nil {
 		return v1beta1.MilvusCondition{}, err
 	}
 
 	ready := 0
-	notReadyComponents := []string{}
-	for _, deployment := range deployments.Items {
-		if metav1.IsControlledBy(&deployment, &mc) {
-			if DeploymentReady(deployment) {
-				ready++
-			} else {
-				notReadyComponents = append(notReadyComponents, deployment.Labels[AppLabelComponent])
+	allComponents := GetComponentsBySpec(mc.Spec)
+	var notReadyComponents []string
+	var errDetail *ComponentErrorDetail
+	var err error
+	componentDeploy := makeComponentDeploymentMap(mc, deployList.Items)
+	for _, component := range allComponents {
+		deployment := componentDeploy[component.Name]
+		if deployment != nil && DeploymentReady(*deployment) {
+			ready++
+			continue
+		}
+		notReadyComponents = append(notReadyComponents, component.Name)
+		if errDetail == nil {
+			errDetail, err = GetComponentErrorDetail(ctx, cli, component.Name, deployment)
+			if err != nil {
+				return v1beta1.MilvusCondition{}, errors.Wrap(err, "failed to get component err detail")
 			}
 		}
 	}
@@ -346,8 +349,18 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1bet
 		cond.Status = corev1.ConditionFalse
 		cond.Reason = v1beta1.ReasonMilvusComponentNotHealthy
 		sort.Strings(notReadyComponents)
-		cond.Message = fmt.Sprintf("%s not ready", notReadyComponents)
+		cond.Message = fmt.Sprintf("%s not ready, detail: %s", notReadyComponents, errDetail)
 	}
 
 	return cond, nil
+}
+
+func makeComponentDeploymentMap(mc v1beta1.Milvus, deploys []appsv1.Deployment) map[string]*appsv1.Deployment {
+	m := make(map[string]*appsv1.Deployment)
+	for _, deploy := range deploys {
+		if metav1.IsControlledBy(&deploy, &mc) {
+			m[deploy.Labels[AppLabelComponent]] = &deploy
+		}
+	}
+	return m
 }

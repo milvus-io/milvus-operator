@@ -286,59 +286,49 @@ func TestDeploymentReady(t *testing.T) {
 		},
 	}
 	assert.False(t, DeploymentReady(deployment))
+
+	t.Run("generation not observed", func(t *testing.T) {
+		deployment := appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Generation: 1,
+			},
+			Status: appsv1.DeploymentStatus{},
+		}
+		assert.False(t, DeploymentReady(deployment))
+	})
 }
 
 func TestPodRunningAndReady(t *testing.T) {
-	// pending
-	pod := corev1.Pod{
-		Status: corev1.PodStatus{
-			Phase: corev1.PodPending,
-		},
-	}
-	ready, err := PodRunningAndReady(pod)
-	assert.NoError(t, err)
-	assert.False(t, ready)
-
-	// failed
-	pod = corev1.Pod{
-		Status: corev1.PodStatus{
-			Phase: corev1.PodFailed,
-		},
-	}
-	_, err = PodRunningAndReady(pod)
-	assert.Error(t, err)
-
-	// running not ready
-	pod = corev1.Pod{
-		Status: corev1.PodStatus{
-			Phase: corev1.PodRunning,
-			Conditions: []corev1.PodCondition{
-				{
-					Type:   corev1.PodReady,
-					Status: corev1.ConditionFalse,
+	t.Run("no condition", func(t *testing.T) {
+		pod := new(corev1.Pod)
+		assert.False(t, PodReady(*pod))
+	})
+	t.Run("condition not ready", func(t *testing.T) {
+		pod := corev1.Pod{
+			Status: corev1.PodStatus{
+				Conditions: []corev1.PodCondition{
+					{
+						Type:   corev1.PodReady,
+						Status: corev1.ConditionFalse,
+					},
 				},
 			},
-		},
-	}
-	ready, err = PodRunningAndReady(pod)
-	assert.NoError(t, err)
-	assert.False(t, ready)
-
-	// running ready
-	pod = corev1.Pod{
-		Status: corev1.PodStatus{
-			Phase: corev1.PodRunning,
-			Conditions: []corev1.PodCondition{
-				{
-					Type:   corev1.PodReady,
-					Status: corev1.ConditionTrue,
+		}
+		assert.False(t, PodReady(pod))
+	})
+	t.Run("condition ready", func(t *testing.T) {
+		pod := corev1.Pod{
+			Status: corev1.PodStatus{
+				Conditions: []corev1.PodCondition{
+					{
+						Type:   corev1.PodReady,
+						Status: corev1.ConditionTrue,
+					},
 				},
 			},
-		},
-	}
-	ready, err = PodRunningAndReady(pod)
-	assert.NoError(t, err)
-	assert.True(t, ready)
+		}
+		assert.True(t, PodReady(pod))
+	})
 }
 
 func TestGetConditionStatus(t *testing.T) {
@@ -368,40 +358,6 @@ func TestIsClusterDependencyReady(t *testing.T) {
 	// all ready -> ready
 	status.Conditions[2].Status = corev1.ConditionTrue
 	assert.True(t, IsDependencyReady(status.Conditions))
-}
-
-func TestUpdateClusterCondition(t *testing.T) {
-	// append if not existed
-	status := v1beta1.MilvusStatus{
-		Conditions: []v1beta1.MilvusCondition{
-			{
-				Type:   v1beta1.StorageReady,
-				Status: corev1.ConditionFalse,
-			},
-		},
-	}
-	condition := v1beta1.MilvusCondition{
-		Type:    v1beta1.MsgStreamReady,
-		Status:  corev1.ConditionFalse,
-		Reason:  "NotReady",
-		Message: "Pulsar is not ready",
-	}
-	UpdateClusterCondition(&status, condition)
-	assert.Len(t, status.Conditions, 2)
-	assert.Equal(t, status.Conditions[1].Status, condition.Status)
-	assert.Equal(t, status.Conditions[1].Type, condition.Type)
-
-	// update existed
-	condition2 := v1beta1.MilvusCondition{
-		Type:    v1beta1.MsgStreamReady,
-		Status:  corev1.ConditionTrue,
-		Reason:  "Ready",
-		Message: "Pulsar is ready",
-	}
-	UpdateClusterCondition(&status, condition2)
-	assert.Len(t, status.Conditions, 2)
-	assert.Equal(t, status.Conditions[1].Status, condition2.Status)
-	assert.Equal(t, status.Conditions[1].Type, condition2.Type)
 }
 
 func TestUpdateCondition(t *testing.T) {

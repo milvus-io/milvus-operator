@@ -246,6 +246,9 @@ func IsEqual(obj1, obj2 interface{}) bool {
 
 // DeploymentReady returns if deployment is available &
 func DeploymentReady(deployment appsv1.Deployment) bool {
+	if deployment.Status.ObservedGeneration < deployment.Generation {
+		return false
+	}
 	ready := true
 	errored := false
 	inProgress := false
@@ -270,22 +273,16 @@ func DeploymentReady(deployment appsv1.Deployment) bool {
 	return ready && !inProgress && !errored
 }
 
-// PodRunningAndReady returns whether a pod is running and each container has
+// PodReady returns whether a pod is running and each container has
 // passed it's ready state.
-func PodRunningAndReady(pod corev1.Pod) (bool, error) {
-	switch pod.Status.Phase {
-	case corev1.PodFailed, corev1.PodSucceeded:
-		return false, fmt.Errorf("pod completed")
-	case corev1.PodRunning:
-		for _, cond := range pod.Status.Conditions {
-			if cond.Type != corev1.PodReady {
-				continue
-			}
-			return cond.Status == corev1.ConditionTrue, nil
+func PodReady(pod corev1.Pod) bool {
+	for _, cond := range pod.Status.Conditions {
+		if cond.Type != corev1.PodReady {
+			continue
 		}
-		return false, fmt.Errorf("pod ready condition not found")
+		return cond.Status == corev1.ConditionTrue
 	}
-	return false, nil
+	return false
 }
 
 func GetConditionStatus(b bool) corev1.ConditionStatus {
@@ -307,31 +304,6 @@ func IsDependencyReady(conditions []v1beta1.MilvusCondition) bool {
 		}
 	}
 	return ready == 3
-}
-
-func UpdateClusterCondition(status *v1beta1.MilvusStatus, c v1beta1.MilvusCondition) {
-	for i := range status.Conditions {
-		cp := &status.Conditions[i]
-		if cp.Type == c.Type {
-			if cp.Status != c.Status ||
-				cp.Reason != c.Reason ||
-				cp.Message != c.Message {
-				// Override
-				cp.Status = c.Status
-				cp.Message = c.Message
-				cp.Reason = c.Reason
-				// Update timestamp
-				now := metav1.Now()
-				cp.LastTransitionTime = &now
-			}
-			return
-		}
-	}
-
-	// Append if not existing yet
-	now := metav1.Now()
-	c.LastTransitionTime = &now
-	status.Conditions = append(status.Conditions, c)
 }
 
 func UpdateCondition(status *v1beta1.MilvusStatus, c v1beta1.MilvusCondition) {

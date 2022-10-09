@@ -305,10 +305,6 @@ func (r *MilvusStatusSyncer) GetMilvusEndpoint(ctx context.Context, mc v1beta1.M
 	return GetMilvusEndpoint(ctx, r.logger, r.Client, info)
 }
 
-func (r *MilvusStatusSyncer) GetMilvusCondition(ctx context.Context, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
-	return GetMilvusInstanceCondition(ctx, r.Client, mc)
-}
-
 func (r *MilvusStatusSyncer) GetMsgStreamCondition(
 	ctx context.Context, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
 	var eps = []string{}
