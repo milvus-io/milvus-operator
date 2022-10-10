@@ -249,28 +249,24 @@ func DeploymentReady(deployment appsv1.Deployment) bool {
 	if deployment.Status.ObservedGeneration < deployment.Generation {
 		return false
 	}
-	ready := true
+	ready := false
 	errored := false
-	inProgress := false
+	progressed := false
 
 	for _, cond := range deployment.Status.Conditions {
 		switch cond.Type {
 		case appsv1.DeploymentProgressing:
-			if cond.Status == corev1.ConditionTrue &&
-				cond.Reason == "NewReplicaSetAvailable" {
-				continue
-			}
-			inProgress = inProgress || cond.Status != corev1.ConditionFalse
+			progressed = cond.Status == corev1.ConditionTrue
 
 		case appsv1.DeploymentReplicaFailure:
-			errored = errored || cond.Status == corev1.ConditionTrue
+			errored = cond.Status == corev1.ConditionTrue
 
 		case appsv1.DeploymentAvailable:
-			ready = ready && cond.Status == corev1.ConditionTrue
+			ready = cond.Status == corev1.ConditionTrue
 		}
 	}
 
-	return ready && !inProgress && !errored
+	return ready && progressed && !errored
 }
 
 // PodReady returns whether a pod is running and each container has

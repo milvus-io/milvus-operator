@@ -180,7 +180,7 @@ func TestGetDeploymentFalseCondition(t *testing.T) {
 		deployment := appsv1.Deployment{}
 		condition := appsv1.DeploymentCondition{
 			Type:   appsv1.DeploymentReplicaFailure,
-			Status: corev1.ConditionFalse,
+			Status: corev1.ConditionTrue,
 		}
 		deployment.Status.Conditions = append(deployment.Status.Conditions, condition)
 		ret, err := GetDeploymentFalseCondition(deployment)
