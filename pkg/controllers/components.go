@@ -361,6 +361,10 @@ func MergeComponentSpec(src, dst ComponentSpec) ComponentSpec {
 	src.Env = append(src.Env, CacheSizeEnvVar)
 	dst.Env = MergeEnvVar(dst.Env, src.Env)
 
+	if len(src.SchedulerName) > 0 {
+		dst.SchedulerName = src.SchedulerName
+	}
+
 	if len(src.NodeSelector) > 0 {
 		dst.NodeSelector = src.NodeSelector
 	}

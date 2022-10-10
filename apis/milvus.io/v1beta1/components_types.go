@@ -53,6 +53,10 @@ type ComponentSpec struct {
 	// +kubebuilder:validation:Optional
 	Env []corev1.EnvVar `json:"env,omitempty"`
 
+	// SchedulerName is the name of the scheduler to use for one component
+	// +kubebuilder:validation:Optional
+	SchedulerName string `json:"schedulerName,omitempty"`
+
 	// +kubebuilder:validation:Optional
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 

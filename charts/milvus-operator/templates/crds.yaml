@@ -863,6 +863,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -1378,6 +1380,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -1966,6 +1970,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -2481,6 +2487,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -2998,6 +3006,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -3548,6 +3558,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       serviceAnnotations:
@@ -4078,6 +4090,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -4593,6 +4607,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -5127,6 +5143,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -5171,6 +5189,8 @@ spec:
                         type: array
                         x-kubernetes-preserve-unknown-fields: true
                     type: object
+                  schedulerName:
+                    type: string
                   serviceAccountName:
                     type: string
                   standalone:
@@ -5667,6 +5687,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       serviceAnnotations:
@@ -6902,6 +6924,8 @@ spec:
                       x-kubernetes-int-or-string: true
                     type: object
                 type: object
+              schedulerName:
+                type: string
               serviceAccountName:
                 type: string
               serviceAnnotations:
@@ -7899,6 +7923,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -8414,6 +8440,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -9002,6 +9030,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -9517,6 +9547,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -10034,6 +10066,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -10584,6 +10618,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       serviceAnnotations:
@@ -11114,6 +11150,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -11629,6 +11667,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -12163,6 +12203,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       tolerations:
@@ -12207,6 +12249,8 @@ spec:
                         type: array
                         x-kubernetes-preserve-unknown-fields: true
                     type: object
+                  schedulerName:
+                    type: string
                   serviceAccountName:
                     type: string
                   standalone:
@@ -12703,6 +12747,8 @@ spec:
                               x-kubernetes-int-or-string: true
                             type: object
                         type: object
+                      schedulerName:
+                        type: string
                       serviceAccountName:
                         type: string
                       serviceAnnotations:
