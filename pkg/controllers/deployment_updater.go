@@ -78,6 +78,7 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 			addVolume(volumes, persisentVolumeByName(getPVCNameByInstName(updater.GetIntanceName())))
 		}
 	}
+	template.Spec.SchedulerName = mergedComSpec.SchedulerName
 	template.Spec.Affinity = mergedComSpec.Affinity
 	template.Spec.Tolerations = mergedComSpec.Tolerations
 	template.Spec.NodeSelector = mergedComSpec.NodeSelector

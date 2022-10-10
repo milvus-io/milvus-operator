@@ -128,6 +128,18 @@ func TestMergeComponentSpec(t *testing.T) {
 		assert.Equal(t, "b", merged[0].Name)
 	})
 
+	t.Run("merge schedulerName", func(t *testing.T) {
+		src := ComponentSpec{}
+		dst := ComponentSpec{}
+		dst.SchedulerName = "a"
+		merged := MergeComponentSpec(src, dst).SchedulerName
+		assert.Equal(t, "a", merged)
+
+		src.SchedulerName = "b"
+		merged = MergeComponentSpec(src, dst).SchedulerName
+		assert.Equal(t, "b", merged)
+	})
+
 	t.Run("merge tolerations", func(t *testing.T) {
 		src := ComponentSpec{}
 		dst := ComponentSpec{}
