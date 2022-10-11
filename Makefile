@@ -2,7 +2,7 @@
 # Image URL to use all building/pushing image targets
 IMG ?= milvusdb/milvus-operator:dev-latest
 SIT_IMG ?= milvus-operator:sit
-VERSION ?= 0.6.8
+VERSION ?= 0.6.9
 MILVUS_HELM_VERSION ?= milvus-3.2.2
 RELEASE_IMG ?= milvusdb/milvus-operator:v$(VERSION)
 
