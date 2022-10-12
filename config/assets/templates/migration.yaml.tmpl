@@ -1,0 +1,19 @@
+cmd:
+  type: {{ .Command }}
+
+config:
+  sourceVersion: {{ .SourceVersion }}
+  targetVersion: {{ .TargetVersion }}
+  backupFilePath: /milvus/data/migration.bak
+
+metastore:
+  type: etcd
+
+etcd:
+  {{- range .Endpoints }}
+  endpoints:
+    - {{ .}}
+  {{- end }}
+  rootPath: {{ .RootPath }} 
+  metaSubPath: {{ .MetaSubPath | default "meta" }}
+  kvSubPath: {{ .KvSubPath | default "kv" }}

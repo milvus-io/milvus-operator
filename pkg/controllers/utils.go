@@ -212,7 +212,7 @@ func NewComponentAppLabels(instance, component string) map[string]string {
 		AppLabelInstance:  instance,
 		AppLabelComponent: component,
 		AppLabelName:      "milvus",
-		AppLabelManagedBy: "milvus-operator",
+		AppLabelManagedBy: ManagerName,
 	}
 }
 
@@ -220,9 +220,11 @@ func NewAppLabels(instance string) map[string]string {
 	return map[string]string{
 		AppLabelInstance:  instance,
 		AppLabelName:      "milvus",
-		AppLabelManagedBy: "milvus-operator",
+		AppLabelManagedBy: ManagerName,
 	}
 }
+
+const ManagerName = "milvus-operator"
 
 var MergeAnnotations = MergeLabels
 

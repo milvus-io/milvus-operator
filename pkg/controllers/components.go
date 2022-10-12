@@ -128,11 +128,30 @@ func (c MilvusComponent) IsNode() bool {
 
 // GetReplicas returns the replicas for the component
 func (c MilvusComponent) GetReplicas(spec v1beta1.MilvusSpec) *int32 {
-	replicas, _ := reflect.ValueOf(spec.Com).
-		FieldByName(c.FieldName).Elem().
+	componentField := reflect.ValueOf(spec.Com).FieldByName(c.FieldName)
+	if componentField.IsNil() {
+		// default replica is 1
+		return int32Ptr(1)
+	}
+	replicas, _ := componentField.Elem().
 		FieldByName("Component").
 		FieldByName("Replicas").Interface().(*int32)
 	return replicas
+}
+
+// GetReplicas returns the replicas for the component
+func (c MilvusComponent) SetReplicas(spec v1beta1.MilvusSpec, replicas *int32) error {
+	componentField := reflect.ValueOf(spec.Com).FieldByName(c.FieldName)
+
+	// if is nil
+	if componentField.IsNil() {
+		return fmt.Errorf("component %s is nil", c.Name)
+	}
+
+	componentField.Elem().
+		FieldByName("Component").
+		FieldByName("Replicas").Set(reflect.ValueOf(replicas))
+	return nil
 }
 
 var mixtureRunCommands = []string{"mixture", "-rootcoord", "-querycoord", "-datacoord", "-indexcoord"}
@@ -168,6 +187,11 @@ func (c MilvusComponent) GetContainerName() string {
 // SetStatusReplica sets the replica status of the component, input status should not be nil
 func (c MilvusComponent) SetStatusReplicas(status *v1beta1.MilvusReplicas, replicas int) {
 	reflect.ValueOf(status).Elem().FieldByName(c.FieldName).SetInt(int64(replicas))
+}
+
+// SetStatusReplica sets the replica status of the component, input status should not be nil
+func (c MilvusComponent) GetMilvusReplicas(status *v1beta1.MilvusReplicas) int {
+	return int(reflect.ValueOf(status).Elem().FieldByName(c.FieldName).Int())
 }
 
 // GetPortName returns the port name of the component container

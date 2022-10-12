@@ -5,6 +5,7 @@ metadata:
   labels:
     app: milvus
 spec:
+  mode: cluster
   dependencies: 
     etcd:
       inCluster:

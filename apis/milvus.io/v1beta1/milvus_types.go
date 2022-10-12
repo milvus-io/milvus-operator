@@ -155,6 +155,15 @@ type MilvusCondition struct {
 	Message string `json:"message,omitempty"`
 }
 
+func GetMilvusConditionByType(status *MilvusStatus, conditionType MiluvsConditionType) *MilvusCondition {
+	for _, condition := range status.Conditions {
+		if condition.Type == conditionType {
+			return &condition
+		}
+	}
+	return nil
+}
+
 // MiluvsConditionType is a valid value for MiluvsConditionType.Type.
 type MiluvsConditionType string
 

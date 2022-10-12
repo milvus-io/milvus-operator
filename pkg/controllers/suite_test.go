@@ -82,7 +82,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	err = SetupControllers(ctx, k8sManager, false)
+	err = SetupControllers(ctx, k8sManager, []string{}, false)
 	Expect(err).ToNot(HaveOccurred())
 
 	go func() {

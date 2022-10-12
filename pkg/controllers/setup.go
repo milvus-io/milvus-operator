@@ -22,44 +22,71 @@ import (
 
 var configFlagInsecure = true
 
-func SetupControllers(ctx context.Context, mgr manager.Manager, enableHook bool) error {
+type reconciler interface {
+	SetupWithManager(mgr ctrl.Manager) error
+}
+
+func listHasElement(list []string, elem string) bool {
+	for _, e := range list {
+		if e == elem {
+			return true
+		}
+	}
+	return false
+}
+
+var reconcilers = map[string]reconciler{}
+
+func stopReconcilers(stopReoconcilers []string) map[string]bool {
+	stopReconcilersMap := make(map[string]bool)
+	for _, stopReconciler := range stopReoconcilers {
+		stopReconcilersMap[stopReconciler] = true
+	}
+	return stopReconcilersMap
+}
+
+func SetupControllers(ctx context.Context, mgr manager.Manager, stopReconcilers []string, enableHook bool) error {
 	logger := ctrl.Log.WithName("controller")
 
-	conf := mgr.GetConfig()
-	settings := cli.New()
-	settings.KubeAPIServer = conf.Host
-	settings.MaxHistory = 2
-	settings.KubeToken = conf.BearerToken
-	getter := settings.RESTClientGetter()
-	config := getter.(*genericclioptions.ConfigFlags)
-	config.Insecure = &configFlagInsecure
-	helmReconciler := MustNewLocalHelmReconciler(settings, logger.WithName("helm"))
+	if len(stopReconcilers) == 0 || stopReconcilers[0] != "all" {
+		conf := mgr.GetConfig()
+		settings := cli.New()
+		settings.KubeAPIServer = conf.Host
+		settings.MaxHistory = 2
+		settings.KubeToken = conf.BearerToken
+		getter := settings.RESTClientGetter()
+		config := getter.(*genericclioptions.ConfigFlags)
+		config.Insecure = &configFlagInsecure
+		helmReconciler := MustNewLocalHelmReconciler(settings, logger.WithName("helm"))
 
-	// should be run after mgr started to make sure the client is ready
-	statusSyncer := NewMilvusStatusSyncer(ctx, mgr.GetClient(), logger.WithName("status-syncer"))
+		// should be run after mgr started to make sure the client is ready
+		statusSyncer := NewMilvusStatusSyncer(ctx, mgr.GetClient(), logger.WithName("status-syncer"))
 
-	milvusController := &MilvusReconciler{
-		Client:         mgr.GetClient(),
-		Scheme:         mgr.GetScheme(),
-		logger:         logger.WithName("milvus"),
-		helmReconciler: helmReconciler,
-		statusSyncer:   statusSyncer,
-	}
+		reconcilers["milvus"] = &MilvusReconciler{
+			Client:         mgr.GetClient(),
+			Scheme:         mgr.GetScheme(),
+			logger:         logger.WithName("milvus"),
+			helmReconciler: helmReconciler,
+			statusSyncer:   statusSyncer,
+		}
 
-	if err := milvusController.SetupWithManager(mgr); err != nil {
-		logger.Error(err, "unable to setup milvus controller with manager", "controller", "Milvus")
-		return err
-	}
+		reconcilers["milvusupgrade"] = NewMilvusUpgradeReconciler(mgr.GetClient(), mgr.GetScheme())
 
-	mcController := milvuscluster.NewMilvusClusterReconciler(
-		mgr.GetClient(),
-		mgr.GetScheme(),
-		logger.WithName("milvuscluster"),
-	)
+		reconcilers["milvuscluster"] = milvuscluster.NewMilvusClusterReconciler(
+			mgr.GetClient(),
+			mgr.GetScheme(),
+			logger.WithName("milvuscluster"),
+		)
 
-	if err := mcController.SetupWithManager(mgr); err != nil {
-		logger.Error(err, "unable to setup milvuscluster controller with manager", "controller", "MilvusCluster")
-		return err
+		for name, reconciler := range reconcilers {
+			if listHasElement(stopReconcilers, name) {
+				continue
+			}
+			if err := reconciler.SetupWithManager(mgr); err != nil {
+				logger.Error(err, "unable to setup controller with manager", "controller", name)
+				return err
+			}
+		}
 	}
 
 	if enableHook {
@@ -69,6 +96,10 @@ func SetupControllers(ctx context.Context, mgr manager.Manager, enableHook bool)
 		}
 		if err := (&milvusv1alpha1.Milvus{}).SetupWebhookWithManager(mgr); err != nil {
 			logger.Error(err, "unable to create webhook", "webhook", "Milvus")
+			return err
+		}
+		if err := (&milvusv1beta1.MilvusUpgrade{}).SetupWebhookWithManager(mgr); err != nil {
+			logger.Error(err, "unable to create webhook", "webhook", "MilvusUpgrade")
 			return err
 		}
 	}

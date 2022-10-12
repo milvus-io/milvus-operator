@@ -14,6 +14,7 @@ const (
 	DefaultImagePullPolicy = corev1.PullIfNotPresent
 	MilvusConfigTpl        = "milvus.yaml.tmpl"
 	MilvusClusterConfigTpl = "milvus-cluster.yaml.tmpl"
+	MigrationConfigTpl     = "migration.yaml.tmpl"
 )
 
 const (
@@ -52,6 +53,10 @@ func GetMilvusConfigTemplate() string {
 
 func GetMilvusClusterConfigTemplate() string {
 	return defaultConfig.GetTemplate(MilvusClusterConfigTpl)
+}
+
+func GetMigrationConfigTemplate() string {
+	return defaultConfig.GetTemplate(MigrationConfigTpl)
 }
 
 type Config struct {

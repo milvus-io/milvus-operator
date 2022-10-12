@@ -20,6 +20,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
@@ -40,6 +41,7 @@ var (
 func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
+	var stopReconcilers string
 	var probeAddr string
 	var workDir string
 	showVersion := flag.Bool("version", false, "Show version")
@@ -48,6 +50,7 @@ func main() {
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&stopReconcilers, "stop-reconcilers", "", "stop reconcilers, split by comma, supports: all, milvus, milvusupgrade")
 	flag.StringVar(&workDir, "work-dir", "", "The work directory where the config assets locate")
 	flag.StringVar(&controllers.ToolImage, "tool-image", controllers.ToolImage, "default tool image for setup milvus")
 	flag.StringVar(&config.OperatorNamespace, "namespace", config.OperatorNamespace, "The namespace of self")
@@ -81,7 +84,7 @@ func main() {
 
 	controllers.InitializeMetrics()
 
-	if err := controllers.SetupControllers(ctx, mgr, true); err != nil {
+	if err := controllers.SetupControllers(ctx, mgr, strings.Split(stopReconcilers, ","), true); err != nil {
 		setupLog.Error(err, "unable to setup controller with manager")
 		os.Exit(1)
 	}

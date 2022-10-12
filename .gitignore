@@ -47,3 +47,6 @@ charts/milvus-operator/charts/*.tgz
 # output
 out/
 *.bak
+
+# helm chart
+config/assets/charts

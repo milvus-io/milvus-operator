@@ -50,7 +50,6 @@ var _ webhook.Defaulter = &Milvus{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Milvus) Default() {
-	milvuslog.Info("default", "name", r.Name)
 	r.DefaultMeta()
 	r.DefaultMode()
 	r.DefaultComponents()
@@ -65,8 +64,6 @@ var _ webhook.Validator = &Milvus{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Milvus) ValidateCreate() error {
-	milvuslog.Info("validate create", "name", r.Name)
-
 	var allErrs field.ErrorList
 
 	if errs := r.validateExternal(); len(errs) > 0 {
@@ -82,8 +79,6 @@ func (r *Milvus) ValidateCreate() error {
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Milvus) ValidateUpdate(old runtime.Object) error {
-	milvuslog.Info("validate update", "name", r.Name)
-
 	_, ok := old.(*Milvus)
 	if !ok {
 		return errors.Errorf("failed type assertion on kind: %s", old.GetObjectKind().GroupVersionKind().String())
@@ -103,9 +98,6 @@ func (r *Milvus) ValidateUpdate(old runtime.Object) error {
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
 func (r *Milvus) ValidateDelete() error {
-	milvuslog.Info("validate delete", "name", r.Name)
-
-	// TODO(user): fill in your validation logic upon object deletion.
 	return nil
 }
 
@@ -210,10 +202,18 @@ func (r *Milvus) DefaultComponents() {
 			spec.Com.Proxy = &MilvusProxy{}
 		}
 		if spec.Com.MixCoord == nil {
-			spec.Com.RootCoord = &MilvusRootCoord{}
-			spec.Com.IndexCoord = &MilvusIndexCoord{}
-			spec.Com.DataCoord = &MilvusDataCoord{}
-			spec.Com.QueryCoord = &MilvusQueryCoord{}
+			if spec.Com.RootCoord == nil {
+				spec.Com.RootCoord = &MilvusRootCoord{}
+			}
+			if spec.Com.DataCoord == nil {
+				spec.Com.DataCoord = &MilvusDataCoord{}
+			}
+			if spec.Com.IndexCoord == nil {
+				spec.Com.IndexCoord = &MilvusIndexCoord{}
+			}
+			if spec.Com.QueryCoord == nil {
+				spec.Com.QueryCoord = &MilvusQueryCoord{}
+			}
 		}
 		if spec.Com.DataNode == nil {
 			spec.Com.DataNode = &MilvusDataNode{}

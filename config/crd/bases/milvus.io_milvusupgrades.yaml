@@ -1,0 +1,156 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.6.0
+  creationTimestamp: null
+  name: milvusupgrades.milvus.io
+spec:
+  group: milvus.io
+  names:
+    kind: MilvusUpgrade
+    listKind: MilvusUpgradeList
+    plural: milvusupgrades
+    singular: milvusupgrade
+  scope: Namespaced
+  versions:
+  - name: v1beta1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            type: string
+          kind:
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              backupPVC:
+                type: string
+              maxRetry:
+                default: 3
+                type: integer
+              milvus:
+                properties:
+                  name:
+                    type: string
+                  namespace:
+                    type: string
+                required:
+                - name
+                type: object
+              operation:
+                default: upgrade
+                enum:
+                - upgrade
+                - rollback
+                type: string
+              rollbackIfFailed:
+                default: true
+                type: boolean
+              sourceVersion:
+                type: string
+              targetImage:
+                type: string
+              targetVersion:
+                type: string
+              toolImage:
+                type: string
+            required:
+            - milvus
+            - sourceVersion
+            - targetVersion
+            type: object
+          status:
+            properties:
+              backupPVC:
+                type: string
+              conditions:
+                items:
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              isRollbacking:
+                type: boolean
+              metaBackuped:
+                type: boolean
+              metaStorageChanged:
+                type: boolean
+              replicasBeforeUprade:
+                properties:
+                  dataCoord:
+                    type: integer
+                  dataNode:
+                    type: integer
+                  indexCoord:
+                    type: integer
+                  indexNode:
+                    type: integer
+                  mixCoord:
+                    type: integer
+                  proxy:
+                    type: integer
+                  queryCoord:
+                    type: integer
+                  queryNode:
+                    type: integer
+                  rootCoord:
+                    type: integer
+                  standalone:
+                    type: integer
+                type: object
+              retriedTimes:
+                type: integer
+              sourceImage:
+                type: string
+              state:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
