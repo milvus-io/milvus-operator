@@ -30,7 +30,7 @@ func (r *MilvusUpgrade) SetupWebhookWithManager(mgr ctrl.Manager) error {
 var _ webhook.Defaulter = &MilvusUpgrade{}
 
 // TODO: it's a beta
-const defaultToolImage = "shardingdb/milvus-meta-migration:20221018-7b3a4c8a1"
+const defaultToolImage = "milvusdb/meta-migration:v2.2.0"
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *MilvusUpgrade) Default() {

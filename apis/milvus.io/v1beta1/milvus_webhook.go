@@ -157,6 +157,10 @@ const (
 	LegacyVersion                          = "v0.5.0-legacy"
 	FalseStr                               = "false"
 	TrueStr                                = "true"
+	UpgradeAnnotation                      = MilvusIO + "/upgrade"
+	AnnotationUpgrading                    = "upgrading"
+	AnnotationUpgraded                     = "upgraded"
+	StoppedAtAnnotation                    = MilvusIO + "/stopped-at"
 )
 
 var (

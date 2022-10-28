@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ex
 echo "Deploying old milvus"
-kubectl apply -f config/samples/demo.yaml
+kubectl apply -f test/milvus-2.1.yaml
 kubectl --timeout 10m wait --for=condition=MilvusReady mi my-release
 echo "Deploying milvus upgrade"
 kubectl apply -f config/samples/beta/milvusupgrade.yaml
@@ -18,7 +18,7 @@ kubectl delete -f config/samples/beta/milvusupgrade.yaml --wait=true --timeout=5
 sleep 10
 
 echo "Deploying old milvus cluster"
-kubectl apply -f config/samples/cluster_demo.yaml
+kubectl apply -f test/mc-2.1.yaml
 kubectl --timeout 15m wait --for=condition=MilvusReady mi my-release
 kubectl get mi -o yaml
 echo "Deploying milvus upgrade"

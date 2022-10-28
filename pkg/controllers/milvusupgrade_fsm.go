@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
@@ -13,6 +14,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/milvus-io/milvus-operator/pkg/util"
@@ -23,6 +25,28 @@ const (
 	ConditionUpgraded               = "Upgraded"
 	ConditionRollbacked             = "Rollbacked"
 )
+
+func isStoppedByAnnotation(ctx context.Context, milvus *v1beta1.Milvus) bool {
+	_, stoppedAtAnnotationExists := milvus.GetAnnotations()[v1beta1.StoppedAtAnnotation]
+	return stoppedAtAnnotationExists
+}
+
+func markStoppedAtAnnotation(ctx context.Context, cli client.Client, milvus *v1beta1.Milvus) error {
+	milvus.SetStoppedAtAnnotation(time.Now())
+	return cli.Update(ctx, milvus)
+}
+
+func isComponentsDeregistered(ctx context.Context, milvus *v1beta1.Milvus) bool {
+	stoppedAtStr := milvus.GetAnnotations()[v1beta1.StoppedAtAnnotation]
+	logger := ctrl.LoggerFrom(ctx)
+	t, err := time.Parse(time.RFC3339, stoppedAtStr)
+	if err != nil {
+		logger.Error(err, "parse stoppedAt failed, assumes stopped long enough", "stoppedAt", stoppedAtStr)
+		return true
+	}
+	// TODO: check directly by etcd key, for now we just use default session ttl
+	return time.Since(t) > time.Minute
+}
 
 func (r *MilvusUpgradeReconciler) RunStateMachine(ctx context.Context, upgrade *v1beta1.MilvusUpgrade) error {
 	nextState := r.DetermineCurrentState(ctx, upgrade)
@@ -41,6 +65,7 @@ func (r *MilvusUpgradeReconciler) RunStateMachine(ctx context.Context, upgrade *
 		return err
 	}
 	meta.RemoveStatusCondition(&upgrade.Status.Conditions, conditionType)
+	v1beta1.InitLabelAnnotation(milvus)
 
 	defer func() {
 		r.updateCondition(upgrade, err)
@@ -130,22 +155,9 @@ func (r *MilvusUpgradeReconciler) HandleUpgradeFailed(ctx context.Context, upgra
 func (r *MilvusUpgradeReconciler) RollbackOldVersionStarting(ctx context.Context, upgrade *v1beta1.MilvusUpgrade, milvus *v1beta1.Milvus) (v1beta1.MilvusUpgradeState, error) {
 	// restore image
 	milvus.Spec.Com.Image = upgrade.Status.SourceImage
-	// restore replicas
-	if upgrade.Status.ReplicasBeforeUpgrade == nil {
-		// no replicas recorded, assume zero
-		upgrade.Status.ReplicasBeforeUpgrade = new(v1beta1.MilvusReplicas)
-	}
-	components := GetComponentsBySpec(milvus.Spec)
-	for _, component := range components {
-		replica := int32(component.GetMilvusReplicas(upgrade.Status.ReplicasBeforeUpgrade))
-		err := component.SetReplicas(milvus.Spec, &replica)
-		if err != nil {
-			return "", errors.Wrap(err, "component set replicas")
-		}
-	}
-	err := r.Update(ctx, milvus)
+	err := startMilvus(ctx, r.Client, upgrade, milvus)
 	if err != nil {
-		return "", errors.Wrap(err, "restore replicas")
+		return "", err
 	}
 	return v1beta1.UpgradeStateRollbackSucceeded, nil
 }
@@ -299,6 +311,14 @@ func (r *MilvusUpgradeReconciler) handlePod(ctx context.Context, upgrade *v1beta
 
 func (r *MilvusUpgradeReconciler) StartingMilvusNewVersion(ctx context.Context, upgrade *v1beta1.MilvusUpgrade, milvus *v1beta1.Milvus) (v1beta1.MilvusUpgradeState, error) {
 	milvus.Spec.Com.Image = upgrade.Spec.TargetImage
+	err := startMilvus(ctx, r.Client, upgrade, milvus)
+	if err != nil {
+		return "", err
+	}
+	return v1beta1.UpgradeStateSucceeded, nil
+}
+
+func startMilvus(ctx context.Context, cli client.Client, upgrade *v1beta1.MilvusUpgrade, milvus *v1beta1.Milvus) error {
 	// restore replicas
 	if upgrade.Status.ReplicasBeforeUpgrade == nil {
 		// no replicas recorded, assume zero
@@ -309,11 +329,13 @@ func (r *MilvusUpgradeReconciler) StartingMilvusNewVersion(ctx context.Context, 
 		replica := int32(component.GetMilvusReplicas(upgrade.Status.ReplicasBeforeUpgrade))
 		component.SetReplicas(milvus.Spec, &replica)
 	}
-	err := r.Update(ctx, milvus)
+	milvus.RemoveStoppedAtAnnotation()
+	err := cli.Update(ctx, milvus)
 	if err != nil {
-		return "", errors.Wrap(err, "restore replicas")
+		return errors.Wrap(err, "restore replicas")
 	}
-	return v1beta1.UpgradeStateSucceeded, nil
+	err = annotateAlphaCR(ctx, cli, upgrade, milvus, v1beta1.AnnotationUpgraded)
+	return errors.Wrap(err, "annotate alpha cr")
 }
 
 const (
@@ -399,7 +421,7 @@ func recordOldInfo(ctx context.Context, cli client.Client, upgrade *v1beta1.Milv
 	for _, component := range components {
 		replicas := component.GetReplicas(milvus.Spec)
 		if replicas == nil {
-			*replicas = 1
+			replicas = int32Ptr(1)
 		}
 		component.SetStatusReplicas(upgrade.Status.ReplicasBeforeUpgrade, int(*replicas))
 	}
@@ -408,13 +430,38 @@ func recordOldInfo(ctx context.Context, cli client.Client, upgrade *v1beta1.Milv
 	upgrade.Status.SourceImage = milvus.Spec.Com.Image
 }
 
+func annotateAlphaCR(ctx context.Context, cli client.Client, upgrade *v1beta1.MilvusUpgrade, milvus *v1beta1.Milvus, value string) error {
+	var alphaKey client.ObjectKey
+	alphaKey.Namespace = milvus.Namespace
+	for _, owner := range milvus.OwnerReferences {
+		if owner.Kind == "MilvusCluster" {
+			alphaKey.Name = owner.Name
+			alphaCR := v1alpha1.MilvusCluster{}
+			err := cli.Get(ctx, alphaKey, &alphaCR)
+			if err != nil {
+				return err
+			}
+			if alphaCR.Annotations == nil {
+				alphaCR.Annotations = make(map[string]string)
+			}
+			alphaCR.Annotations[v1beta1.UpgradeAnnotation] = value
+			err = cli.Update(ctx, &alphaCR)
+			return err
+		}
+	}
+	return nil
+}
+
 func stopMilvus(ctx context.Context, cli client.Client, upgrade *v1beta1.MilvusUpgrade, milvus *v1beta1.Milvus) error {
+	err := annotateAlphaCR(ctx, cli, upgrade, milvus, v1beta1.AnnotationUpgrading)
+	if err != nil {
+		return errors.Wrap(err, "annotate alpha cr")
+	}
 	components := GetComponentsBySpec(milvus.Spec)
 	for _, component := range components {
 		component.SetReplicas(milvus.Spec, int32Ptr(0))
 	}
-	err := cli.Update(ctx, milvus)
-	return err
+	return cli.Update(ctx, milvus)
 }
 
 func isMilvusStopping(ctx context.Context, cli client.Client, milvus *v1beta1.Milvus) bool {
@@ -429,6 +476,10 @@ func isMilvusStopping(ctx context.Context, cli client.Client, milvus *v1beta1.Mi
 }
 
 func isMilvusStopped(ctx context.Context, cli client.Client, milvus *v1beta1.Milvus) (bool, error) {
+	if isStoppedByAnnotation(ctx, milvus) {
+		return isComponentsDeregistered(ctx, milvus), nil
+	}
+
 	deployments, err := listAllDeployments(ctx, cli, client.ObjectKeyFromObject(milvus))
 	if err != nil {
 		return false, err
@@ -446,7 +497,8 @@ func isMilvusStopped(ctx context.Context, cli client.Client, milvus *v1beta1.Mil
 			return false, nil
 		}
 	}
-	return true, nil
+
+	return false, markStoppedAtAnnotation(ctx, cli, milvus)
 }
 
 func listAllDeployments(ctx context.Context, cli client.Client, milvus client.ObjectKey) ([]appsv1.Deployment, error) {
@@ -469,8 +521,13 @@ type taskConfig struct {
 	Kind    string
 }
 
-// startTaskPod start a pod to run upgrade task, we use variable for the convenience of test
-var startTaskPod = func(ctx context.Context, cli client.Client, upgrade *v1beta1.MilvusUpgrade, milvus *v1beta1.Milvus, taskConf taskConfig) error {
+func formatUpgradeObjName(upgradeName string, taskKind string) string {
+	return upgradeName + "-" + taskKind
+}
+
+const migrationConfFilename = "migration.yaml"
+
+func createConfigMap(ctx context.Context, cli client.Client, upgrade *v1beta1.MilvusUpgrade, milvus *v1beta1.Milvus, taskConf taskConfig) error {
 	// create configmap if not exists
 	type migrationConfig struct {
 		Command       string
@@ -490,12 +547,18 @@ var startTaskPod = func(ctx context.Context, cli client.Client, upgrade *v1beta1
 	// merge value from milvus's conf
 	if rootPath, exist := util.GetStringValue(milvus.Spec.Conf.Data, "etcd", "rootPath"); exist {
 		conf.RootPath = rootPath
+	} else {
+		conf.RootPath = milvus.Name
 	}
 	if metaSubPath, exist := util.GetStringValue(milvus.Spec.Conf.Data, "etcd", "metaSubPath"); exist {
 		conf.MetaSubPath = metaSubPath
+	} else {
+		conf.MetaSubPath = "meta"
 	}
 	if kvSubPath, exist := util.GetStringValue(milvus.Spec.Conf.Data, "etcd", "kvSubPath"); exist {
 		conf.KvSubPath = kvSubPath
+	} else {
+		conf.KvSubPath = "kv"
 	}
 	confYaml, err := util.GetTemplatedValues(config.GetMigrationConfigTemplate(), conf)
 	if err != nil {
@@ -503,7 +566,7 @@ var startTaskPod = func(ctx context.Context, cli client.Client, upgrade *v1beta1
 	}
 	configmap := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      upgrade.Name + "-" + taskConf.Kind,
+			Name:      formatUpgradeObjName(upgrade.Name, taskConf.Kind),
 			Namespace: upgrade.Namespace,
 			Labels: map[string]string{
 				LabelUpgrade:  upgrade.Name,
@@ -511,18 +574,22 @@ var startTaskPod = func(ctx context.Context, cli client.Client, upgrade *v1beta1
 			},
 		},
 		Data: map[string]string{
-			"migration.yaml": string(confYaml),
+			migrationConfFilename: string(confYaml),
 		},
 	}
-	err = createSubObjectOrIgnore(ctx, cli, upgrade, configmap)
+	return createSubObjectOrIgnore(ctx, cli, upgrade, configmap)
+}
+
+// startTaskPod start a pod to run upgrade task, we use variable for the convenience of test
+var startTaskPod = func(ctx context.Context, cli client.Client, upgrade *v1beta1.MilvusUpgrade, milvus *v1beta1.Milvus, taskConf taskConfig) error {
+	err := createConfigMap(ctx, cli, upgrade, milvus, taskConf)
 	if err != nil {
 		return err
 	}
-
 	// create pod
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      upgrade.Name + "-" + taskConf.Kind,
+			Name:      formatUpgradeObjName(upgrade.Name, taskConf.Kind),
 			Namespace: upgrade.Namespace,
 			Labels: map[string]string{
 				LabelUpgrade:      upgrade.Name,
@@ -570,7 +637,7 @@ var startTaskPod = func(ctx context.Context, cli client.Client, upgrade *v1beta1
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: corev1.LocalObjectReference{
-								Name: configmap.Name,
+								Name: formatUpgradeObjName(upgrade.Name, taskConf.Kind),
 							},
 						},
 					},

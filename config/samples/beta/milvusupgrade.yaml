@@ -8,9 +8,9 @@ spec:
     name: my-release
   sourceVersion: "v2.1.4"
   targetVersion: "v2.2.0"
-  targetImage: "milvusdb/milvus:master-20221016-15878781"
-  toolImage: "shardingdb/milvus-meta-migration:20221018-7b3a4c8a1"
   # below are some omit default values:
+  # targetImage: "milvusdb/milvus:v2.2.0"
+  # toolImage: "milvusdb/meta-migration:v2.2.0"
   # operation: upgrade
   # rollbackIfFailed: true
   # backupPVC: ""

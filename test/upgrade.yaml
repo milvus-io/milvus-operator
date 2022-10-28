@@ -9,9 +9,6 @@ spec:
   sourceVersion: "2.1.4"
   targetVersion: "2.2.0"
   # operation: upgrade
-  
-  targetImage: "milvusdb/milvus:master-20221016-15878781"
-  toolImage: "harbor-ap1.zilliz.cc/milvus/migration:v2.2.0-longjiquan-migration-dev-1a6bfa5-20221013"
   # rollbackIfFailed: true
   # bakupPVC: ""
   # deleteUpBackupPVC: true

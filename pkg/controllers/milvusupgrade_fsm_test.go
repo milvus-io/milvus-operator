@@ -3,8 +3,10 @@ package controllers
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/golang/mock/gomock"
+	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/config"
 	"github.com/milvus-io/milvus-operator/pkg/util"
@@ -14,9 +16,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrlRuntime "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/yaml"
 )
 
 type testSuite struct {
@@ -31,12 +35,6 @@ func newTestSuite(t *testing.T) *testSuite {
 		setup:   make(map[string]func()),
 		t:       t,
 	}
-	t.Cleanup(func() {
-		// cleanup last
-		for _, fn := range ret.cleanup {
-			fn()
-		}
-	})
 	return ret
 }
 
@@ -52,7 +50,11 @@ func (s *testSuite) Run(name string, f func(t *testing.T)) bool {
 	for _, fn := range s.setup {
 		fn()
 	}
-	return s.t.Run(name, f)
+	ret := s.t.Run(name, f)
+	for _, fn := range s.cleanup {
+		fn()
+	}
+	return ret
 }
 
 func init() {
@@ -73,6 +75,7 @@ func newUpgradeReconcilerFortest(ctrl *gomock.Controller) (*MilvusUpgradeReconci
 	mockClient := NewMockK8sClient(ctrl)
 	scheme := runtime.NewScheme()
 	v1beta1.AddToScheme(scheme)
+	v1alpha1.AddToScheme(scheme)
 	r := &MilvusUpgradeReconciler{
 		Client: mockClient,
 		Scheme: scheme,
@@ -204,6 +207,7 @@ func TestRollbackOldVersionStarting(t *testing.T) {
 	milvus := &v1beta1.Milvus{}
 
 	t.Run("set replica failed", func(t *testing.T) {
+		mockClient.EXPECT().Update(gomock.Any(), milvus).Return(errMock)
 		_, err := r.RollbackOldVersionStarting(ctx, upgrade, milvus)
 		assert.Error(t, err)
 	})
@@ -239,7 +243,7 @@ func TestRollbackNewVersionStopping(tt *testing.T) {
 	milvus.Default()
 
 	t := newTestSuite(tt)
-	t.AddCleanup("", ctrl.Finish)
+	t.AddCleanup("mock", ctrl.Finish)
 
 	t.Run("stop milvus failed", func(t *testing.T) {
 		mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Return(errMock)
@@ -254,13 +258,6 @@ func TestRollbackNewVersionStopping(tt *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("stopped ok", func(t *testing.T) {
-		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-		ret, err := r.RollbackNewVersionStopping(ctx, upgrade, milvus)
-		assert.Equal(t, v1beta1.UpgradeStateRollbackRestoringOldMeta, ret)
-		assert.NoError(t, err)
-	})
-
 	t.Run("not stopped ok", func(t *testing.T) {
 		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx, list interface{}, opt1 ...interface{}) {
 			deployList := list.(*appsv1.DeploymentList)
@@ -271,6 +268,13 @@ func TestRollbackNewVersionStopping(tt *testing.T) {
 		}).Return(nil)
 		ret, err := r.RollbackNewVersionStopping(ctx, upgrade, milvus)
 		assert.Equal(t, v1beta1.UpgradeStatePending, ret)
+		assert.NoError(t, err)
+	})
+
+	t.Run("stopped ok", func(t *testing.T) {
+		milvus.SetStoppedAtAnnotation(time.Now().Add(-time.Minute))
+		ret, err := r.RollbackNewVersionStopping(ctx, upgrade, milvus)
+		assert.Equal(t, v1beta1.UpgradeStateRollbackRestoringOldMeta, ret)
 		assert.NoError(t, err)
 	})
 }
@@ -301,13 +305,6 @@ func TestOldVersionStopping(tt *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("stopped ok", func(t *testing.T) {
-		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-		ret, err := r.OldVersionStopping(ctx, upgrade, milvus)
-		assert.Equal(t, v1beta1.UpgradeStateBackupMeta, ret)
-		assert.NoError(t, err)
-	})
-
 	t.Run("not stopped ok", func(t *testing.T) {
 		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(ctx, list interface{}, opt1 ...interface{}) {
 			deployList := list.(*appsv1.DeploymentList)
@@ -320,6 +317,22 @@ func TestOldVersionStopping(tt *testing.T) {
 		assert.Equal(t, v1beta1.UpgradeStatePending, ret)
 		assert.NoError(t, err)
 	})
+
+	t.Run("replcas 0, markStoppedAtAnnotation", func(t *testing.T) {
+		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
+		ret, err := r.OldVersionStopping(ctx, upgrade, milvus)
+		assert.Equal(t, v1beta1.UpgradeStatePending, ret)
+		assert.NoError(t, err)
+	})
+
+	t.Run("stopped ok", func(t *testing.T) {
+		milvus.SetStoppedAtAnnotation(time.Time{})
+		ret, err := r.OldVersionStopping(ctx, upgrade, milvus)
+		assert.Equal(t, v1beta1.UpgradeStateBackupMeta, ret)
+		assert.NoError(t, err)
+	})
+
 }
 
 func TestRollbackRestoringOldMeta(tt *testing.T) {
@@ -543,6 +556,62 @@ func TestStartingMilvusNewVersion(t *testing.T) {
 	assert.Equal(t, v1beta1.UpgradeStateSucceeded, ret)
 }
 
+func Test_createConfigmap(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	r, mockClient := newUpgradeReconcilerFortest(ctrl)
+
+	upgrade := &v1beta1.MilvusUpgrade{}
+	upgrade.Namespace = "ns"
+	milvus := &v1beta1.Milvus{}
+	milvus.Name = "inst"
+
+	workDir := util.GetGitRepoRootDir()
+	err := config.Init(workDir)
+	assert.NoError(t, err)
+
+	t.Run("default config", func(t *testing.T) {
+		mockClient.EXPECT().Scheme().Return(r.Scheme).Times(1)
+		ctrlRuntime.CreateOrUpdate = func(ctx context.Context, c client.Client, obj client.Object, f controllerutil.MutateFn) (ret controllerutil.OperationResult, err error) {
+			configmap := obj.(*corev1.ConfigMap)
+			confMap := make(map[string]interface{})
+			err = yaml.Unmarshal([]byte(configmap.Data[migrationConfFilename]), &confMap)
+			assert.NoError(t, err)
+			val, _ := util.GetStringValue(confMap, "etcd", "rootPath")
+			assert.Equal(t, milvus.Name, val)
+			val, _ = util.GetStringValue(confMap, "etcd", "metaSubPath")
+			assert.Equal(t, "meta", val)
+			val, _ = util.GetStringValue(confMap, "etcd", "kvSubPath")
+			assert.Equal(t, "kv", val)
+			return
+		}
+		err = createConfigMap(ctx, mockClient, upgrade, milvus, taskConfig{})
+		assert.NoError(t, err)
+	})
+
+	t.Run("custom config", func(t *testing.T) {
+		milvus.Spec.Conf.Data = map[string]interface{}{
+			"etcd": map[string]interface{}{
+				"rootPath":    "my-root",
+				"metaSubPath": "my-meta",
+				"kvSubPath":   "my-kv",
+			},
+		}
+		mockClient.EXPECT().Scheme().Return(r.Scheme).Times(1)
+		ctrlRuntime.CreateOrUpdate = func(ctx context.Context, c client.Client, obj client.Object, f controllerutil.MutateFn) (ret controllerutil.OperationResult, err error) {
+			configmap := obj.(*corev1.ConfigMap)
+			confMap := make(map[string]interface{})
+			err = yaml.Unmarshal([]byte(configmap.Data[migrationConfFilename]), &confMap)
+			assert.NoError(t, err)
+			assert.Equal(t, milvus.Spec.Conf.Data["etcd"], confMap["etcd"])
+			return
+		}
+		err = createConfigMap(ctx, mockClient, upgrade, milvus, taskConfig{})
+		assert.NoError(t, err)
+	})
+
+}
+
 func Test_startTaskPod(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -591,4 +660,37 @@ func Test_recordOldInfo_stopMiluvs(t *testing.T) {
 	}
 
 	assert.Equal(t, int32(0), *milvus.Spec.Com.RootCoord.Replicas)
+}
+
+func Test_annotateAlphaCR(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	r, mockClient := newUpgradeReconcilerFortest(ctrl)
+	upgrade := &v1beta1.MilvusUpgrade{}
+	upgrade.Namespace = "ns"
+	milvus := &v1beta1.Milvus{}
+	milvus.Namespace = "ns"
+	milvus.Name = "inst"
+	milvus.Spec.Mode = "cluster"
+	milvus.Default()
+
+	mc := &v1alpha1.MilvusCluster{}
+	mc.Namespace = "ns"
+	mc.Name = "inst"
+	err := controllerutil.SetControllerReference(mc, milvus, r.Scheme)
+	assert.NoError(t, err)
+	mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, name types.NamespacedName, obj client.Object) error {
+			mcObj := obj.(*v1alpha1.MilvusCluster)
+			*mcObj = *mc
+			return nil
+		})
+	mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error {
+			mcObj := obj.(*v1alpha1.MilvusCluster)
+			assert.Equal(t, mcObj.Annotations[v1beta1.UpgradeAnnotation], "value")
+			return nil
+		})
+	err = annotateAlphaCR(ctx, mockClient, upgrade, milvus, "value")
+	assert.NoError(t, err)
 }

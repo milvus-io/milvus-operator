@@ -17,9 +17,12 @@ limitations under the License.
 package v1beta1
 
 import (
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -155,6 +158,16 @@ type MilvusCondition struct {
 	Message string `json:"message,omitempty"`
 }
 
+// InitLabelAnnotation init nil label and annotation for object
+func InitLabelAnnotation(obj client.Object) {
+	if obj.GetAnnotations() == nil {
+		obj.SetAnnotations(make(map[string]string))
+	}
+	if obj.GetLabels() == nil {
+		obj.SetLabels(make(map[string]string))
+	}
+}
+
 func GetMilvusConditionByType(status *MilvusStatus, conditionType MiluvsConditionType) *MilvusCondition {
 	for _, condition := range status.Conditions {
 		if condition.Type == conditionType {
@@ -162,6 +175,14 @@ func GetMilvusConditionByType(status *MilvusStatus, conditionType MiluvsConditio
 		}
 	}
 	return nil
+}
+
+func (m *Milvus) SetStoppedAtAnnotation(t time.Time) {
+	m.GetAnnotations()[StoppedAtAnnotation] = t.Format(time.RFC3339)
+}
+
+func (m *Milvus) RemoveStoppedAtAnnotation() {
+	delete(m.GetAnnotations(), StoppedAtAnnotation)
 }
 
 // MiluvsConditionType is a valid value for MiluvsConditionType.Type.
@@ -212,10 +233,10 @@ const (
 
 // +genclient
 // +genclient:noStatus
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:resource:path=milvuses,singular=milvus,shortName=mi
-//+kubebuilder:storageversion
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:path=milvuses,singular=milvus,shortName=mi
+// +kubebuilder:storageversion
 // Milvus is the Schema for the milvus API
 type Milvus struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -228,7 +249,7 @@ type Milvus struct {
 // Hub marks this type as a conversion hub.
 func (*Milvus) Hub() {}
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 // MilvusList contains a list of Milvus
 type MilvusList struct {
 	metav1.TypeMeta `json:",inline"`
