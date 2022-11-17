@@ -97,12 +97,13 @@ func GetKafkaCondition(ctx context.Context, logger logr.Logger, p v1beta1.Milvus
 
 // StorageConditionInfo is info for acquiring storage condition
 type StorageConditionInfo struct {
-	Namespace   string
-	Bucket      string
-	Storage     v1beta1.MilvusStorage
-	UseSSL      bool
-	UseIAM      bool
-	IAMEndpoint string
+	Namespace     string
+	Bucket        string
+	Storage       v1beta1.MilvusStorage
+	UseSSL        bool
+	UseIAM        bool
+	IAMEndpoint   string
+	CloudProvider string
 }
 
 type checkMinIOFunc = func(args external.CheckMinIOArgs) error
@@ -133,14 +134,15 @@ func GetMinioCondition(ctx context.Context, logger logr.Logger, cli client.Clien
 		}
 	}
 	err := checkMinIO(external.CheckMinIOArgs{
-		Type:        info.Storage.Type,
-		AK:          string(accesskey),
-		SK:          string(secretkey),
-		Endpoint:    info.Storage.Endpoint,
-		Bucket:      info.Bucket,
-		UseSSL:      info.UseSSL,
-		UseIAM:      info.UseIAM,
-		IAMEndpoint: info.IAMEndpoint,
+		Type:          info.Storage.Type,
+		AK:            string(accesskey),
+		SK:            string(secretkey),
+		Endpoint:      info.Storage.Endpoint,
+		Bucket:        info.Bucket,
+		UseSSL:        info.UseSSL,
+		UseIAM:        info.UseIAM,
+		IAMEndpoint:   info.IAMEndpoint,
+		CloudProvider: info.CloudProvider,
 	})
 	if err != nil {
 		return newErrStorageCondResult(v1beta1.ReasonClientErr, err.Error())
