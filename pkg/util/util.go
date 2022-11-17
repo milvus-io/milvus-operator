@@ -18,6 +18,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
+const MqTypeConfigKey = "messageQueue"
+
 func GetBoolValue(values map[string]interface{}, fields ...string) (bool, bool) {
 	val, found, err := unstructured.NestedBool(values, fields...)
 	if err != nil || !found {
@@ -40,7 +42,7 @@ func DeleteValue(values map[string]interface{}, fields ...string) {
 	unstructured.RemoveNestedField(values, fields...)
 }
 
-//only contains types bool, int64, float64, string, []interface{}, map[string]interface{}, json.Number and nil
+// only contains types bool, int64, float64, string, []interface{}, map[string]interface{}, json.Number and nil
 func SetValue(values map[string]interface{}, v interface{}, fields ...string) {
 	unstructured.SetNestedField(values, v, fields...)
 }

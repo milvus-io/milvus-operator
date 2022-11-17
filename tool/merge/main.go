@@ -10,6 +10,12 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+var mqConfigsToDelete = map[string]bool{
+	"kafka":   true,
+	"rocksmq": true,
+	"pulsar":  true,
+}
+
 func main() {
 	srcPath := flag.String("s", "", "source yaml path, will overwrite the dst config")
 	dstPath := flag.String("d", "", "destination yaml path, will be overwritten by the src config")
@@ -31,17 +37,25 @@ func main() {
 		log.Fatal("read destination yaml failed: ", err)
 	}
 	util.MergeValues(dst, src)
-	// adhoc to delete pulsar fields if not exist in src
-	if src["pulsar"] == nil {
-		delete(dst, "pulsar")
+
+	// backward compatibility
+	// delete mqConfigs not provided by dst
+	if dst[util.MqTypeConfigKey] == nil {
+		for mqType := range mqConfigsToDelete {
+			if dst[mqType] != nil {
+				mqConfigsToDelete[mqType] = false
+			}
+		}
+	} else {
+		// delete other mqType
+		mqType := dst[util.MqTypeConfigKey].(string)
+		mqConfigsToDelete[mqType] = false
 	}
-	// adhoc to delete rocksmq fields if not exist in src
-	if src["rocksmq"] == nil {
-		delete(dst, "rocksmq")
-	}
-	// adhoc to delete kafka fields if not exist in src
-	if src["kafka"] == nil {
-		delete(dst, "kafka")
+
+	for mqType, toDelete := range mqConfigsToDelete {
+		if toDelete {
+			delete(dst, mqType)
+		}
 	}
 
 	bs, err := yaml.Marshal(dst)

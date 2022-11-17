@@ -1,10 +1,13 @@
 
 # Image URL to use all building/pushing image targets
 IMG ?= milvusdb/milvus-operator:dev-latest
+TOOL_IMG ?= milvus-config-tool:dev-latest
 SIT_IMG ?= milvus-operator:sit
 VERSION ?= 0.7.0
+TOOL_VERSION ?= 0.1.0
 MILVUS_HELM_VERSION ?= milvus-3.2.17
 RELEASE_IMG ?= milvusdb/milvus-operator:v$(VERSION)
+TOOL_RELEASE_IMG ?= milvusdb/milvus-config-tool:v$(TOOL_VERSION)
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:preserveUnknownFields=false,maxDescLen=0"
@@ -89,12 +92,15 @@ build: generate fmt vet ## Build manager binary.
 build-only:
 	go build -o bin/manager -ldflags="$(BUILD_LDFLAGS)" main.go
 
-build-release:
+build-config-tool:
+	mkdir -p out
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o out/merge ./tool/merge
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o out/cp ./tool/cp
+
+build-release: build-config-tool
 	mkdir -p out
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="$(BUILD_LDFLAGS)" -o out/manager main.go
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o out/checker ./tool/checker
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o out/merge ./tool/merge
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o out/cp ./tool/cp
 
 run: manifests generate fmt vet ## Run a controller from your host.
 	go run ./main.go
@@ -121,6 +127,19 @@ docker-prepare: build-release out/config/assets/templates
 	tar -xf ./kafka.tgz -C ./out/config/assets/charts/
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/values.yaml -O ./out/config/assets/charts/values.yaml
 	cp ./scripts/run.sh ./out/run.sh
+	cp ./scripts/run-helm.sh ./out/run-helm.sh
+
+docker-tool-prepare: build-config-tool
+	mkdir -p out/tool
+	cp ./scripts/run-helm.sh ./out/tool/run-helm.sh
+	cp ./out/merge ./out/tool/merge
+	cp ./out/cp ./out/tool/cp
+
+docker-tool-build:
+	docker build -t ${TOOL_RELEASE_IMG} -f tool.Dockerfile . 
+
+docker-tool-push:
+	docker push ${TOOL_RELEASE_IMG} 
 
 docker-local-build:
 	docker build -t ${IMG} -f local.Dockerfile . 

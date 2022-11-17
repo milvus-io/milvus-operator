@@ -74,6 +74,8 @@ func (r *MilvusReconciler) updateConfigMap(ctx context.Context, mc v1beta1.Milvu
 		delete(conf, "kafka")
 	}
 
+	conf[util.MqTypeConfigKey] = mc.Spec.Dep.MsgStreamType
+
 	milvusYaml, err := yaml.Marshal(conf)
 	if err != nil {
 		r.logger.Error(err, "yaml Marshal conf error")
@@ -94,7 +96,6 @@ func (r *MilvusReconciler) updateConfigMap(ctx context.Context, mc v1beta1.Milvu
 	return nil
 }
 
-//
 func (r *MilvusReconciler) ReconcileConfigMaps(ctx context.Context, mc v1beta1.Milvus) error {
 	namespacedName := NamespacedName(mc.Namespace, mc.Name)
 	old := &corev1.ConfigMap{}
