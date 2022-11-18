@@ -27,3 +27,23 @@ webhooks:
     resources:
     - milvuses
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: '{{ include "chart.fullname" . }}-webhook-service'
+      namespace: {{ .Release.Namespace | quote }}
+      path: /mutate-milvus-io-v1beta1-milvusupgrade
+  failurePolicy: Fail
+  name: mmilvusupgrade.kb.io
+  rules:
+  - apiGroups:
+    - milvus.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - milvusupgrades
+  sideEffects: None

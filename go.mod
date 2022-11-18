@@ -31,6 +31,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	go.etcd.io/etcd/api/v3 v3.5.0
 	go.etcd.io/etcd/client/v3 v3.5.0
+	golang.org/x/mod v0.5.1
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	helm.sh/helm/v3 v3.6.3
 	k8s.io/api v0.21.3

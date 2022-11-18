@@ -101,6 +101,23 @@ func (r *MilvusClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}
 
+	if milvus.Annotations[v1beta1.UpgradeAnnotation] == v1beta1.AnnotationUpgrading {
+		return ctrl.Result{}, nil
+	}
+
+	if milvus.Annotations[v1beta1.UpgradeAnnotation] == v1beta1.AnnotationUpgraded {
+		logger := logr.FromContext(ctx)
+		logger.Info("sync upgraded from beta to alpha")
+		milvus.Labels = betaMilvus.Labels
+		milvus.Annotations = betaMilvus.Annotations
+		milvus.Spec.Com = betaMilvus.Spec.Com
+		err := r.Update(ctx, milvus)
+		if err != nil {
+			return ctrl.Result{}, fmt.Errorf("error update beta to alpha: %w", err)
+		}
+		return ctrl.Result{}, nil
+	}
+
 	milvus.ConvertToMilvus(betaMilvus)
 	if err := ctrl.SetControllerReference(milvus, betaMilvus, r.Scheme); err != nil {
 		return ctrl.Result{}, pkgErrs.Wrap(err, "set controller reference")

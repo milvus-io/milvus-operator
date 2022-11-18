@@ -535,6 +535,32 @@ rules:
   - patch
   - update
 - apiGroups:
+  - milvus.io
+  resources:
+  - milvusupgrades
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - milvus.io
+  resources:
+  - milvusupgrades/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - milvus.io
+  resources:
+  - milvusupgrades/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - monitoring.coreos.com
   resources:
   - podmonitors

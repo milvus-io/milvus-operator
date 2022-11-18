@@ -125,6 +125,16 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 		assert.Equal(t, clusterDefault, mc.Spec)
 	})
 
+	t.Run("cluster already set default ok", func(t *testing.T) {
+		mc := Milvus{ObjectMeta: metav1.ObjectMeta{Name: crName}}
+		mc.Spec.Mode = MilvusModeCluster
+		newReplica := int32(2)
+		mc.Spec.Com.RootCoord = &MilvusRootCoord{}
+		mc.Spec.Com.RootCoord.Replicas = &newReplica
+		mc.Default()
+		assert.Equal(t, newReplica, *mc.Spec.Com.RootCoord.Replicas)
+	})
+
 }
 
 func TestMilvus_Default_ExternalDepOK(t *testing.T) {

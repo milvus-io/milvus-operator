@@ -1,0 +1,17 @@
+apiVersion: milvus.io/v1beta1
+kind: MilvusUpgrade
+metadata:
+  name: my-release-upgrade
+spec:
+  milvus:
+    namespace: default
+    name: my-release
+  sourceVersion: "v2.1.4"
+  targetVersion: "v2.2.0"
+  # below are some omit default values:
+  # targetImage: "milvusdb/milvus:v2.2.0"
+  # toolImage: "milvusdb/meta-migration:v2.2.0"
+  # operation: upgrade
+  # rollbackIfFailed: true
+  # backupPVC: ""
+  # maxRetry: 3

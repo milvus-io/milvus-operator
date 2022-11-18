@@ -22,6 +22,8 @@ pull_request_rules:
         - check-success!=System Integration Test (ubuntu18.04)
         - check-success!=System Integration Test for Mixture (ubuntu18.04)
         - check-success!=System Integration Test for Upgrade (ubuntu18.04)
+        - check-success!=System Integration Test for New Feature (ubuntu18.04)
+        - check-success!=System Integration Test for Milvus Upgrade (ubuntu18.04)
         - check-success!=Test Deploy by Manifest (ubuntu18.04)
         - check-success!=codecov/patch
         - check-success!=codecov/project
@@ -37,6 +39,8 @@ pull_request_rules:
       - check-success=System Integration Test (ubuntu18.04)
       - check-success=System Integration Test for Mixture (ubuntu18.04)
       - check-success=System Integration Test for Upgrade (ubuntu18.04)
+      - check-success=System Integration Test for New Feature (ubuntu18.04)
+      - check-success=System Integration Test for Milvus Upgrade (ubuntu18.04)
       - check-success=Test Deploy by Manifest (ubuntu18.04)
       - check-success=codecov/patch
       - check-success=codecov/project

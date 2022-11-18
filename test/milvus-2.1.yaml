@@ -5,13 +5,21 @@ metadata:
   labels:
     app: milvus
 spec:
-  mode: cluster
-  dependencies: 
+  components:
+    image: "milvusdb/milvus:v2.1.4"
+  dependencies:
     etcd:
       inCluster:
+        values:
+          replicaCount: 1
         deletionPolicy: Delete
         pvcDeletion: true
     storage:
       inCluster:
+        values:
+          mode: standalone
+          resources:
+            requests:
+              memory: 100Mi
         deletionPolicy: Delete
         pvcDeletion: true

@@ -407,3 +407,16 @@ func TestGetInstanceName_GetInstance(t *testing.T) {
 	assert.Equal(t, "a-milvus-standalone", MilvusStandalone.GetDeploymentName("a"))
 	assert.Equal(t, "a-milvus-proxy", Proxy.GetDeploymentName("a"))
 }
+
+func TestMilvusComponent_SetReplicas(t *testing.T) {
+	com := Proxy
+	spec := newSpecCluster()
+	replicas := int32(1)
+	err := com.SetReplicas(spec, &replicas)
+	assert.Equal(t, replicas, *spec.Com.Proxy.Replicas)
+	assert.NoError(t, err)
+
+	com = MilvusStandalone
+	err = com.SetReplicas(spec, &replicas)
+	assert.Error(t, err)
+}
