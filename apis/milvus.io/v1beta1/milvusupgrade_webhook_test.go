@@ -12,6 +12,10 @@ func TestMilvusUpgrade_Default(t *testing.T) {
 	r.Default()
 	assert.Equal(t, "milvusdb/milvus:v2.2.0", r.Spec.TargetImage)
 	assert.Equal(t, defaultToolImage, r.Spec.ToolImage)
+
+	r.Spec.TargetVersion = "v2.2.0"
+	r.Default()
+	assert.Equal(t, "milvusdb/milvus:v2.2.0", r.Spec.TargetImage)
 }
 
 func TestMilvusUpgrade_Validate(t *testing.T) {

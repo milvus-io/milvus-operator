@@ -35,7 +35,7 @@ const defaultToolImage = "milvusdb/meta-migration:v2.2.0"
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *MilvusUpgrade) Default() {
 	if r.Spec.TargetImage == "" {
-		r.Spec.TargetImage = fmt.Sprintf("%s:v%s", config.DefaultMilvusBaseImage, r.Spec.TargetVersion)
+		r.Spec.TargetImage = fmt.Sprintf("%s:v%s", config.DefaultMilvusBaseImage, RemovePrefixV(r.Spec.TargetVersion))
 	}
 	if r.Spec.ToolImage == "" {
 		r.Spec.ToolImage = defaultToolImage
