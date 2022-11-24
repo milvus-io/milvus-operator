@@ -16,18 +16,18 @@ The Milvus Operator provides an easy and solid solution to deploy and manage a f
 # Getting started
 ## Deploy milvus operator
 
-Install with helm:
+Install or upgrade to latest version with helm:
 
 ```shell
-helm install milvus-operator \
-  -n milvus-operator --create-namespace \
-  https://github.com/milvus-io/milvus-operator/releases/download/v0.7.0/milvus-operator-0.7.0.tgz
+helm repo add milvus-operator https://milvus-io.github.io/milvus-operator/
+helm repo update milvus-operator
+helm -n milvus-operator upgrade --install milvus-operator milvus-operator/milvus-operator
 ```
 
-Or install with kubectl & raw manifests:
+Or with kubectl & raw manifests:
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.7.0/deploy/manifests/deployment.yaml
+kubectl apply -f https://github.com/milvus-io/milvus-operator/raw/main/deploy/manifests/deployment.yaml
 ```
 
 For more infomation Check [instructions on how to install/uninstall milvus operator](docs/installation/installation.md)
@@ -78,6 +78,22 @@ Compatibility, :heavy_multiplication_x:, :heavy_check_mark:  -->
 
   :heavy_check_mark: : support
   :heavy_multiplication_x: : not support
+
+# Install / upgrade milvus-operator of a specific version
+
+Use helm:
+
+```shell
+helm upgrade --install milvus-operator \
+  -n milvus-operator --create-namespace \
+  https://github.com/milvus-io/milvus-operator/releases/download/v0.7.0/milvus-operator-0.7.0.tgz
+```
+
+Or use kubectl & raw manifests:
+
+```shell
+kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.7.0/deploy/manifests/deployment.yaml
+```
 
 
 # Documentation
