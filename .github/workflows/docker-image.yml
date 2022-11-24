@@ -4,7 +4,7 @@ name: Build and Push on Tag
 on:
   push:
     tags:
-      - '*'
+      - "*"
 
 jobs:
   publish-builder:
@@ -47,3 +47,33 @@ jobs:
                        -p ${{ secrets.DOCKER_PWD }}
           docker push ${REGISTRY_NAME}:${IMAGE_TAG}
           docker push ${REGISTRY_NAME}:latest
+
+  tool-publish:
+    name: Tool Publish Builder
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu18.04]
+    env:
+      OS_NAME: ${{ matrix.os }}
+      REGISTRY_NAME: milvusdb/milvus-config-tool
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Get version from system time after release step
+        id: extracter
+        run: |
+          echo "::set-output name=git_tag::$(echo "${{ github.ref }}" | awk -F '/' '{print $3}')"
+      - name: Build Docker Image
+        shell: bash
+        run: |
+          make docker-tool-build
+      - name: Push Docker Image
+        shell: bash
+        run: |
+          IMAGE_TAG=${{ steps.extracter.outputs.git_tag }}
+          docker login -u ${{ secrets.DOCKER_USERNAME }} \
+                       -p ${{ secrets.DOCKER_PWD }}
+          make docker-tool-push

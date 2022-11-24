@@ -17,6 +17,8 @@ spec:
     proxy:
       ingress:
         hosts: ["mc-sit.milvus.io"]
+    mixCoord:
+      replicas: 1
   dependencies:
     etcd:
       inCluster:
@@ -29,7 +31,12 @@ spec:
       inCluster:
         deletionPolicy: Delete
         pvcDeletion: true
-        values: {}
+        values:
+          defaultReplicationFactor: 1
+          offsetsTopicReplicationFactor: 1
+          replicaCount: 1
+          zookeeper:
+            replicaCount: 1
     storage:
       inCluster:
         deletionPolicy: Delete
