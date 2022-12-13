@@ -205,7 +205,12 @@ func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, m
 	UpdateCondition(&mc.Status, milvusCond)
 
 	if milvusCond.Status != corev1.ConditionTrue {
-		mc.Status.Status = v1beta1.StatusUnHealthy
+		switch mc.Status.Status {
+		case v1beta1.StatusHealthy:
+			mc.Status.Status = v1beta1.StatusUnHealthy
+		default:
+			// ignore
+		}
 	} else {
 		mc.Status.Status = v1beta1.StatusHealthy
 	}

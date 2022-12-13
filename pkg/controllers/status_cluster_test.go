@@ -253,7 +253,23 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("update status success", func(t *testing.T) {
+	t.Run("update status healthy to unhealthy success", func(t *testing.T) {
+		defer ctrl.Finish()
+		mockReplicaUpdater.EXPECT().UpdateReplicas(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		mockRunner.EXPECT().RunWithResult(gomock.Len(3), gomock.Any(), gomock.Any()).
+			Return([]Result{
+				{Data: v1beta1.MilvusCondition{}},
+			})
+		mockCli.EXPECT().Status().Return(mockCli)
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		mockCli.EXPECT().Update(gomock.Any(), gomock.Any())
+		m.Status.Status = v1beta1.StatusHealthy
+		err = s.UpdateStatusRoutine(ctx, m)
+		assert.NoError(t, err)
+		assert.Equal(t, v1beta1.StatusUnHealthy, m.Status.Status)
+	})
+
+	t.Run("update status creating", func(t *testing.T) {
 		defer ctrl.Finish()
 		mockReplicaUpdater.EXPECT().UpdateReplicas(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockRunner.EXPECT().RunWithResult(gomock.Len(3), gomock.Any(), gomock.Any()).
@@ -266,6 +282,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 		m.Status.Status = v1beta1.StatusCreating
 		err = s.UpdateStatusRoutine(ctx, m)
 		assert.NoError(t, err)
+		assert.Equal(t, v1beta1.StatusCreating, m.Status.Status)
 	})
 }
 
