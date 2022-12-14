@@ -47,7 +47,7 @@ func TestCheckMinIO(t *testing.T) {
 		AK:       "",
 		SK:       "",
 		Endpoint: "s3.amazonaws.com:443",
-		Bucket:   "zilliz-infra-test",
+		Bucket:   "bucket",
 		UseSSL:   true,
 	})
 	assert.NoError(t, err)
@@ -57,7 +57,18 @@ func TestCheckMinIO(t *testing.T) {
 		AK:       "",
 		SK:       "",
 		Endpoint: "s3.ap-southeast-1.amazonaws.com:443",
-		Bucket:   "zilliz-infra-test",
+		Bucket:   "bucket",
+		UseSSL:   true,
+		UseIAM:   true,
+	})
+	assert.NoError(t, err)
+
+	err = CheckMinIO(CheckMinIOArgs{
+		Type:     v1beta1.StorageTypeS3,
+		AK:       "",
+		SK:       "",
+		Endpoint: "storage.googleapis.com:443",
+		Bucket:   "bucket",
 		UseSSL:   true,
 		UseIAM:   true,
 	})
