@@ -81,11 +81,12 @@ func NewMilvusUpgradeReconciler(client client.Client, scheme *runtime.Scheme) *M
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.10.0/pkg/reconcile
 func (r *MilvusUpgradeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = log.FromContext(ctx)
+	var ret ctrl.Result
 
 	upgrade := new(v1beta1.MilvusUpgrade)
 	err := r.Get(ctx, req.NamespacedName, upgrade)
 	if err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		return ret, client.IgnoreNotFound(err)
 	}
 
 	err = r.RunStateMachine(ctx, upgrade)
@@ -95,10 +96,14 @@ func (r *MilvusUpgradeReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	errUpdate := r.Status().Update(ctx, upgrade)
 	if errUpdate != nil {
-		return ctrl.Result{}, errors.Wrapf(errUpdate, "failed to update status, with continueUpgrade err[%s]", err)
+		return ret, errors.Wrapf(errUpdate, "failed to update status, with continueUpgrade err[%s]", err)
 	}
 
-	return ctrl.Result{}, err
+	if upgrade.Status.State.NeedRequeue() {
+		ret.RequeueAfter = unhealthySyncInterval
+	}
+
+	return ret, err
 }
 
 // SetupWithManager sets up the controller with the Manager.

@@ -12,8 +12,7 @@ import (
 
 //go:generate mockgen -source=./group_runner.go -destination=./group_runner_mock.go -package=controllers
 
-type MilvusReconcileFunc func(context.Context, v1beta1.Milvus) error
-type MilvusClusterReconcileFunc func(context.Context, v1beta1.Milvus) error
+type MilvusReconcileFunc func(context.Context, *v1beta1.Milvus) error
 
 // GroupRunner does a group of funcs in parallel
 type GroupRunner interface {
@@ -22,7 +21,7 @@ type GroupRunner interface {
 	// RunWithResult runs a group of funcs by same args, returns results with data & err for each func called
 	RunWithResult(funcs []Func, ctx context.Context, args ...interface{}) []Result
 	// RunDiffArgs runs a func by groups of args from @argsArray multiple times, if any failed, it should return err
-	RunDiffArgs(f Func, ctx context.Context, argsArray []Args) error
+	RunDiffArgs(f MilvusReconcileFunc, ctx context.Context, argsArray []*v1beta1.Milvus) error
 }
 
 // Func any callable func
@@ -99,7 +98,7 @@ func (ParallelGroupRunner) RunWithResult(funcs []Func, ctx context.Context, args
 }
 
 // RunDiffArgs runs a func by groups of args from @argsArray multiple times, if any failed, it should return err
-func (ParallelGroupRunner) RunDiffArgs(f Func, ctx context.Context, argsArray []Args) error {
+func (ParallelGroupRunner) RunDiffArgs(f MilvusReconcileFunc, ctx context.Context, argsArray []*v1beta1.Milvus) error {
 	// shortcut
 	if len(argsArray) == 0 {
 		return nil
@@ -108,8 +107,10 @@ func (ParallelGroupRunner) RunDiffArgs(f Func, ctx context.Context, argsArray []
 	g, gtx := NewGroup(ctx)
 
 	for i := 0; i < len(argsArray); i++ {
-		argsWithGtx := append([]interface{}{gtx}, argsArray[i]...)
-		g.Go(WrappedFunc(f, argsWithGtx...))
+		idx := i
+		g.Go(func() error {
+			return f(gtx, argsArray[idx])
+		})
 	}
 
 	err := g.Wait()

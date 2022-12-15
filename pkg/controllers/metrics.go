@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	v1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/prometheus/client_golang/prometheus"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
@@ -37,6 +38,19 @@ const (
 	MilvusStatusCodeUnHealthy = float64(2)
 	MilvusStatusCodeDeleting  = float64(3)
 )
+
+func MilvusStatusToCode(status v1beta1.MilvusHealthStatus) float64 {
+	switch status {
+	case v1beta1.StatusHealthy:
+		return MilvusStatusCodeHealthy
+	case v1beta1.StatusUnHealthy:
+		return MilvusStatusCodeUnHealthy
+	case v1beta1.StatusDeleting:
+		return MilvusStatusCodeDeleting
+	default:
+		return MilvusStatusCodeCreating
+	}
+}
 
 // InitializeMetrics for controllers
 func InitializeMetrics() {

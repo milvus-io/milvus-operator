@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -105,9 +104,10 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 		if !controllerutil.ContainsFinalizer(milvus, MilvusFinalizerName) {
 			controllerutil.AddFinalizer(milvus, MilvusFinalizerName)
 			err := r.Update(ctx, milvus)
-			return ctrl.Result{}, err
+			if err != nil {
+				return ctrl.Result{}, err
+			}
 		}
-
 	} else {
 		if milvus.Status.Status != milvusv1beta1.StatusDeleting {
 			milvus.Status.Status = milvusv1beta1.StatusDeleting
@@ -120,6 +120,8 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 			if err := r.Finalize(ctx, *milvus); err != nil {
 				return ctrl.Result{}, err
 			}
+			// metrics
+			milvusStatusCollector.DeleteLabelValues(milvus.Namespace, milvus.Name)
 			controllerutil.RemoveFinalizer(milvus, MilvusFinalizerName)
 			err := r.Update(ctx, milvus)
 			return ctrl.Result{}, err
@@ -134,17 +136,20 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if !IsEqual(old.Spec, milvus.Spec) {
 		diff, _ := diffObject(old, milvus)
 		r.logger.Info("SetDefault: " + string(diff))
-		return ctrl.Result{}, r.Update(ctx, milvus)
+		err := r.Update(ctx, milvus)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
-	updated, err := r.ReconcileLegacyValues(ctx, old, milvus)
-	if updated || err != nil {
-		return ctrl.Result{Requeue: true}, err
+	err := r.ReconcileLegacyValues(ctx, old, milvus)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
-	updated, err = r.SetDefaultStatus(ctx, milvus)
-	if updated || err != nil {
-		return ctrl.Result{Requeue: true}, err
+	err = r.SetDefaultStatus(ctx, milvus)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	if err := r.ReconcileAll(ctx, *milvus); err != nil {
@@ -155,11 +160,8 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 	if err := r.statusSyncer.UpdateStatusForNewGeneration(ctx, milvus); err != nil {
 		return ctrl.Result{}, err
 	}
-
-	// status will be updated by syncer
-	if milvus.Status.Status == milvusv1beta1.StatusUnHealthy {
-		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-	}
+	// metrics
+	milvusStatusCollector.WithLabelValues(milvus.Namespace, milvus.Name).Set(MilvusStatusToCode(milvus.Status.Status))
 
 	return ctrl.Result{}, nil
 }
@@ -173,7 +175,9 @@ func (r *MilvusReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		//Owns(&corev1.ConfigMap{}).
 		//Owns(&corev1.Service{}).
 		//WithEventFilter(&MilvusPredicate{}).
-		WithOptions(controller.Options{MaxConcurrentReconciles: 1})
+		WithOptions(controller.Options{
+			MaxConcurrentReconciles: config.MaxConcurrentReconcile,
+		})
 
 	/* if config.IsDebug() {
 		builder.WithEventFilter(DebugPredicate())
@@ -206,19 +210,19 @@ func (*MilvusPredicate) Update(e event.UpdateEvent) bool {
 	return true
 }
 
-func (r *MilvusReconciler) ReconcileLegacyValues(ctx context.Context, old, milvus *v1beta1.Milvus) (updated bool, err error) {
+func (r *MilvusReconciler) ReconcileLegacyValues(ctx context.Context, old, milvus *v1beta1.Milvus) error {
 	if !milvus.LegacyNeedSyncValues() {
-		return false, nil
+		return nil
 	}
 
-	err = r.syncLegacyValues(ctx, milvus)
+	err := r.syncLegacyValues(ctx, milvus)
 	if err != nil {
-		return false, err
+		return err
 	}
 	diff, _ := diffObject(old, milvus)
 	r.logger.Info("SyncValues: " + string(diff))
 	err = r.Update(ctx, milvus)
-	return true, err
+	return err
 }
 
 func (r *MilvusReconciler) syncLegacyValues(ctx context.Context, m *v1beta1.Milvus) error {

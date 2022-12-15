@@ -160,10 +160,13 @@ type EtcdConditionInfo struct {
 func GetEtcdCondition(ctx context.Context, endpoints []string) v1beta1.MilvusCondition {
 	health := GetEndpointsHealth(endpoints)
 	etcdReady := false
+	var msg string
 	for _, ep := range endpoints {
 		epHealth := health[ep]
 		if epHealth.Health {
 			etcdReady = true
+		} else {
+			msg += fmt.Sprintf("[%s:%s]", ep, epHealth.Error)
 		}
 	}
 
@@ -175,7 +178,7 @@ func GetEtcdCondition(ctx context.Context, endpoints []string) v1beta1.MilvusCon
 	}
 	if !etcdReady {
 		cond.Reason = v1beta1.ReasonEtcdNotReady
-		cond.Message = MessageEtcdNotReady // TODO: @shaoyue add detail err msg
+		cond.Message = MessageEtcdNotReady + ":" + msg
 	}
 	return cond
 }

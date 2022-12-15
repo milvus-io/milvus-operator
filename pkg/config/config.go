@@ -28,6 +28,10 @@ var (
 	// set by run flag in main
 	OperatorNamespace = "milvus-operator"
 	OperatorName      = "milvus-operator"
+	// param related to performance
+	MaxConcurrentReconcile   = 10
+	MaxConcurrentHealthCheck = 10
+	SyncIntervalSec          = 600
 )
 
 func Init(workDir string) error {

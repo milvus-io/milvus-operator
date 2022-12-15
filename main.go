@@ -19,6 +19,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strings"
 
@@ -42,6 +44,7 @@ func main() {
 	var metricsAddr string
 	var enableLeaderElection bool
 	var stopReconcilers string
+	var enablePprof bool
 	var probeAddr string
 	var workDir string
 	showVersion := flag.Bool("version", false, "Show version")
@@ -55,6 +58,10 @@ func main() {
 	flag.StringVar(&controllers.ToolImage, "tool-image", controllers.ToolImage, "default tool image for setup milvus")
 	flag.StringVar(&config.OperatorNamespace, "namespace", config.OperatorNamespace, "The namespace of self")
 	flag.StringVar(&config.OperatorName, "name", config.OperatorName, "The name of self")
+	flag.IntVar(&config.MaxConcurrentReconcile, "concurrent-reconcile", config.MaxConcurrentReconcile, "The max concurrent reconcile")
+	flag.IntVar(&config.MaxConcurrentHealthCheck, "concurrent-healthcheck", config.MaxConcurrentHealthCheck, "The max concurrent healthcheck")
+	flag.IntVar(&config.SyncIntervalSec, "sync-interval", config.SyncIntervalSec, "The interval of sync milvus")
+	flag.BoolVar(&enablePprof, "pprof", enablePprof, "Enable pprof")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -65,6 +72,13 @@ func main() {
 		fmt.Println("milvus-helm version: " + v1beta1.MilvusHelmVersion)
 		os.Exit(0)
 	}
+
+	if enablePprof {
+		go func() {
+			setupLog.Error(http.ListenAndServe(":6060", nil), "serve pprof")
+		}()
+	}
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	if err := config.Init(workDir); err != nil {
