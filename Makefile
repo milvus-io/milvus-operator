@@ -3,9 +3,9 @@
 IMG ?= milvusdb/milvus-operator:dev-latest
 TOOL_IMG ?= milvus-config-tool:dev-latest
 SIT_IMG ?= milvus-operator:sit
-VERSION ?= 0.7.1
+VERSION ?= 0.7.2
 TOOL_VERSION ?= 0.1.0
-MILVUS_HELM_VERSION ?= milvus-3.2.17
+MILVUS_HELM_VERSION ?= milvus-3.3.6
 RELEASE_IMG ?= milvusdb/milvus-operator:v$(VERSION)
 TOOL_RELEASE_IMG ?= milvusdb/milvus-config-tool:v$(TOOL_VERSION)
 
@@ -226,7 +226,7 @@ sit-prepare-operator-images:
 
 sit-prepare-images: sit-prepare-operator-images
 	@echo "Preparing images"
-	docker pull milvusdb/milvus:v2.2.0
+	docker pull milvusdb/milvus:v2.2.1
 	
 	docker pull -q apachepulsar/pulsar:2.8.2
 	docker pull -q bitnami/kafka:3.1.0-debian-10-r52
@@ -244,7 +244,7 @@ sit-load-operator-images:
 
 sit-load-images: sit-load-operator-images
 	@echo "Loading images"
-	kind load docker-image milvusdb/milvus:v2.2.0
+	kind load docker-image milvusdb/milvus:v2.2.1
 	kind load docker-image apachepulsar/pulsar:2.8.2
 	kind load docker-image bitnami/kafka:3.1.0-debian-10-r52
 	kind load docker-image milvusdb/etcd:3.5.0-r6
