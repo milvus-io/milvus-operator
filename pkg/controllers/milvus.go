@@ -19,16 +19,16 @@ func IsSetDefaultDone(mc *v1beta1.Milvus) bool {
 }
 
 // SetDefaultStatus update status if default not set; return true if updated, return false if not, return err if update failed
-func (r *MilvusReconciler) SetDefaultStatus(ctx context.Context, mc *v1beta1.Milvus) (bool, error) {
+func (r *MilvusReconciler) SetDefaultStatus(ctx context.Context, mc *v1beta1.Milvus) error {
 	if mc.Status.Status == "" {
 		mc.Status.Status = v1beta1.StatusCreating
+		// metrics
+		milvusStatusCollector.WithLabelValues(mc.Namespace, mc.Name).Set(MilvusStatusToCode(mc.Status.Status))
+
 		err := r.Client.Status().Update(ctx, mc)
-		if err != nil {
-			return false, errors.Wrapf(err, "set mc default status[%s/%s] failed", mc.Namespace, mc.Name)
-		}
-		return true, nil
+		return errors.Wrapf(err, "set mc default status[%s/%s] failed", mc.Namespace, mc.Name)
 	}
-	return false, nil
+	return nil
 }
 
 func (r *MilvusReconciler) ReconcileAll(ctx context.Context, mc v1beta1.Milvus) error {

@@ -147,6 +147,10 @@ type MilvusUpgradeStatus struct {
 
 type MilvusUpgradeState string
 
+func (s MilvusUpgradeState) NeedRequeue() bool {
+	return !milvusUpgradeNoRequeueStates[s]
+}
+
 const (
 	// State in upgrade process
 	UpgradeStatePending            MilvusUpgradeState = ""
@@ -167,6 +171,15 @@ const (
 
 	UpgradeStateRollbackFailed MilvusUpgradeState = "RollbackFailed"
 )
+
+// milvusUpgradeNoRequeueStates are states that will not requeue
+var milvusUpgradeNoRequeueStates = map[MilvusUpgradeState]bool{
+	UpgradeStateSucceeded:         true,
+	UpgradeStateBakupMetaFailed:   true,
+	UpgradeStateUpdateMetaFailed:  true,
+	UpgradeStateRollbackSucceeded: true,
+	UpgradeStateRollbackFailed:    true,
+}
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status

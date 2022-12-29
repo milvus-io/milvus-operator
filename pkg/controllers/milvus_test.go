@@ -135,23 +135,21 @@ func TestCluster_SetDefaultStatus(t *testing.T) {
 	m := env.Inst
 	mockClient.EXPECT().Status().Return(mockClient)
 	mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Return(errTest)
-	_, err := r.SetDefaultStatus(ctx, &m)
+	err := r.SetDefaultStatus(ctx, &m)
 	assert.Error(t, err)
 
 	// no status, set default ok
 	m = env.Inst // ptr value changed, need reset
 	mockClient.EXPECT().Status().Return(mockClient)
 	mockClient.EXPECT().Update(gomock.Any(), gomock.Any())
-	updated, err := r.SetDefaultStatus(ctx, &m)
+	err = r.SetDefaultStatus(ctx, &m)
 	assert.NoError(t, err)
-	assert.True(t, updated)
 
 	// has status, not set
 	m = env.Inst // ptr value changed, need reset
 	m.Status.Status = v1beta1.StatusCreating
-	updated, err = r.SetDefaultStatus(ctx, &m)
+	err = r.SetDefaultStatus(ctx, &m)
 	assert.NoError(t, err)
-	assert.False(t, updated)
 }
 
 func TestCluster_ReconcileAll(t *testing.T) {

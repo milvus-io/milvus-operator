@@ -8,6 +8,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -107,11 +108,11 @@ func TestClusterReconciler(t *testing.T) {
 				// finalizer should be added
 				assert.Equal(t, u.Finalizers, []string{MilvusFinalizerName})
 			},
-		).Return(nil)
+		).Return(errors.Errorf("mock"))
 
 		m.Finalizers = []string{MilvusFinalizerName}
 		_, err := r.Reconcile(ctx, reconcile.Request{})
-		assert.NoError(t, err)
+		assert.Error(t, err)
 	})
 
 	t.Run("case delete remove finalizer", func(t *testing.T) {
@@ -166,9 +167,8 @@ func TestMilvusReconciler_ReconcileLegacyValues(t *testing.T) {
 		old.Status.Status = ""
 		old.Default()
 		obj := old.DeepCopy()
-		updated, err := r.ReconcileLegacyValues(ctx, old, obj)
+		err := r.ReconcileLegacyValues(ctx, old, obj)
 		assert.NoError(t, err)
-		assert.Equal(t, false, updated)
 	})
 
 	t.Run("legacy, update", func(t *testing.T) {
@@ -177,9 +177,8 @@ func TestMilvusReconciler_ReconcileLegacyValues(t *testing.T) {
 		old.Default()
 		testEnv.MockClient.EXPECT().Update(gomock.Any(), gomock.Any())
 		obj := old.DeepCopy()
-		updated, err := r.ReconcileLegacyValues(ctx, old, obj)
+		err := r.ReconcileLegacyValues(ctx, old, obj)
 		assert.NoError(t, err)
-		assert.Equal(t, true, updated)
 	})
 
 	t.Run("standalone all internal ok", func(t *testing.T) {

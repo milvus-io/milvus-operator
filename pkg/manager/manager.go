@@ -14,6 +14,7 @@ import (
 
 	milvusiov1alpha1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1alpha1"
 	milvusiov1beta1 "github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
+	"github.com/milvus-io/milvus-operator/pkg/config"
 )
 
 var (
@@ -31,7 +32,7 @@ func init() {
 }
 
 func NewManager(metricsAddr, probeAddr string, enableLeaderElection bool) (ctrl.Manager, error) {
-	syncPeriod := 1 * time.Minute
+	syncPeriod := time.Second * time.Duration(config.SyncIntervalSec)
 	ctrlOptions := ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,

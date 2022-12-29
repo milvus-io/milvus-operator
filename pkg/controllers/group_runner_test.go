@@ -38,28 +38,30 @@ func TestParallelGroupConciler_Run_Milvus(t *testing.T) {
 
 func TestParallelGroupConciler_RunDiff(t *testing.T) {
 	config.Init(util.GetGitRepoRootDir())
-	vals := [3]int{}
-	func1 := func(ctx context.Context, v1, v2 int) error {
-		vals[v1] = v2
+	func1 := func(ctx context.Context, milvus *v1beta1.Milvus) error {
+		milvus.Spec.Com.Proxy = &v1beta1.MilvusProxy{}
+		milvus.Spec.Com.Proxy.Replicas = int32Ptr(int(milvus.Generation))
 		return nil
 	}
-	argsArray := []Args{
-		{0, 4},
-		{1, 5},
-		{2, 6},
+	argsArray := []*v1beta1.Milvus{
+		{},
+		{},
+		{},
 	}
-	for i := 0; i < 3; i++ {
-		err := defaultGroupRunner.RunDiffArgs(func1, context.Background(), argsArray)
-		assert.NoError(t, err)
-		assert.Equal(t, [3]int{4, 5, 6}, vals)
+	for i := 1; i < len(argsArray)+1; i++ {
+		argsArray[i-1].Generation = int64(i)
 	}
 
-	// bad func
-	err := defaultGroupRunner.RunDiffArgs(1, context.Background(), argsArray)
-	assert.Error(t, err)
+	err := defaultGroupRunner.RunDiffArgs(func1, context.Background(), argsArray)
+	assert.NoError(t, err)
+	var total int
+	for j := 0; j < len(argsArray); j++ {
+		total += int(*argsArray[j].Spec.Com.Proxy.Replicas)
+	}
+	assert.Equal(t, 1+2+3, total)
 
 	// short cut ok
-	err = defaultGroupRunner.RunDiffArgs(func1, context.Background(), []Args{})
+	err = defaultGroupRunner.RunDiffArgs(func1, context.Background(), []*v1beta1.Milvus{})
 	assert.NoError(t, err)
 }
 
