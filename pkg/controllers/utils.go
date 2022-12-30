@@ -426,3 +426,8 @@ var (
 		return nil
 	}
 )
+
+func int64Ptr(i int64) *int64 {
+	ret := int64(i)
+	return &ret
+}

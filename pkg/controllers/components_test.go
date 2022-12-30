@@ -45,6 +45,14 @@ func TestMilvusComponent_IsNode(t *testing.T) {
 }
 
 func TestMergeComponentSpec(t *testing.T) {
+	t.Run("merge pause", func(t *testing.T) {
+		src := ComponentSpec{}
+		dst := ComponentSpec{}
+		src.Paused = true
+		dst.Paused = false
+		merged := MergeComponentSpec(src, dst).Paused
+		assert.Equal(t, true, merged)
+	})
 	t.Run("merge label annotations", func(t *testing.T) {
 		src := ComponentSpec{}
 		dst := ComponentSpec{}

@@ -70,37 +70,6 @@ func (r *MilvusReconciler) updateDeployment(
 	return updateDeployment(deployment, newMilvusDeploymentUpdater(mc, r.Scheme, component))
 }
 
-func (r *MilvusReconciler) getDeploymentAndRemoveExtra(ctx context.Context, mc v1beta1.Milvus, component MilvusComponent) (*appsv1.Deployment, error) {
-	deployments := &appsv1.DeploymentList{}
-	opts := &client.ListOptions{
-		Namespace: mc.Namespace,
-	}
-	opts.LabelSelector = labels.SelectorFromSet(NewComponentAppLabels(
-		mc.Name,
-		component.Name,
-	))
-	if err := r.List(ctx, deployments, opts); err != nil {
-		return nil, err
-	}
-	var ret *appsv1.Deployment
-	if len(deployments.Items) > 0 {
-		deploymentName := component.GetDeploymentName(mc.Name)
-		for _, deploy := range deployments.Items {
-			if deploy.Name != deploymentName {
-				if err := r.Delete(ctx, &deploy); err != nil {
-					return nil, err
-				}
-			} else {
-				ret = &deploy
-			}
-		}
-	}
-	if ret == nil {
-		return nil, errors.NewNotFound(appsv1.Resource("deployment"), "resource not found")
-	}
-	return ret, nil
-}
-
 func (r *MilvusReconciler) ReconcileComponentDeployment(
 	ctx context.Context, mc v1beta1.Milvus, component MilvusComponent,
 ) error {

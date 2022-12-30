@@ -14,6 +14,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -58,16 +59,18 @@ type MilvusStatusSyncerInterface interface {
 type MilvusStatusSyncer struct {
 	ctx context.Context
 	client.Client
-	logger logr.Logger
+	logger              logr.Logger
+	deployStatusUpdater componentsDeployStatusUpdater
 
 	sync.Once
 }
 
 func NewMilvusStatusSyncer(ctx context.Context, client client.Client, logger logr.Logger) *MilvusStatusSyncer {
 	return &MilvusStatusSyncer{
-		ctx:    ctx,
-		Client: client,
-		logger: logger,
+		ctx:                 ctx,
+		Client:              client,
+		deployStatusUpdater: newComponentsDeployStatusUpdaterImpl(client),
+		logger:              logger,
 	}
 }
 
@@ -220,6 +223,11 @@ func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, m
 		return errors.Wrap(err, "update ingress status failed")
 	}
 
+	err = r.deployStatusUpdater.Update(ctx, mc)
+	if err != nil {
+		return errors.Wrap(err, "update deploy status failed")
+	}
+
 	err = replicaUpdater.UpdateReplicas(ctx, mc, r.Client)
 	if err != nil {
 		return errors.Wrap(err, "update replica status failed")
@@ -256,7 +264,7 @@ func updateReplicas(ctx context.Context, key client.ObjectKey, status *v1beta1.M
 				replica = 0
 			}
 		}
-		component.SetStatusReplicas(&status.Replicas, replica)
+		component.SetStatusReplicas(&status.DeprecatedReplicas, replica)
 	}
 	return nil
 }
@@ -347,4 +355,46 @@ func (r *MilvusStatusSyncer) GetMinioCondition(
 func (r *MilvusStatusSyncer) GetEtcdCondition(ctx context.Context, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
 	getter := wrapEtcdConditionGetter(ctx, mc.Spec.Dep.Etcd.Endpoints)
 	return GetCondition(getter, mc.Spec.Dep.Etcd.Endpoints), nil
+}
+
+type componentsDeployStatusUpdater interface {
+	Update(ctx context.Context, mc *v1beta1.Milvus) error
+}
+
+type componentsDeployStatusUpdaterImpl struct {
+	client.Client
+}
+
+func newComponentsDeployStatusUpdaterImpl(c client.Client) componentsDeployStatusUpdater {
+	return &componentsDeployStatusUpdaterImpl{Client: c}
+}
+
+func (r *componentsDeployStatusUpdaterImpl) Update(ctx context.Context, mc *v1beta1.Milvus) error {
+	deployList := &appsv1.DeploymentList{}
+	opts := &client.ListOptions{
+		Namespace: mc.Namespace,
+	}
+	opts.LabelSelector = labels.SelectorFromSet(map[string]string{
+		AppLabelInstance: mc.GetName(),
+		AppLabelName:     "milvus",
+	})
+	if err := r.List(ctx, deployList, opts); err != nil {
+		return errors.Wrap(err, "list deployments failed")
+	}
+	if mc.Status.ComponentsDeployStatus == nil {
+		mc.Status.ComponentsDeployStatus = make(map[string]v1beta1.ComponentDeployStatus)
+	}
+	componentDeploy := makeComponentDeploymentMap(*mc, deployList.Items)
+	allComponents := GetComponentsBySpec(mc.Spec)
+	for _, component := range allComponents {
+		deployment := componentDeploy[component.Name]
+		if deployment == nil {
+			continue
+		}
+		mc.Status.ComponentsDeployStatus[component.Name] = v1beta1.ComponentDeployStatus{
+			Generation: deployment.Generation,
+			Status:     deployment.Status,
+		}
+	}
+	return nil
 }

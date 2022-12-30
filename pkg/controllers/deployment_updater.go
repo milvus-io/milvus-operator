@@ -31,7 +31,8 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	if err := SetControllerReference(updater.GetControllerRef(), deployment, updater.GetScheme()); err != nil {
 		return pkgErrs.Wrap(err, "set controller reference")
 	}
-
+	mergedComSpec := updater.GetMergedComponentSpec()
+	deployment.Spec.Paused = mergedComSpec.Paused
 	deployment.Spec.Replicas = updater.GetReplicas()
 	deployment.Spec.Strategy = updater.GetDeploymentStrategy()
 	isCreating := deployment.Spec.Selector == nil
@@ -40,7 +41,6 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 		deployment.Spec.Selector.MatchLabels = appLabels
 	}
 	template := &deployment.Spec.Template
-	mergedComSpec := updater.GetMergedComponentSpec()
 	configContainerIdx := GetContainerIndex(template.Spec.InitContainers, configContainerName)
 	spec := updater.GetMilvus().Spec
 	if configContainerIdx < 0 {
@@ -134,6 +134,7 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 		container.StartupProbe = GetStartupProbe()
 		container.LivenessProbe = GetLivenessProbe()
 		container.ReadinessProbe = GetReadinessProbe()
+		template.Spec.TerminationGracePeriodSeconds = int64Ptr(300)
 	}
 	return nil
 }

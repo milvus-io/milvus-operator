@@ -490,3 +490,7 @@ func TestSetControllerReference(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func Test_int64Ptr(t *testing.T) {
+	assert.Equal(t, int64(10), *int64Ptr(10))
+}

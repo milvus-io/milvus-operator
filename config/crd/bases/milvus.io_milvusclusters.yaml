@@ -826,6 +826,8 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      paused:
+                        type: boolean
                       podAnnotations:
                         additionalProperties:
                           type: string
@@ -1343,6 +1345,8 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      paused:
+                        type: boolean
                       podAnnotations:
                         additionalProperties:
                           type: string
@@ -1933,6 +1937,8 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      paused:
+                        type: boolean
                       podAnnotations:
                         additionalProperties:
                           type: string
@@ -2450,6 +2456,8 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      paused:
+                        type: boolean
                       podAnnotations:
                         additionalProperties:
                           type: string
@@ -2969,6 +2977,8 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      paused:
+                        type: boolean
                       podAnnotations:
                         additionalProperties:
                           type: string
@@ -3055,6 +3065,8 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  paused:
+                    type: boolean
                   podAnnotations:
                     additionalProperties:
                       type: string
@@ -3521,6 +3533,8 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      paused:
+                        type: boolean
                       podAnnotations:
                         additionalProperties:
                           type: string
@@ -4053,6 +4067,8 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      paused:
+                        type: boolean
                       podAnnotations:
                         additionalProperties:
                           type: string
@@ -4570,6 +4586,8 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      paused:
+                        type: boolean
                       podAnnotations:
                         additionalProperties:
                           type: string
@@ -5106,6 +5124,8 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      paused:
+                        type: boolean
                       podAnnotations:
                         additionalProperties:
                           type: string
@@ -5650,6 +5670,8 @@ spec:
                         additionalProperties:
                           type: string
                         type: object
+                      paused:
+                        type: boolean
                       podAnnotations:
                         additionalProperties:
                           type: string
@@ -6002,6 +6024,63 @@ spec:
             type: object
           status:
             properties:
+              componentsDeployStatus:
+                additionalProperties:
+                  properties:
+                    generation:
+                      format: int64
+                      type: integer
+                    status:
+                      properties:
+                        availableReplicas:
+                          format: int32
+                          type: integer
+                        collisionCount:
+                          format: int32
+                          type: integer
+                        conditions:
+                          items:
+                            properties:
+                              lastTransitionTime:
+                                format: date-time
+                                type: string
+                              lastUpdateTime:
+                                format: date-time
+                                type: string
+                              message:
+                                type: string
+                              reason:
+                                type: string
+                              status:
+                                type: string
+                              type:
+                                type: string
+                            required:
+                            - status
+                            - type
+                            type: object
+                          type: array
+                        observedGeneration:
+                          format: int64
+                          type: integer
+                        readyReplicas:
+                          format: int32
+                          type: integer
+                        replicas:
+                          format: int32
+                          type: integer
+                        unavailableReplicas:
+                          format: int32
+                          type: integer
+                        updatedReplicas:
+                          format: int32
+                          type: integer
+                      type: object
+                  required:
+                  - generation
+                  - status
+                  type: object
+                type: object
               conditions:
                 items:
                   properties:

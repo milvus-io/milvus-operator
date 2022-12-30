@@ -362,6 +362,10 @@ func MergeComponentSpec(src, dst ComponentSpec) ComponentSpec {
 	dst.PodLabels = MergeLabels(src.PodLabels, dst.PodLabels)
 	dst.PodAnnotations = MergeAnnotations(src.PodAnnotations, dst.PodAnnotations)
 
+	if src.Paused {
+		dst.Paused = src.Paused
+	}
+
 	if len(src.Image) > 0 {
 		dst.Image = src.Image
 	}
