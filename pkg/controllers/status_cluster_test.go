@@ -13,6 +13,7 @@ import (
 	networkv1 "k8s.io/api/networking/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	runtimectrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -222,6 +223,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 	err = s.UpdateStatusRoutine(ctx, m)
 	assert.Error(t, err)
 
+	m.Spec.GetServiceComponent().Ingress = &v1beta1.MilvusIngress{}
 	t.Run("update ingress status failed", func(t *testing.T) {
 		defer ctrl.Finish()
 		mockRunner.EXPECT().RunWithResult(gomock.Len(3), gomock.Any(), gomock.Any()).
@@ -230,6 +232,21 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 			})
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
 		m.Status.Status = v1beta1.StatusCreating
+		err = s.UpdateStatusRoutine(ctx, m)
+		assert.Error(t, err)
+	})
+	m.Spec.GetServiceComponent().Ingress = nil
+
+	mockDeployStatusUpdater := NewMockcomponentsDeployStatusUpdater(ctrl)
+	s.deployStatusUpdater = mockDeployStatusUpdater
+	t.Run("update deployStatus failed", func(t *testing.T) {
+		defer ctrl.Finish()
+		mockRunner.EXPECT().RunWithResult(gomock.Len(3), gomock.Any(), gomock.Any()).
+			Return([]Result{
+				{Data: v1beta1.MilvusCondition{}},
+			})
+		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		mockDeployStatusUpdater.EXPECT().Update(gomock.Any(), gomock.Any()).Return(errMock)
 		err = s.UpdateStatusRoutine(ctx, m)
 		assert.Error(t, err)
 	})
@@ -247,6 +264,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 				{Data: v1beta1.MilvusCondition{}},
 			})
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		mockDeployStatusUpdater.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 		mockReplicaUpdater.EXPECT().UpdateReplicas(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
 		m.Status.Status = v1beta1.StatusCreating
 		err = s.UpdateStatusRoutine(ctx, m)
@@ -255,6 +273,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 
 	t.Run("update status healthy to unhealthy success", func(t *testing.T) {
 		defer ctrl.Finish()
+		mockDeployStatusUpdater.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 		mockReplicaUpdater.EXPECT().UpdateReplicas(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockRunner.EXPECT().RunWithResult(gomock.Len(3), gomock.Any(), gomock.Any()).
 			Return([]Result{
@@ -271,6 +290,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 
 	t.Run("update status creating", func(t *testing.T) {
 		defer ctrl.Finish()
+		mockDeployStatusUpdater.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 		mockReplicaUpdater.EXPECT().UpdateReplicas(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockRunner.EXPECT().RunWithResult(gomock.Len(3), gomock.Any(), gomock.Any()).
 			Return([]Result{
@@ -301,16 +321,16 @@ func TestStatusSyncer_UpdateReplicas(t *testing.T) {
 		}).Return(nil).Times(len(MilvusComponents))
 		err := s.UpdateReplicas(ctx, m, mockCli)
 		assert.NoError(t, err)
-		assert.Equal(t, 2, m.Status.Replicas.Proxy)
-		assert.Equal(t, 2, m.Status.Replicas.DataNode)
+		assert.Equal(t, 2, m.Status.DeprecatedReplicas.Proxy)
+		assert.Equal(t, 2, m.Status.DeprecatedReplicas.DataNode)
 	})
 
 	t.Run("components not found ok", func(t *testing.T) {
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(kerrors.NewNotFound(schema.GroupResource{}, "")).Times(len(MilvusComponents))
 		err := s.UpdateReplicas(ctx, m, mockCli)
 		assert.NoError(t, err)
-		assert.Equal(t, 0, m.Status.Replicas.Proxy)
-		assert.Equal(t, 0, m.Status.Replicas.DataNode)
+		assert.Equal(t, 0, m.Status.DeprecatedReplicas.Proxy)
+		assert.Equal(t, 0, m.Status.DeprecatedReplicas.DataNode)
 	})
 	t.Run("get deploy err", func(t *testing.T) {
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(kerrors.NewServiceUnavailable("")).Times(1)
@@ -388,5 +408,96 @@ func Test_updateMetrics(t *testing.T) {
 		assert.Equal(t, 1, unhealthyCount)
 		assert.Equal(t, 1, creatingCount)
 		assert.Equal(t, 1, deletingCount)
+	})
+}
+
+func TestComponentsDeployStatusUpdaterImpl_Update(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockCli := NewMockK8sClient(ctrl)
+	ctx := context.Background()
+	r := newComponentsDeployStatusUpdaterImpl(mockCli)
+	m := &v1beta1.Milvus{}
+	m.Name = "milvus1"
+	m.Namespace = "default"
+	t.Run("list deployments failed", func(t *testing.T) {
+		mockCli.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(errMock)
+		err := r.Update(ctx, m)
+		assert.Error(t, err)
+	})
+
+	t.Run("no deployment success", func(t *testing.T) {
+		mockCli.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+		err := r.Update(ctx, m)
+		assert.NoError(t, err)
+	})
+
+	t.Run("standalone success", func(t *testing.T) {
+		m1 := m.DeepCopy()
+		m1.Default()
+		scheme, _ := v1beta1.SchemeBuilder.Build()
+		mockCli.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, listType interface{}, _ ...interface{}) {
+			list := listType.(*appsv1.DeploymentList)
+			deploy := appsv1.Deployment{}
+			deploy.Name = m1.Name + "-standalone"
+			deploy.Namespace = m1.Namespace
+			deploy.Labels = map[string]string{
+				AppLabelComponent: StandaloneName,
+			}
+			err := runtimectrl.SetControllerReference(m1, &deploy, scheme)
+			assert.NoError(t, err)
+			list.Items = []appsv1.Deployment{
+				deploy,
+			}
+		}).Return(nil)
+		err := r.Update(ctx, m1)
+		assert.NoError(t, err)
+		assert.Equal(t, 1, len(m1.Status.ComponentsDeployStatus))
+	})
+
+	t.Run("cluster success", func(t *testing.T) {
+		m1 := m.DeepCopy()
+		m1.Spec.Mode = v1beta1.MilvusModeCluster
+		m1.Spec.Com.MixCoord = &v1beta1.MilvusMixCoord{}
+		m1.Default()
+		scheme, _ := v1beta1.SchemeBuilder.Build()
+		mockCli.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, listType interface{}, _ ...interface{}) {
+			list := listType.(*appsv1.DeploymentList)
+			deploy := appsv1.Deployment{}
+			deploy.Name = m1.Name + "-proxy"
+			deploy.Namespace = m1.Namespace
+			deploy.Labels = map[string]string{
+				AppLabelComponent: ProxyName,
+			}
+			err := runtimectrl.SetControllerReference(m1, &deploy, scheme)
+			assert.NoError(t, err)
+
+			deploy2 := appsv1.Deployment{}
+			deploy2.Name = m1.Name + "-mixcoord"
+			deploy2.Namespace = m.Namespace
+			deploy2.Labels = map[string]string{
+				AppLabelComponent: MixCoordName,
+			}
+			err = runtimectrl.SetControllerReference(m1, &deploy2, scheme)
+			assert.NoError(t, err)
+
+			deploy3 := appsv1.Deployment{}
+			deploy3.Name = m1.Name + "-datanode"
+			deploy3.Namespace = m1.Namespace
+			deploy3.Labels = map[string]string{
+				AppLabelComponent: DataNodeName,
+			}
+			err = runtimectrl.SetControllerReference(m1, &deploy3, scheme)
+			assert.NoError(t, err)
+
+			list.Items = []appsv1.Deployment{
+				deploy,
+				deploy2,
+				deploy3,
+			}
+		}).Return(nil)
+		err := r.Update(ctx, m1)
+		assert.NoError(t, err)
+		assert.Equal(t, 3, len(m1.Status.ComponentsDeployStatus))
 	})
 }

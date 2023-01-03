@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -80,12 +81,18 @@ type MilvusStatus struct {
 	// Endpoint of milvus cluster
 	Endpoint string `json:"endpoint,omitempty"`
 
-	// deprecated
+	// IngressStatus of the ingress created by milvus
 	IngressStatus networkv1.IngressStatus `json:"ingress,omitempty"`
 
+	// DeprecatedReplicas is deprecated, will be removed in next major version, use ComponentsDeployStatus instead
+	// DeprecatedReplicas is the number of updated replicas in ready status
 	// +kubebuilder:validation:Optional
-	// Replicas is the number of updated replicas in ready status
-	Replicas MilvusReplicas `json:"replicas,omitempty"`
+	DeprecatedReplicas MilvusReplicas `json:"replicas,omitempty"`
+
+	// ComponentsDeployStatus contains the status of each component deployment
+	// it is used to check the status of rolling update of each component
+	// +optional
+	ComponentsDeployStatus map[string]ComponentDeployStatus `json:"componentsDeployStatus,omitempty"`
 
 	// same usage as deployment.status.observedGeneration
 	// observedGeneration represents the .metadata.generation that the condition was set based upon.
@@ -94,6 +101,13 @@ type MilvusStatus struct {
 	// +optional
 	// +kubebuilder:validation:Minimum=0
 	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,3,opt,name=observedGeneration"`
+}
+
+type ComponentDeployStatus struct {
+	// Generation of the deployment
+	Generation int64 `json:"generation"`
+	// Status of the deployment
+	Status appsv1.DeploymentStatus `json:"status"`
 }
 
 // MilvusReplicas is the replicas of milvus components

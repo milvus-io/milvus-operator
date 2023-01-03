@@ -31,6 +31,10 @@ func (t ComponentType) String() string {
 }
 
 type ComponentSpec struct {
+	// Paused is used to pause the component's deployment rollout
+	// +kubebuilder:validation:Optional
+	Paused bool `json:"paused"`
+
 	// +kubebuilder:validation:Optional
 	PodLabels map[string]string `json:"podLabels,omitempty"`
 
