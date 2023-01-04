@@ -182,7 +182,7 @@ func (m milvusDeploymentUpdater) GetReplicas() *int32 {
 	return m.component.GetReplicas(m.Spec)
 }
 func (m milvusDeploymentUpdater) GetDeploymentStrategy() appsv1.DeploymentStrategy {
-	return m.component.GetDeploymentStrategy()
+	return m.component.GetDeploymentStrategy(m.Milvus.Spec.Conf.Data)
 }
 func (m milvusDeploymentUpdater) GetConfCheckSum() string {
 	return GetConfCheckSum(m.Spec)
