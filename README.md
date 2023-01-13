@@ -27,7 +27,7 @@ helm -n milvus-operator upgrade --install milvus-operator milvus-operator/milvus
 Or with kubectl & raw manifests:
 
 ```shell
-kubectl apply -f https://github.com/milvus-io/milvus-operator/v0.7.3/deploy/manifests/deployment.yaml
+kubectl apply -f https://github.com/milvus-io/milvus-operator/v0.7.4/deploy/manifests/deployment.yaml
 ```
 
 For more infomation Check [instructions on how to install/uninstall milvus operator](docs/installation/installation.md)
@@ -86,13 +86,13 @@ Use helm:
 ```shell
 helm upgrade --install milvus-operator \
   -n milvus-operator --create-namespace \
-  https://github.com/milvus-io/milvus-operator/releases/download/v0.7.3/milvus-operator-0.7.3.tgz
+  https://github.com/milvus-io/milvus-operator/releases/download/v0.7.4/milvus-operator-0.7.4.tgz
 ```
 
 Or use kubectl & raw manifests:
 
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.7.3/deploy/manifests/deployment.yaml
+kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.7.4/deploy/manifests/deployment.yaml
 ```
 
 
