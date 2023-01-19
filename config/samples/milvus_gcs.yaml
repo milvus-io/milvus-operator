@@ -8,9 +8,9 @@ metadata:
 spec:
   components:
     serviceAccountName: my-release-sa
-    image: milvusdb/milvus-dev:master-latest
   config:
     minio:
+      cloudProvider: gcp
       bucketName: <my-bucket-name>
       rootPath: milvus/my-release
       useSSL: true
@@ -25,8 +25,7 @@ spec:
     storage:
       external: true
       type: S3
-      # Note: you must use regional endpoint here, otherwise the minio client that milvus uses will fail to connect
-      endpoint: s3.ap-southeast-1.amazonaws.com:443
+      endpoint: storage.googleapis.com:443
 ---
 apiVersion: v1
 kind: ServiceAccount

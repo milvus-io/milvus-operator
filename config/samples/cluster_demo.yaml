@@ -6,7 +6,10 @@ metadata:
     app: milvus
 spec:
   mode: cluster
+  config: {}
   components: 
+    proxy:
+      serviceType: LoadBalancer
     mixCoord:
       replicas: 1
   dependencies:

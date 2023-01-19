@@ -61,21 +61,10 @@ If you don't want to use helm you can also install with kubectl and raw manifest
 4. `git` (optional) is [installed](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git).
 
 ## Installation
-Directly apply the deployment manifest to your Kubernetes cluster:
+It is recommended to install the milvus operator with a newest stable version
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/deploy/manifests/deployment.yaml
-```
-
-Or install the milvus operator stack by using makefile
-```shell
-git clone https://github.com/milvus-io/milvus-operator.git
-# Checkout to the specified branch or the specified tag.
-# To branch: git checkout <branch-name> e.g.: git checkout release-0.1.0
-
-make deploy
+kubectl apply -f https://github.com/milvus-io/milvus-operator/blob/v0.7.4/deploy/manifests/deployment.yaml
 ``` 
-
->NOTES: Here we use the deployment manifest in the `main` branch as an example, for deploying the released versions, you can get the deployment manifest in the GitHub release page or find it in the corresponding code branch such as `v0.1.0`.
 
 Check the installed operators:
 
@@ -89,11 +78,15 @@ NAME                                                  READY   STATUS    RESTARTS
 milvus-operator-698fc7dc8d-8f52d   1/1     Running   0          65s
 ```
 
+## Update operator
+Same as installation, you can update the milvus operator with a newer version by applying the new deployment manifest
+
+
 ## Delete operator
 Delete the milvus operator stack by the deployment manifest:
 
 ```shell
-kubectl delete -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/deploy/manifests/deployment.yaml
+kubectl delete -f https://github.com/milvus-io/milvus-operator/blob/v0.7.4/deploy/manifests/deployment.yaml
 ```
 
 Or delete the milvus operator stack by using makefile:
@@ -102,12 +95,45 @@ Or delete the milvus operator stack by using makefile:
 make undeploy
 ```
 
+# Deploy a demo Milvus instance
+Deploy a Milvus demo by following command: `kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/config/samples/demo.yaml`
+
+Wait for the Milvus instance to be ready. You can check the status by running:
+
+```shell
+kubectl wait --for=condition=MilvusReady  milvus/my-release --timeout 10m
+```
+
+If it's ready, you should see the following output:
+```text
+milvus.milvus.io/my-release condition met
+```
+
+# Access your Milvus instance
+Find the external IP of your Milvus instance by running:
+
+```shell
+kubectl get service
+```
+
+The output should look like this:
+```text
+NAME               TYPE          CLUSTER-IP     EXTERNAL-IP    PORT(S)                         AGE
+my-release-milvus  LoadBalancer  10.101.144.12  10.100.31.101  19530:31309/TCP,9091:30197/TCP  10m
+```
+
+The `EXTERNAL-IP` is the IP address of your Milvus instance. You can use this IP address to access your Milvus instance.
+
+Follow the [Hello Milvus Guide](https://milvus.io/docs/example_code.md)
+
+> Remember to change the `host` parameter to your `EXTERNAL-IP` of your Milvus instance. The `connect to server` code should be like`connections.connect("default", host="10.100.31.101", port="19530")` in my case.
 
 # What's next
 
-If the Milvus operator is successfully installed, you can follow the guide shown to deploy your Milvus cluster to your Kubernetes and try it. The examples can be found in https://github.com/milvus-io/milvus-operator/tree/main/config/samples
+- Administration Guides: https://github.com/milvus-io/milvus-operator/tree/main/docs/administration
+- Docs for all configuration fields for Milvus CRD here: [Milvus CRD](../CRD/milvus.md)
+- Common configuration samples here: https://github.com/milvus-io/milvus-operator/tree/main/config/samples
 
-quick start with `kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/config/samples/milvus_minimum.yaml`
 
 # Install Kind for Development
 For local development purpose, check [Kind installation](./kind-installation.md).

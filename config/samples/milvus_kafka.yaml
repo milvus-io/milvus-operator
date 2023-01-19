@@ -5,8 +5,6 @@ metadata:
   labels:
     app: milvus
 spec:
-  components:
-    image: milvusdb/milvus-dev:master-latest
   dependencies:
     msgStreamType: kafka
     kafka:

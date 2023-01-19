@@ -1,3 +1,7 @@
+# Note 
+
+The `MilvusCluster` CRD is deprecated. Please use `Milvus` CRD instead.
+
 # Custom Resource Definition
 This document guides user to learn the related fields defined in the `MilvusCluster` CRD and then customize their Milvus cluster deployment stack.
 

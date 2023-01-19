@@ -1,0 +1,35 @@
+# change the <parameters> to match your environment
+apiVersion: milvus.io/v1beta1
+kind: Milvus
+metadata:
+  name: my-release
+  labels:
+    app: milvus
+spec:
+  components:
+    serviceAccountName: my-release-sa
+    image: milvusdb/milvus-dev:master-latest
+  config:
+    minio:
+      bucketName: <my-bucket-name>
+      rootPath: milvus/my-release
+      useSSL: true
+      useIAM: true
+  dependencies:
+    etcd:
+      inCluster:
+        values:
+          replicaCount: 1
+        deletionPolicy: Delete
+        pvcDeletion: true
+    storage:
+      external: true
+      type: S3
+      # Note: you must use regional endpoint here, otherwise the minio client that milvus uses will fail to connect
+      endpoint: s3.<my-bucket-region>.amazonaws.com:443
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: my-release-sa
+  eks.amazonaws.com/role-arn: <my-role-arn>
