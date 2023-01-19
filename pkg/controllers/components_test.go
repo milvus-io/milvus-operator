@@ -45,17 +45,15 @@ func TestMilvusComponent_IsNode(t *testing.T) {
 }
 
 func TestMergeComponentSpec(t *testing.T) {
+	src := ComponentSpec{}
+	dst := ComponentSpec{}
 	t.Run("merge pause", func(t *testing.T) {
-		src := ComponentSpec{}
-		dst := ComponentSpec{}
 		src.Paused = true
 		dst.Paused = false
 		merged := MergeComponentSpec(src, dst).Paused
 		assert.Equal(t, true, merged)
 	})
 	t.Run("merge label annotations", func(t *testing.T) {
-		src := ComponentSpec{}
-		dst := ComponentSpec{}
 		src.PodLabels = map[string]string{
 			"a": "1",
 			"b": "1",
@@ -77,8 +75,6 @@ func TestMergeComponentSpec(t *testing.T) {
 	})
 
 	t.Run("merge image", func(t *testing.T) {
-		src := ComponentSpec{}
-		dst := ComponentSpec{}
 		dst.Image = "a"
 		merged := MergeComponentSpec(src, dst).Image
 		assert.Equal(t, "a", merged)
@@ -88,8 +84,6 @@ func TestMergeComponentSpec(t *testing.T) {
 	})
 
 	t.Run("merge imagePullPolicy", func(t *testing.T) {
-		src := ComponentSpec{}
-		dst := ComponentSpec{}
 		merged := MergeComponentSpec(src, dst).ImagePullPolicy
 		assert.Equal(t, corev1.PullIfNotPresent, *merged)
 
@@ -105,8 +99,6 @@ func TestMergeComponentSpec(t *testing.T) {
 	})
 
 	t.Run("merge env", func(t *testing.T) {
-		src := ComponentSpec{}
-		dst := ComponentSpec{}
 		src.Env = []corev1.EnvVar{
 			{Name: "a"},
 		}
@@ -119,8 +111,6 @@ func TestMergeComponentSpec(t *testing.T) {
 	})
 
 	t.Run("merge imagePullSecret", func(t *testing.T) {
-		src := ComponentSpec{}
-		dst := ComponentSpec{}
 		dst.ImagePullSecrets = []corev1.LocalObjectReference{
 			{Name: "a"},
 		}
@@ -137,8 +127,6 @@ func TestMergeComponentSpec(t *testing.T) {
 	})
 
 	t.Run("merge schedulerName", func(t *testing.T) {
-		src := ComponentSpec{}
-		dst := ComponentSpec{}
 		dst.SchedulerName = "a"
 		merged := MergeComponentSpec(src, dst).SchedulerName
 		assert.Equal(t, "a", merged)
@@ -149,8 +137,6 @@ func TestMergeComponentSpec(t *testing.T) {
 	})
 
 	t.Run("merge tolerations", func(t *testing.T) {
-		src := ComponentSpec{}
-		dst := ComponentSpec{}
 		dst.Tolerations = []corev1.Toleration{
 			{Key: "a"},
 		}
@@ -167,8 +153,6 @@ func TestMergeComponentSpec(t *testing.T) {
 	})
 
 	t.Run("merge nodeSelector", func(t *testing.T) {
-		src := ComponentSpec{}
-		dst := ComponentSpec{}
 		dst.NodeSelector = map[string]string{
 			"a": "b",
 		}
@@ -185,8 +169,6 @@ func TestMergeComponentSpec(t *testing.T) {
 	})
 
 	t.Run("merge resources", func(t *testing.T) {
-		src := ComponentSpec{}
-		dst := ComponentSpec{}
 		dst.Resources = &corev1.ResourceRequirements{
 			Limits: corev1.ResourceList{
 				"cpu": resource.MustParse("1"),
@@ -211,8 +193,6 @@ func TestMergeComponentSpec(t *testing.T) {
 	})
 
 	t.Run("merge affinity", func(t *testing.T) {
-		src := ComponentSpec{}
-		dst := ComponentSpec{}
 		dst.Affinity = &corev1.Affinity{
 			NodeAffinity: &corev1.NodeAffinity{},
 		}
@@ -223,6 +203,15 @@ func TestMergeComponentSpec(t *testing.T) {
 		}
 		merged = MergeComponentSpec(src, dst).Affinity
 		assert.Equal(t, src.Affinity, merged)
+	})
+
+	t.Run("merge serviceAccountName", func(t *testing.T) {
+		dst.ServiceAccountName = "a"
+		merged := MergeComponentSpec(src, dst).ServiceAccountName
+		assert.Equal(t, "a", merged)
+		src.ServiceAccountName = "b"
+		merged = MergeComponentSpec(src, dst).ServiceAccountName
+		assert.Equal(t, "b", merged)
 	})
 }
 
