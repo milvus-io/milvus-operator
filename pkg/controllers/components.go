@@ -420,5 +420,9 @@ func MergeComponentSpec(src, dst ComponentSpec) ComponentSpec {
 		dst.Volumes = src.Volumes
 	}
 
+	if len(src.ServiceAccountName) > 0 {
+		dst.ServiceAccountName = src.ServiceAccountName
+	}
+
 	return dst
 }
