@@ -13,7 +13,7 @@ kubectl --timeout 10m wait --for=condition=Rollbacked milvusupgrade my-release-u
 kubectl --timeout 10m wait --for=condition=MilvusReady mi my-release
 echo "Clean up"
 kubectl delete -f test/milvus-2.1.yaml --wait=true --timeout=5m --cascade=foreground
-kubectl delete -f config/samples/beta/milvusupgrade.yaml --wait=true --timeout=5m --cascade=foreground
+kubectl delete -f test/mi-upgrade.yaml --wait=true --timeout=5m --cascade=foreground
 
 echo "Deploying old milvus cluster"
 kubectl create ns mc

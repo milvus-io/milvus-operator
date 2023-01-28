@@ -5,6 +5,10 @@ metadata:
   labels:
     app: milvus
 spec:
+  config: {}
+  components:
+    standalone:
+      serviceType: LoadBalancer
   dependencies:
     etcd:
       inCluster:
