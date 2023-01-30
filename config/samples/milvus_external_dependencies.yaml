@@ -1,3 +1,4 @@
+# This sample is used to deploy milvus with external dependencies
 # change the <parameters> to match your environment
 apiVersion: milvus.io/v1beta1
 kind: Milvus

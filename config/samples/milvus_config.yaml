@@ -1,3 +1,5 @@
+# This is a sample to add custom configurations for milvus
+# It changes the etcd's rootPath, minio's bucketName and log's level
 apiVersion: milvus.io/v1beta1
 kind: Milvus
 metadata:
@@ -12,3 +14,5 @@ spec:
       rootPath: my-release
     minio:
       bucketName: my-bucket
+    log:
+      level: debug

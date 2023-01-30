@@ -4,7 +4,6 @@ The installation guide documented here help you deploy Milvus operator stack wit
 ## Prerequisites
 1. `Kubernetes` cluster (v1.19+) is running.
 2. `Helm` is [installed](https://helm.sh/).
-2. `cert-manager`(optional) (v1.0+) is [installed](https://cert-manager.io/docs/installation/kubernetes/).
 
 ## Installation
 
@@ -96,9 +95,17 @@ make undeploy
 ```
 
 # Deploy a demo Milvus instance
-Deploy a Milvus demo by following command: `kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/config/samples/demo.yaml`
 
-Wait for the Milvus instance to be ready. You can check the status by running:
+## Deploy a Milvus standalone demo
+`kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/config/samples/demo.yaml`
+
+## Deploy a Milvus cluster demo
+`kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/config/samples/cluster_demo.yaml`
+
+
+## Wait for the Milvus instance to be ready. 
+
+You can check the status by running:
 
 ```shell
 kubectl wait --for=condition=MilvusReady  milvus/my-release --timeout 10m

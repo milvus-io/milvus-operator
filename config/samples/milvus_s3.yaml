@@ -1,3 +1,4 @@
+# This sample file is used to deploy Milvus with AWS S3 as its object storage.
 # # change the <parameters> to match your environment
 apiVersion: milvus.io/v1beta1
 kind: Milvus
@@ -16,7 +17,7 @@ spec:
     storage:
       external: true
       type: S3
-      endpoint: s3.<my-bucket-region>.amazonaws.com:443
+      endpoint: s3.amazonaws.com:443
       secretRef: "my-release-s3-secret"
 ---
 apiVersion: v1
@@ -24,6 +25,6 @@ kind: Secret
 metadata:
   name: my-release-s3-secret
 type: Opaque
-data:
+stringData:
   accesskey: <my-access-key>
   secretkey: <my-secret-key>

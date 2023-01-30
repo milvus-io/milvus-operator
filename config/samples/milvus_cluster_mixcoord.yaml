@@ -1,3 +1,5 @@
+# This is a sample to deploy a milvus cluster using mixCoord instead of rootCoord, indexCoord, dataCoord and queryCoord.
+
 apiVersion: milvus.io/v1beta1
 kind: Milvus
 metadata:

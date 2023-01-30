@@ -1,3 +1,4 @@
+# This is a sample to configure a milvus cluster's cpu and memory resources.
 apiVersion: milvus.io/v1beta1
 kind: Milvus
 metadata:
