@@ -1,3 +1,4 @@
+# This sample file is used to deploy Milvus with GCS as its object storage.
 # change the <parameters> to match your environment
 apiVersion: milvus.io/v1beta1
 kind: Milvus
@@ -6,15 +7,12 @@ metadata:
   labels:
     app: milvus
 spec:
-  components:
-    serviceAccountName: my-release-sa
   config:
     minio:
       cloudProvider: gcp
       bucketName: <my-bucket-name>
       rootPath: milvus/my-release
       useSSL: true
-      useIAM: true
   dependencies:
     etcd:
       inCluster:
@@ -26,9 +24,13 @@ spec:
       external: true
       type: S3
       endpoint: storage.googleapis.com:443
+      secretRef: "my-release-s3-secret"
 ---
 apiVersion: v1
-kind: ServiceAccount
+kind: Secret
 metadata:
-  name: my-release-sa
-  eks.amazonaws.com/role-arn: <my-role-arn>
+  name: my-release-s3-secret
+type: Opaque
+stringData:
+  accesskey: <my-access-key>
+  secretkey: <my-secret-key>

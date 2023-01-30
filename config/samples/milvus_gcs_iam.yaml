@@ -1,3 +1,6 @@
+# This sample file is used to deploy Milvus with GCS as its object storage
+# and access GCS with AssumeRole.
+
 # change the <parameters> to match your environment
 apiVersion: milvus.io/v1beta1
 kind: Milvus

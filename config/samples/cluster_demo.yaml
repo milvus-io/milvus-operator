@@ -1,3 +1,8 @@
+# This is a sample to deploy a milvus cluster with minimum cost of resources.
+# It should be used for testing and development purposes only.
+# Total resources required is about: 0.25 CPU, 512 MiB memory
+# When deleted, all the data in the Milvus will be lost.
+
 apiVersion: milvus.io/v1beta1
 kind: Milvus
 metadata:

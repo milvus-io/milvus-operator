@@ -30,12 +30,14 @@ Or with kubectl & raw manifests:
 kubectl apply -f https://github.com/milvus-io/milvus-operator/v0.7.4/deploy/manifests/deployment.yaml
 ```
 
-For more infomation Check [instructions on how to install/uninstall milvus operator](docs/installation/installation.md)
+For more infomation Check [Installation Instructions](docs/installation/installation.md)
 
-## Create milvus cluster
+## Create milvus demo instance
 ```shell
-kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/config/samples/milvus_cluster_default.yaml
+kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/main/config/samples/demo.yaml
 ```
+
+> Note: The demo instance starts a standalone milvus & its dependencies with the least resources requests. It is not suitable for production environment. For more deployment examples please check https://github.com/milvus-io/milvus-operator/blob/main/config/samples
 
 # Versioning
 
@@ -50,34 +52,28 @@ Versions, v2.2.2 `[1]`, 2.8.2 / 3.1.0, 3.5.0, RELEASE.2022-03-17T06-34-49Z -->
 |Versions| v2.2.2 `[1]`| 2.8.2 / 3.1.0 | 3.5.0|RELEASE.2022-03-17T06-34-49Z|
 
 
-**NOTES:**
-
-`[1]` Version of milvus is the default version we will use, you can set it to other version. The Compatibility with milvus releases is showed below.
+> `[1]` Version of milvus is the default version we will use, you can set it to other version. The Compatibility with milvus releases is showed below.
 
 ## Compatibility With Milvus Releases
 
 <!-- source csv for table
 Milvus Versions, <=v2.0.0-rc8, v2.0.0-pre-ga, >=v2.0.0
-Compatibility, :heavy_multiplication_x:, :heavy_check_mark:, :heavy_check_mark:  -->
+Compatibility, ✖️, ✔️, ✔️  -->
 
 |Milvus Versions| <=v2.0.0-rc8| v2.0.0-pre-ga| >=v2.0.0|
 |---|---|---|---|
-|Compatibility| :heavy_multiplication_x:| :heavy_check_mark:| :heavy_check_mark:|
+|Compatibility| ✖️| ✔️| ✔️|
 
 ## Compatibility With Milvus-Operator Earlier Releases
 
 <!-- source csv for table
 Milvus Operator Versions, <0.4.0, >=0.4.0
-Compatibility, :heavy_multiplication_x:, :heavy_check_mark:  -->
+Compatibility, ✖️, ✔️  -->
 
 |Milvus Operator Versions| <0.4.0| >=0.4.0|
 |---|---|---|
-|Compatibility| :heavy_multiplication_x:| :heavy_check_mark:|
+|Compatibility| ✖️| ✔️|
 
-**NOTES:**
-
-  :heavy_check_mark: : support
-  :heavy_multiplication_x: : not support
 
 # Install / upgrade milvus-operator of a specific version
 
@@ -96,10 +92,14 @@ kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.
 ```
 
 
-# Documentation
-- [How it works](docs/arch/arch.md)
+# Documentations
 - [Installation](docs/installation/installation.md)
-- [How to configure the MilvusCluster](docs/CRD/milvus-cluster.md)
-- [How to configure the standalone Milvus](docs/CRD/milvus.md)
 - [Install KinD for development](docs/installation/kind-installation.md)
-
+- Administration Guides:
+  - [Configure Milvus with Milvus Operator](docs/administration/configure-milvus.md)
+  - Manage Dependencies:
+    - [Configure Meta Storge](docs/administration/manage-dependencies/meta-storage.md)
+    - [Configure Object Storage](docs/administration/manage-dependencies/object-storage.md)
+    - Message Storage
+- [Milvus CRD Reference](docs/CRD/milvus.md)
+- [How it works](docs/arch/arch.md)

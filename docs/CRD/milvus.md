@@ -52,7 +52,18 @@ spec:
     # Components specifications
 
     # Components global specifications
+
+    # Paused is used to pause all components' deployment rollout
+    paused: false # Optional
+
+    # Global pod labels.
+    podLabels: # Optional
+      key: value
     
+    # Global pod annotations.
+    podAnnotations: # Optional
+      key: value
+
     # Global image name for milvus components. It will override the default one. Default is determined by operator version
     image: milvusdb/milvus:latest # Optional
 
@@ -92,6 +103,29 @@ spec:
       # otherwise to an implementation-defined value.
       # More info: https://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
       requests: {} # Optional
+
+    # Global volumes for all components 
+    # More info: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#volume-v1-core
+    volumes: [] # Optional
+    
+    # Global volumeMounts.
+    # More info: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.21/#volumemount-v1-core
+    VolumeMounts: [] # Optional
+
+    # Global serviceAccountName.
+    serviceAccountName: "" # Optional
+
+    # Disable metrics collection for all components
+    disableMetrics: false # Optional
+
+    # The interval of podmonitor metric scraping in string
+    metricInterval : "30s" # Optional
+
+    # ToolImage specify tool image to merge milvus config to original one in image, default uses same image as milvus-operator
+    toolImage: "" # Optional
+
+    # UpdateToolImage specifies when milvus-operator upgraded, whether milvus should restart to update the tool image, too
+    updateToolImage: false # Optional
 
     # Components private specifications
     # ... Skipped fields
@@ -309,7 +343,7 @@ spec:
       bucketName: my-bucket
 ```
 
-A complete set of config fields can be found at https://github.com/milvus-io/milvus-operator/blob/main/config/assets/templates/milvus-cluster/milvus.yaml.tmpl. 
+A complete set of config fields can be found at https://github.com/milvus-io/milvus/blob/master/configs/milvus.yaml
 
 NOTE! The fields of dependencies' address and port cannot be set in the Milvus Cluster CR.
 
@@ -436,4 +470,4 @@ spec:
             replicaCount: 1
 ```
 
-A complete fields doc can be found at https://github.com/bitnami/charts/blob/1fdd2283f0e5a8772e4a763b455733c77e01b119/bitnami/kafka/values.yaml.
+A complete fields doc can be found at https://github.com/bitnami/charts/blob/1fdd2283f0e5a8772e4a763b455733c77e01b119/bitnami/kafka/values.yaml
