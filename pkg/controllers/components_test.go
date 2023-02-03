@@ -380,12 +380,49 @@ func TestMilvusComponent_GetLivenessProbe_GetReadinessProbe(t *testing.T) {
 
 func TestMilvusComponent_GetDeploymentStrategy(t *testing.T) {
 	com := QueryNode
-	strategy := com.GetDeploymentStrategy()
-	assert.Equal(t, appsv1.RollingUpdateDeploymentStrategyType, strategy.Type)
-	assert.Equal(t, intstr.FromInt(0), *strategy.RollingUpdate.MaxUnavailable)
+	configs := map[string]interface{}{}
 
-	com = DataCoord
-	assert.Equal(t, appsv1.RecreateDeploymentStrategyType, com.GetDeploymentStrategy().Type)
+	t.Run("default strategy", func(t *testing.T) {
+		strategy := com.GetDeploymentStrategy(configs)
+		assert.Equal(t, appsv1.RollingUpdateDeploymentStrategyType, strategy.Type)
+		assert.Equal(t, intstr.FromInt(0), *strategy.RollingUpdate.MaxUnavailable)
+
+		com = DataCoord
+		assert.Equal(t, appsv1.RecreateDeploymentStrategyType, com.GetDeploymentStrategy(configs).Type)
+
+	})
+
+	enableActiveStandByMap := map[string]interface{}{
+		enableActiveStandByConfig: true,
+	}
+	configs = map[string]interface{}{
+		"dataCoord": enableActiveStandByMap,
+	}
+	t.Run("datacoord enableActiveStandby", func(t *testing.T) {
+		com = DataCoord
+		assert.Equal(t, appsv1.RollingUpdateDeploymentStrategyType, com.GetDeploymentStrategy(configs).Type)
+	})
+
+	t.Run("mixcoord / standalone not all enableActiveStandby", func(t *testing.T) {
+		com = MixCoord
+		assert.Equal(t, appsv1.RecreateDeploymentStrategyType, com.GetDeploymentStrategy(configs).Type)
+		com = MilvusStandalone
+		assert.Equal(t, appsv1.RecreateDeploymentStrategyType, com.GetDeploymentStrategy(configs).Type)
+	})
+
+	configs = map[string]interface{}{
+		"dataCoord":  enableActiveStandByMap,
+		"indexCoord": enableActiveStandByMap,
+		"queryCoord": enableActiveStandByMap,
+		"rootCoord":  enableActiveStandByMap,
+	}
+	t.Run("mixcoord / standalone all enableActiveStandby", func(t *testing.T) {
+		com = MixCoord
+		assert.Equal(t, appsv1.RollingUpdateDeploymentStrategyType, com.GetDeploymentStrategy(configs).Type)
+		com = MilvusStandalone
+		assert.Equal(t, appsv1.RollingUpdateDeploymentStrategyType, com.GetDeploymentStrategy(configs).Type)
+	})
+
 }
 
 func TestMilvusComponent_SetStatusReplica(t *testing.T) {

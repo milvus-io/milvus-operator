@@ -56,6 +56,9 @@ const (
 	// TODO: use configurable port?
 	MilvusPort     = ProxyPort
 	StandalonePort = MilvusPort
+
+	// enableActiveStandByConfig is a config in coordinators to determine whether a coordinator can be rolling updated
+	enableActiveStandByConfig = "enableActiveStandby"
 )
 
 // MilvusComponent contains basic info of a milvus cluster component
@@ -94,6 +97,14 @@ var (
 
 	MilvusCoords = []MilvusComponent{
 		RootCoord, DataCoord, QueryCoord, IndexCoord,
+	}
+
+	// coordConfigFieldName is a map of coordinator's name to config field name
+	coordConfigFieldName = map[string]string{
+		RootCoordName:  "rootCoord",
+		DataCoordName:  "dataCoord",
+		IndexCoordName: "indexCoord",
+		QueryCoordName: "queryCoord",
 	}
 )
 
@@ -324,18 +335,36 @@ func GetLivenessProbe() *corev1.Probe {
 
 var GetReadinessProbe = GetLivenessProbe
 
-func (c MilvusComponent) GetDeploymentStrategy() appsv1.DeploymentStrategy {
-	if c.IsCoord() || c.IsStandalone() {
-		return appsv1.DeploymentStrategy{
-			Type: appsv1.RecreateDeploymentStrategyType,
+func (c MilvusComponent) GetDeploymentStrategy(configs map[string]interface{}) appsv1.DeploymentStrategy {
+	var useRollingUpdate bool
+	switch {
+	case c.IsCoord() && c.Name != MixCoordName:
+		configFieldName := coordConfigFieldName[c.Name]
+		useRollingUpdate, _ = util.GetBoolValue(configs, configFieldName, enableActiveStandByConfig)
+	case c.Name == MixCoordName, c.IsStandalone():
+		useRollingUpdate = true
+		// if any coord disabled ActiveStandBy, we'll not use rolling update
+		for _, configFieldName := range coordConfigFieldName {
+			enableActiveStandBy, _ := util.GetBoolValue(configs, configFieldName, enableActiveStandByConfig)
+			if !enableActiveStandBy {
+				useRollingUpdate = false
+				break
+			}
 		}
+	default:
+		useRollingUpdate = true
 	}
 
+	if useRollingUpdate {
+		return appsv1.DeploymentStrategy{
+			Type: appsv1.RollingUpdateDeploymentStrategyType,
+			RollingUpdate: &appsv1.RollingUpdateDeployment{
+				MaxUnavailable: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
+			},
+		}
+	}
 	return appsv1.DeploymentStrategy{
-		Type: appsv1.RollingUpdateDeploymentStrategyType,
-		RollingUpdate: &appsv1.RollingUpdateDeployment{
-			MaxUnavailable: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
-		},
+		Type: appsv1.RecreateDeploymentStrategyType,
 	}
 }
 
