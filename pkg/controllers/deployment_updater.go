@@ -44,12 +44,13 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	configContainerIdx := GetContainerIndex(template.Spec.InitContainers, configContainerName)
 	spec := updater.GetMilvus().Spec
 	if configContainerIdx < 0 {
+		var container = new(corev1.Container)
 		if len(template.Spec.InitContainers) < 1 {
 			template.Spec.InitContainers = []corev1.Container{}
 		}
-		template.Spec.InitContainers = append(template.Spec.InitContainers, getInitContainer(spec.Com.ToolImage))
+		template.Spec.InitContainers = append(template.Spec.InitContainers, *renderInitContainer(container, spec.Com.ToolImage))
 	} else if spec.Com.UpdateToolImage {
-		template.Spec.InitContainers[configContainerIdx] = getInitContainer(spec.Com.ToolImage)
+		renderInitContainer(&template.Spec.InitContainers[configContainerIdx], spec.Com.ToolImage)
 	}
 	if template.Labels == nil {
 		template.Labels = map[string]string{}
@@ -78,7 +79,9 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 			addVolume(volumes, persisentVolumeByName(getPVCNameByInstName(updater.GetIntanceName())))
 		}
 	}
-	template.Spec.SchedulerName = mergedComSpec.SchedulerName
+	if len(mergedComSpec.SchedulerName) > 0 {
+		template.Spec.SchedulerName = mergedComSpec.SchedulerName
+	}
 	template.Spec.Affinity = mergedComSpec.Affinity
 	template.Spec.Tolerations = mergedComSpec.Tolerations
 	template.Spec.NodeSelector = mergedComSpec.NodeSelector

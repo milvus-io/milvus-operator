@@ -100,6 +100,13 @@ kubectl apply -f https://raw.githubusercontent.com/milvus-io/milvus-operator/v0.
   - Manage Dependencies:
     - [Configure Meta Storge](docs/administration/manage-dependencies/meta-storage.md)
     - [Configure Object Storage](docs/administration/manage-dependencies/object-storage.md)
-    - Message Storage
+    - [Configure Message Storage](docs/administration/manage-dependencies/message-storage.md)
+  - [Monitor And Alert](docs/administration/monitor-and-alert.md)
+  - [Allocate Resources](docs/administration/allocate-resources.md)
+  - [Scale A Milvus Cluster](docs/administration/scale-a-milvus-cluster.md)
+  - [Upgrade](docs/administration/upgrade.md)
+  - Security:
+    - [Enable TLS](docs/administration/security/encryption-in-transit.md)
+    - [Enable Authentication](docs/administration/security/enable-authentication.md)
 - [Milvus CRD Reference](docs/CRD/milvus.md)
 - [How it works](docs/arch/arch.md)

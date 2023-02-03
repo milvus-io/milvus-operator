@@ -33,22 +33,25 @@ var (
 
 // MilvusStatusCode for milvusStatusCollector
 const (
-	MilvusStatusCodeCreating  = float64(0)
+	MilvusStatusCodePending   = float64(0)
 	MilvusStatusCodeHealthy   = float64(1)
 	MilvusStatusCodeUnHealthy = float64(2)
 	MilvusStatusCodeDeleting  = float64(3)
+	MilvusStautsCodeStopped   = float64(4)
 )
 
 func MilvusStatusToCode(status v1beta1.MilvusHealthStatus) float64 {
 	switch status {
 	case v1beta1.StatusHealthy:
 		return MilvusStatusCodeHealthy
-	case v1beta1.StatusUnHealthy:
+	case v1beta1.StatusUnhealthy:
 		return MilvusStatusCodeUnHealthy
 	case v1beta1.StatusDeleting:
 		return MilvusStatusCodeDeleting
+	case v1beta1.StatusStopped:
+		return MilvusStautsCodeStopped
 	default:
-		return MilvusStatusCodeCreating
+		return MilvusStatusCodePending
 	}
 }
 

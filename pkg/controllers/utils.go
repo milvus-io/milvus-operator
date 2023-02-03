@@ -246,11 +246,21 @@ func IsEqual(obj1, obj2 interface{}) bool {
 	return equality.Semantic.DeepEqual(obj1, obj2)
 }
 
-// DeploymentReady returns if deployment is available &
+// DeploymentReady deployment is ready when all followings are true:
+// observed generation is newest
+// not stopped
+// all new replicas are ready
+// rollout compleleted
 func DeploymentReady(deployment appsv1.Deployment) bool {
 	if deployment.Status.ObservedGeneration < deployment.Generation {
 		return false
 	}
+
+	// stopped
+	if deployment.Status.Replicas < 1 {
+		return false
+	}
+
 	ready := false
 	errored := false
 	progressed := false
@@ -258,10 +268,13 @@ func DeploymentReady(deployment appsv1.Deployment) bool {
 	for _, cond := range deployment.Status.Conditions {
 		switch cond.Type {
 		case appsv1.DeploymentProgressing:
-			progressed = cond.Status == corev1.ConditionTrue
+			if cond.Status != corev1.ConditionTrue {
+				break
+			}
+			progressed = cond.Reason == v1beta1.NewReplicaSetAvailableReason
 
 		case appsv1.DeploymentReplicaFailure:
-			errored = cond.Status == corev1.ConditionTrue
+			return false
 
 		case appsv1.DeploymentAvailable:
 			ready = cond.Status == corev1.ConditionTrue

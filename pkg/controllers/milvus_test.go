@@ -147,7 +147,7 @@ func TestCluster_SetDefaultStatus(t *testing.T) {
 
 	// has status, not set
 	m = env.Inst // ptr value changed, need reset
-	m.Status.Status = v1beta1.StatusCreating
+	m.Status.Status = v1beta1.StatusPending
 	err = r.SetDefaultStatus(ctx, &m)
 	assert.NoError(t, err)
 }

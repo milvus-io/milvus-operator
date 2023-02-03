@@ -297,6 +297,15 @@ func GetMilvusEndpoint(ctx context.Context, logger logr.Logger, client client.Cl
 }
 
 func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
+	if mc.Spec.IsStopping() {
+		return v1beta1.MilvusCondition{
+			Type:    v1beta1.MilvusReady,
+			Status:  corev1.ConditionFalse,
+			Reason:  v1beta1.ReasonMilvusStopped,
+			Message: MessageMilvusStopped,
+		}, nil
+	}
+
 	if !IsDependencyReady(mc.Status.Conditions) {
 		return v1beta1.MilvusCondition{
 			Type:    v1beta1.MilvusReady,

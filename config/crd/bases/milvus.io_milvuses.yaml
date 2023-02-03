@@ -1016,7 +1016,7 @@ spec:
                     type: integer
                 type: object
               status:
-                default: Creating
+                default: Pending
                 type: string
             required:
             - status
@@ -7177,7 +7177,7 @@ spec:
                     type: integer
                 type: object
               status:
-                default: Creating
+                default: Pending
                 type: string
             required:
             - status

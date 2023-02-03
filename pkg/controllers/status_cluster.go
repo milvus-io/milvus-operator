@@ -35,6 +35,7 @@ const (
 	MessageKeyNotExist       = "accesskey or secretkey not exist in secret"
 	MessageDecodeErr         = "accesskey or secretkey decode error"
 	MessageMilvusHealthy     = "All Milvus components are healthy"
+	MessageMilvusStopped     = "All Milvus components are stopped"
 )
 
 var (
@@ -79,7 +80,7 @@ var unhealthySyncInterval = 30 * time.Second
 
 func (r *MilvusStatusSyncer) RunIfNot() {
 	r.Once.Do(func() {
-		go LoopWithInterval(r.ctx, r.syncUnhealthy, unhealthySyncInterval, r.logger)
+		go LoopWithInterval(r.ctx, r.syncNotHealthy, unhealthySyncInterval, r.logger)
 		go LoopWithInterval(r.ctx, r.syncHealthy, unhealthySyncInterval*2, r.logger)
 		go LoopWithInterval(r.ctx, r.updateMetrics, unhealthySyncInterval, r.logger)
 	})
@@ -108,7 +109,7 @@ func (r *MilvusStatusSyncer) updateMetrics() error {
 		switch mc.Status.Status {
 		case v1beta1.StatusHealthy:
 			healthyCount++
-		case v1beta1.StatusUnHealthy:
+		case v1beta1.StatusUnhealthy:
 			unhealthyCount++
 		case v1beta1.StatusDeleting:
 			deletingCount++
@@ -117,19 +118,19 @@ func (r *MilvusStatusSyncer) updateMetrics() error {
 		}
 	}
 	milvusTotalCountCollector.WithLabelValues(string(v1beta1.StatusHealthy)).Set(float64(healthyCount))
-	milvusTotalCountCollector.WithLabelValues(string(v1beta1.StatusUnHealthy)).Set(float64(unhealthyCount))
+	milvusTotalCountCollector.WithLabelValues(string(v1beta1.StatusUnhealthy)).Set(float64(unhealthyCount))
 	milvusTotalCountCollector.WithLabelValues(string(v1beta1.StatusDeleting)).Set(float64(deletingCount))
-	milvusTotalCountCollector.WithLabelValues(string(v1beta1.StatusCreating)).Set(float64(creatingCount))
+	milvusTotalCountCollector.WithLabelValues(string(v1beta1.StatusPending)).Set(float64(creatingCount))
 	return nil
 }
 
-func (r *MilvusStatusSyncer) syncUnhealthy() error {
+func (r *MilvusStatusSyncer) syncNotHealthy() error {
 	milvusList := &v1beta1.MilvusList{}
 	startTime := time.Now()
-	r.logger.Info("syncUnhealthy start", "time", startTime)
+	r.logger.Info("syncNotHealthy start", "time", startTime)
 	// use func to avoid capture
 	defer func() {
-		r.logger.Info("syncUnhealthy end", "duration", time.Since(startTime))
+		r.logger.Info("syncNotHealthy end", "duration", time.Since(startTime))
 	}()
 	err := r.List(r.ctx, milvusList)
 	if err != nil {
@@ -139,10 +140,9 @@ func (r *MilvusStatusSyncer) syncUnhealthy() error {
 	var ret error
 	for i := range milvusList.Items {
 		mc := &milvusList.Items[i]
-		// update metric
 		if mc.Status.Status == "" ||
 			mc.Status.Status == v1beta1.StatusHealthy ||
-			mc.Status.Status == v1beta1.StatusDeleting {
+			mc.DeletionTimestamp != nil {
 			continue
 		}
 		argsArray = append(argsArray, mc)
@@ -171,16 +171,18 @@ func (r *MilvusStatusSyncer) syncHealthy() error {
 	var ret error
 	for i := range milvusList.Items {
 		mc := &milvusList.Items[i]
-		if mc.Status.Status == v1beta1.StatusHealthy {
-			if argsArray == nil {
-				argsArray = make([]*v1beta1.Milvus, 0, config.MaxConcurrentHealthCheck)
-			}
-			argsArray = append(argsArray, mc)
-			if len(argsArray) >= config.MaxConcurrentHealthCheck {
-				err = defaultGroupRunner.RunDiffArgs(r.UpdateStatusRoutine, r.ctx, argsArray)
-				if err != nil {
-					ret = err
-				}
+		if mc.DeletionTimestamp != nil ||
+			mc.Status.Status != v1beta1.StatusHealthy {
+			continue
+		}
+		if argsArray == nil {
+			argsArray = make([]*v1beta1.Milvus, 0, config.MaxConcurrentHealthCheck)
+		}
+		argsArray = append(argsArray, mc)
+		if len(argsArray) >= config.MaxConcurrentHealthCheck {
+			err = defaultGroupRunner.RunDiffArgs(r.UpdateStatusRoutine, r.ctx, argsArray)
+			if err != nil {
+				ret = err
 			}
 		}
 	}
@@ -204,47 +206,33 @@ func (r *MilvusStatusSyncer) UpdateStatusRoutine(ctx context.Context, mc *v1beta
 	// so we call default again to ensure
 	mc.Default()
 
-	return r.UpdateStatusForNewGeneration(ctx, mc)
+	err := r.UpdateStatusForNewGeneration(ctx, mc)
+	return errors.Wrapf(err, "UpdateStatus for milvus[%s/%s]", mc.Namespace, mc.Name)
 }
 
 func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, mc *v1beta1.Milvus) error {
-	funcs := []Func{
-		r.GetEtcdCondition,
-		r.GetMinioCondition,
-		r.GetMsgStreamCondition,
-	}
-	ress := defaultGroupRunner.RunWithResult(funcs, ctx, *mc)
-	errTexts := []string{}
-	for _, res := range ress {
-		if res.Err == nil {
-			UpdateCondition(&mc.Status, res.Data.(v1beta1.MilvusCondition))
-		} else {
-			errTexts = append(errTexts, res.Err.Error())
+	if !mc.Spec.IsStopping() {
+		funcs := []Func{
+			r.GetEtcdCondition,
+			r.GetMinioCondition,
+			r.GetMsgStreamCondition,
+		}
+		ress := defaultGroupRunner.RunWithResult(funcs, ctx, *mc)
+		errTexts := []string{}
+		for _, res := range ress {
+			if res.Err == nil {
+				UpdateCondition(&mc.Status, res.Data.(v1beta1.MilvusCondition))
+			} else {
+				errTexts = append(errTexts, res.Err.Error())
+			}
+		}
+
+		if len(errTexts) > 0 {
+			return fmt.Errorf("update status error: %s", strings.Join(errTexts, ":"))
 		}
 	}
 
-	if len(errTexts) > 0 {
-		return fmt.Errorf("update status error: %s", strings.Join(errTexts, ":"))
-	}
-
-	milvusCond, err := GetMilvusInstanceCondition(ctx, r.Client, *mc)
-	if err != nil {
-		return err
-	}
-	UpdateCondition(&mc.Status, milvusCond)
-
-	if milvusCond.Status != corev1.ConditionTrue {
-		switch mc.Status.Status {
-		case v1beta1.StatusHealthy:
-			mc.Status.Status = v1beta1.StatusUnHealthy
-		default:
-			// ignore
-		}
-	} else {
-		mc.Status.Status = v1beta1.StatusHealthy
-	}
-
-	err = r.UpdateIngressStatus(ctx, mc)
+	err := r.UpdateIngressStatus(ctx, mc)
 	if err != nil {
 		return errors.Wrap(err, "update ingress status failed")
 	}
@@ -260,6 +248,20 @@ func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, m
 	}
 
 	mc.Status.Endpoint = r.GetMilvusEndpoint(ctx, *mc)
+
+	milvusCond, err := GetMilvusInstanceCondition(ctx, r.Client, *mc)
+	if err != nil {
+		return err
+	}
+	UpdateCondition(&mc.Status, milvusCond)
+
+	statusInfo := MilvusHealthStatusInfo{
+		CurrentState:       mc.Status.Status,
+		IsStopping:         mc.Spec.IsStopping(),
+		DeploymentComplete: IsMilvusDeploymentsComplete(mc),
+		IsHealthy:          milvusCond.Status == corev1.ConditionTrue,
+	}
+	mc.Status.Status = statusInfo.GetMilvusHealthStatus()
 	return r.Status().Update(ctx, mc)
 }
 
@@ -423,4 +425,34 @@ func (r *componentsDeployStatusUpdaterImpl) Update(ctx context.Context, mc *v1be
 		}
 	}
 	return nil
+}
+
+type MilvusHealthStatusInfo struct {
+	CurrentState       v1beta1.MilvusHealthStatus
+	IsStopping         bool
+	DeploymentComplete bool
+	IsHealthy          bool
+}
+
+func (m MilvusHealthStatusInfo) GetMilvusHealthStatus() v1beta1.MilvusHealthStatus {
+	if !m.DeploymentComplete {
+		return v1beta1.StatusPending
+	}
+
+	// m.DeploymentComplete
+	if m.IsStopping {
+		return v1beta1.StatusStopped
+	}
+
+	// m.DeploymentComplete && !m.IsStopping
+	if m.IsHealthy {
+		return v1beta1.StatusHealthy
+	}
+	// m.DeploymentComplete && !m.IsStopping && !m.IsHealthy
+	if m.CurrentState == v1beta1.StatusHealthy ||
+		m.CurrentState == v1beta1.StatusUnhealthy {
+		return v1beta1.StatusUnhealthy
+	}
+
+	return v1beta1.StatusPending
 }

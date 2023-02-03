@@ -156,7 +156,7 @@ func TestMilvusReconciler_ReconcileLegacyValues(t *testing.T) {
 			Name:      "mc",
 		},
 		Status: v1beta1.MilvusStatus{
-			Status: v1beta1.StatusCreating,
+			Status: v1beta1.StatusPending,
 		},
 	}
 	ctx := context.Background()
