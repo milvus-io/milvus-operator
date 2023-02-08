@@ -50,6 +50,46 @@ type MilvusSpec struct {
 	Conf Values `json:"config,omitempty"`
 }
 
+// IsStopping returns true if the MilvusSpec has replicas serving
+func (ms MilvusSpec) IsStopping() bool {
+	if ms.Mode == MilvusModeStandalone {
+		return *ms.Com.Standalone.Replicas == 0
+	}
+	// cluster
+	if ms.Com.MixCoord != nil {
+		if *ms.Com.MixCoord.Replicas != 0 {
+			return false
+		}
+	} else {
+		// not mixcoord
+		if *ms.Com.IndexCoord.Replicas != 0 {
+			return false
+		}
+		if *ms.Com.DataCoord.Replicas != 0 {
+			return false
+		}
+		if *ms.Com.QueryCoord.Replicas != 0 {
+			return false
+		}
+		if *ms.Com.RootCoord.Replicas != 0 {
+			return false
+		}
+	}
+	if *ms.Com.Proxy.Replicas != 0 {
+		return false
+	}
+	if *ms.Com.DataNode.Replicas != 0 {
+		return false
+	}
+	if *ms.Com.IndexNode.Replicas != 0 {
+		return false
+	}
+	if *ms.Com.QueryNode.Replicas != 0 {
+		return false
+	}
+	return true
+}
+
 func (ms MilvusSpec) GetServiceComponent() *ServiceComponent {
 	if ms.Mode == MilvusModeCluster {
 		return &ms.Com.Proxy.ServiceComponent
@@ -71,8 +111,8 @@ type MilvusStatus struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	// Status indicates the overall status of the Milvus
-	// Status can be "Creating", "Healthy" and "Unhealthy"
-	// +kubebuilder:default:="Creating"
+	// Status can be "Pending", "Healthy", "Unhealthy", "Stopped"
+	// +kubebuilder:default:="Pending"
 	Status MilvusHealthStatus `json:"status"`
 
 	// Conditions of each components
@@ -89,13 +129,13 @@ type MilvusStatus struct {
 	// +kubebuilder:validation:Optional
 	DeprecatedReplicas MilvusReplicas `json:"replicas,omitempty"`
 
-	// ComponentsDeployStatus contains the status of each component deployment
+	// ComponentsDeployStatus contains the map of component's name to the status of each component deployment
 	// it is used to check the status of rolling update of each component
 	// +optional
 	ComponentsDeployStatus map[string]ComponentDeployStatus `json:"componentsDeployStatus,omitempty"`
 
-	// same usage as deployment.status.observedGeneration
-	// observedGeneration represents the .metadata.generation that the condition was set based upon.
+	// ObservedGeneration has same usage as deployment.status.observedGeneration
+	// it represents the .metadata.generation that the condition was set based upon.
 	// For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
 	// with respect to the current state of the instance.
 	// +optional
@@ -108,6 +148,49 @@ type ComponentDeployStatus struct {
 	Generation int64 `json:"generation"`
 	// Status of the deployment
 	Status appsv1.DeploymentStatus `json:"status"`
+}
+
+// DeploymentState is defined according to https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#deployment-status
+// It's enum of "Progressing", "Complete", "Failed"
+type DeploymentState string
+
+const (
+	DeploymentProgressing DeploymentState = "Progressing"
+	DeploymentComplete    DeploymentState = "Complete"
+	DeploymentFailed      DeploymentState = "Failed"
+)
+
+var (
+	// NewReplicaSetAvailableReason is the Complelete Reason
+	NewReplicaSetAvailableReason = "NewReplicaSetAvailable"
+)
+
+func (c ComponentDeployStatus) GetState() DeploymentState {
+	if c.Status.ObservedGeneration < c.Generation {
+		return DeploymentProgressing
+	}
+	processingCondition := getDeploymentConditionByType(c.Status.Conditions, appsv1.DeploymentProgressing)
+	if processingCondition == nil {
+		return DeploymentProgressing
+	}
+	if processingCondition.Status != corev1.ConditionTrue {
+		return DeploymentFailed
+	}
+	// we may get bad conclusion when strategy is recreate: https://github.com/kubernetes/kubernetes/issues/115538
+	if processingCondition.Reason == NewReplicaSetAvailableReason {
+		return DeploymentComplete
+	}
+	return DeploymentProgressing
+}
+
+// getDeploymentConditionByType returns the condition with the provided type. if no condition is found, return nil
+func getDeploymentConditionByType(conditions []appsv1.DeploymentCondition, conditionType appsv1.DeploymentConditionType) *appsv1.DeploymentCondition {
+	for _, condition := range conditions {
+		if condition.Type == conditionType {
+			return &condition
+		}
+	}
+	return nil
 }
 
 // MilvusReplicas is the replicas of milvus components
@@ -206,14 +289,16 @@ type MiluvsConditionType string
 type MilvusHealthStatus string
 
 const (
-	// StatusCreating is the status of creating.
-	StatusCreating MilvusHealthStatus = "Creating"
+	// StatusPending is the status of creating or updating.
+	StatusPending MilvusHealthStatus = "Pending"
 	// StatusHealthy is the status of healthy.
 	StatusHealthy MilvusHealthStatus = "Healthy"
-	// StatusUnHealthy is the status of unhealthy.
-	StatusUnHealthy MilvusHealthStatus = "Unhealthy"
+	// StatusUnhealthy is the status of unhealthy.
+	StatusUnhealthy MilvusHealthStatus = "Unhealthy"
 	// StatusDeleting is the status of deleting.
 	StatusDeleting MilvusHealthStatus = "Deleting"
+	// StatusStopped is the status of stopped.
+	StatusStopped MilvusHealthStatus = "Stopped"
 
 	// EtcdReady means the Etcd is ready.
 	EtcdReady MiluvsConditionType = "EtcdReady"
@@ -228,8 +313,10 @@ const (
 	ReasonEndpointsHealthy string = "EndpointsHealthy"
 	// ReasonMilvusHealthy means milvus cluster is healthy
 	ReasonMilvusHealthy string = "ReasonMilvusHealthy"
-	// ReasonMilvusClusterNotHealthy means at least one of milvus component is not healthy
+	// ReasonMilvusComponentNotHealthy means at least one of milvus component is not healthy
 	ReasonMilvusComponentNotHealthy string = "MilvusComponentNotHealthy"
+	// ReasonMilvusStopped means milvus cluster is stopped
+	ReasonMilvusStopped string = "MilvusStopped"
 
 	ReasonEtcdReady          = "EtcdReady"
 	ReasonEtcdNotReady       = "EtcdNotReady"

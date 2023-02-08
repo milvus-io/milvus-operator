@@ -14,7 +14,14 @@ spec:
   config: {}
   components: 
     proxy:
+      replicas: 1
       serviceType: LoadBalancer
+    dataNode:
+      replicas: 1
+    indexNode:
+      replicas: 1
+    queryNode:
+      replicas: 1
     mixCoord:
       replicas: 1
   dependencies:

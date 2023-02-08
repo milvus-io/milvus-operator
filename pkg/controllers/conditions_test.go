@@ -332,8 +332,9 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 	}
 	trueVal := true
 
+	milvus.Spec.Mode = v1beta1.MilvusModeStandalone
+	milvus.Default()
 	t.Run(("dependency not ready"), func(t *testing.T) {
-		milvus.Spec.Mode = v1beta1.MilvusModeCluster
 		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
 		assert.NoError(t, err)
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
@@ -350,7 +351,6 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 	})
 
 	t.Run(("get milvus condition error"), func(t *testing.T) {
-		milvus.Spec.Mode = v1beta1.MilvusModeCluster
 		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
 		assert.NoError(t, err)
 		assert.Equal(t, corev1.ConditionFalse, ret.Status)
@@ -367,7 +367,6 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 	})
 
 	t.Run(("standalone milvus ok"), func(t *testing.T) {
-		milvus.Spec.Mode = v1beta1.MilvusModeStandalone
 		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
 			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
 				list.Items = []appsv1.Deployment{
@@ -381,16 +380,18 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 				}
 				list.Items[0].Status.Conditions = []appsv1.DeploymentCondition{
 					{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
-					{Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue},
+					{Type: appsv1.DeploymentProgressing, Reason: v1beta1.NewReplicaSetAvailableReason, Status: corev1.ConditionTrue},
 				}
+				list.Items[0].Status.Replicas = 1
 			})
 		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
 		assert.NoError(t, err)
 		assert.Equal(t, corev1.ConditionTrue, ret.Status)
 	})
 
+	milvus.Spec.Mode = v1beta1.MilvusModeCluster
+	milvus.Default()
 	t.Run(("cluster all ok"), func(t *testing.T) {
-		milvus.Spec.Mode = v1beta1.MilvusModeCluster
 		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
 			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
 				list.Items = []appsv1.Deployment{
@@ -406,8 +407,9 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 					}
 					list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
 						{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
-						{Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue},
+						{Type: appsv1.DeploymentProgressing, Reason: v1beta1.NewReplicaSetAvailableReason, Status: corev1.ConditionTrue},
 					}
+					list.Items[i].Status.Replicas = 1
 				}
 			})
 		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
@@ -415,9 +417,9 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 		assert.Equal(t, corev1.ConditionTrue, ret.Status)
 	})
 
+	milvus.Spec.Com.MixCoord = &v1beta1.MilvusMixCoord{}
+	milvus.Default()
 	t.Run(("cluster mixture 5 ok"), func(t *testing.T) {
-		milvus.Spec.Mode = v1beta1.MilvusModeCluster
-		milvus.Spec.Com.MixCoord = &v1beta1.MilvusMixCoord{}
 		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
 			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
 				list.Items = []appsv1.Deployment{
@@ -433,8 +435,9 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 					}
 					list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
 						{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
-						{Type: appsv1.DeploymentProgressing, Status: corev1.ConditionTrue},
+						{Type: appsv1.DeploymentProgressing, Reason: v1beta1.NewReplicaSetAvailableReason, Status: corev1.ConditionTrue},
 					}
+					list.Items[i].Status.Replicas = 1
 				}
 			})
 		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
@@ -442,8 +445,9 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 		assert.Equal(t, corev1.ConditionTrue, ret.Status)
 	})
 
+	milvus.Spec.Com.MixCoord = nil
+	milvus.Default()
 	t.Run(("cluster 1 unready"), func(t *testing.T) {
-		milvus.Spec.Com.MixCoord = nil
 		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
 			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
 				list.Items = []appsv1.Deployment{
@@ -455,8 +459,9 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 						{Controller: &trueVal, UID: "uid"},
 					}
 					list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
-						{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
+						{Type: appsv1.DeploymentAvailable, Reason: v1beta1.NewReplicaSetAvailableReason, Status: corev1.ConditionTrue},
 					}
+					list.Items[i].Status.Replicas = 1
 				}
 				list.Items[7].Status.Conditions = []appsv1.DeploymentCondition{
 					{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionFalse},

@@ -108,7 +108,7 @@ func TestMilvusStatusSyncer_GetDependencyCondition(t *testing.T) {
 	})
 }
 
-func TestStatusSyncer_syncUnhealthy(t *testing.T) {
+func TestStatusSyncer_syncNotHealthy(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -122,7 +122,7 @@ func TestStatusSyncer_syncUnhealthy(t *testing.T) {
 
 	// list failed err
 	mockCli.EXPECT().List(gomock.Any(), gomock.Any()).Return(errors.New("test"))
-	err := s.syncUnhealthy()
+	err := s.syncNotHealthy()
 	assert.Error(t, err)
 
 	// status not set, healthy, not run
@@ -135,7 +135,7 @@ func TestStatusSyncer_syncUnhealthy(t *testing.T) {
 			list.Items[1].Status.Status = v1beta1.StatusHealthy
 		})
 	mockRunner.EXPECT().RunDiffArgs(gomock.Any(), gomock.Any(), gomock.Len(0))
-	s.syncUnhealthy()
+	s.syncNotHealthy()
 
 	// status unhealthy, run
 	mockCli.EXPECT().List(gomock.Any(), gomock.Any()).
@@ -145,11 +145,11 @@ func TestStatusSyncer_syncUnhealthy(t *testing.T) {
 				{},
 				{},
 			}
-			list.Items[1].Status.Status = v1beta1.StatusUnHealthy
-			list.Items[2].Status.Status = v1beta1.StatusUnHealthy
+			list.Items[1].Status.Status = v1beta1.StatusUnhealthy
+			list.Items[2].Status.Status = v1beta1.StatusUnhealthy
 		})
 	mockRunner.EXPECT().RunDiffArgs(gomock.Any(), gomock.Any(), gomock.Len(2))
-	s.syncUnhealthy()
+	s.syncNotHealthy()
 }
 
 func TestStatusSyncer_syncHealthy(t *testing.T) {
@@ -176,7 +176,7 @@ func TestStatusSyncer_syncHealthy(t *testing.T) {
 				{},
 				{},
 			}
-			list.Items[1].Status.Status = v1beta1.StatusUnHealthy
+			list.Items[1].Status.Status = v1beta1.StatusUnhealthy
 		})
 	mockRunner.EXPECT().RunDiffArgs(gomock.Any(), gomock.Any(), gomock.Len(0))
 	s.syncHealthy()
@@ -196,7 +196,7 @@ func TestStatusSyncer_syncHealthy(t *testing.T) {
 	s.syncHealthy()
 }
 
-func TestStatusSyncer_UpdateStatus(t *testing.T) {
+func TestStatusSyncer_UpdateStatusRoutine(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -219,7 +219,8 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 			{Err: errors.New("test")},
 		})
 
-	m.Status.Status = v1beta1.StatusCreating
+	m.Status.Status = v1beta1.StatusPending
+	m.Default()
 	err = s.UpdateStatusRoutine(ctx, m)
 	assert.Error(t, err)
 
@@ -231,7 +232,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 				{Data: v1beta1.MilvusCondition{}},
 			})
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
-		m.Status.Status = v1beta1.StatusCreating
+		m.Status.Status = v1beta1.StatusPending
 		err = s.UpdateStatusRoutine(ctx, m)
 		assert.Error(t, err)
 	})
@@ -266,7 +267,7 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockDeployStatusUpdater.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil)
 		mockReplicaUpdater.EXPECT().UpdateReplicas(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
-		m.Status.Status = v1beta1.StatusCreating
+		m.Status.Status = v1beta1.StatusPending
 		err = s.UpdateStatusRoutine(ctx, m)
 		assert.Error(t, err)
 	})
@@ -280,12 +281,26 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 				{Data: v1beta1.MilvusCondition{}},
 			})
 		mockCli.EXPECT().Status().Return(mockCli)
-		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockCli.EXPECT().Update(gomock.Any(), gomock.Any())
 		m.Status.Status = v1beta1.StatusHealthy
+		m.Status.ComponentsDeployStatus = map[string]v1beta1.ComponentDeployStatus{
+			StandaloneName: {
+				Generation: 1,
+				Status: appsv1.DeploymentStatus{
+					Conditions: []appsv1.DeploymentCondition{
+						{
+							Type:   appsv1.DeploymentProgressing,
+							Status: corev1.ConditionTrue,
+							Reason: v1beta1.NewReplicaSetAvailableReason,
+						},
+					},
+					ObservedGeneration: 1,
+				},
+			},
+		}
 		err = s.UpdateStatusRoutine(ctx, m)
 		assert.NoError(t, err)
-		assert.Equal(t, v1beta1.StatusUnHealthy, m.Status.Status)
+		assert.Equal(t, v1beta1.StatusUnhealthy, m.Status.Status)
 	})
 
 	t.Run("update status creating", func(t *testing.T) {
@@ -299,10 +314,10 @@ func TestStatusSyncer_UpdateStatus(t *testing.T) {
 		mockCli.EXPECT().Status().Return(mockCli)
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockCli.EXPECT().Update(gomock.Any(), gomock.Any())
-		m.Status.Status = v1beta1.StatusCreating
+		m.Status.Status = v1beta1.StatusPending
 		err = s.UpdateStatusRoutine(ctx, m)
 		assert.NoError(t, err)
-		assert.Equal(t, v1beta1.StatusCreating, m.Status.Status)
+		assert.Equal(t, v1beta1.StatusPending, m.Status.Status)
 	})
 }
 
@@ -389,9 +404,9 @@ func Test_updateMetrics(t *testing.T) {
 			milvusHealthy := v1beta1.Milvus{}
 			milvusHealthy.Status.Status = v1beta1.StatusHealthy
 			milvusUnhealthy := v1beta1.Milvus{}
-			milvusUnhealthy.Status.Status = v1beta1.StatusUnHealthy
+			milvusUnhealthy.Status.Status = v1beta1.StatusUnhealthy
 			milvusCreating := v1beta1.Milvus{}
-			milvusCreating.Status.Status = v1beta1.StatusCreating
+			milvusCreating.Status.Status = v1beta1.StatusPending
 			milvusDeleting := v1beta1.Milvus{}
 			milvusDeleting.Status.Status = v1beta1.StatusDeleting
 			list.Items = []v1beta1.Milvus{
@@ -499,5 +514,92 @@ func TestComponentsDeployStatusUpdaterImpl_Update(t *testing.T) {
 		err := r.Update(ctx, m1)
 		assert.NoError(t, err)
 		assert.Equal(t, 3, len(m1.Status.ComponentsDeployStatus))
+	})
+}
+
+func TestMilvusHealthStatusInfo_GetMilvusHealthStatus(t *testing.T) {
+	t.Run("default creating", func(t *testing.T) {
+		m := MilvusHealthStatusInfo{}
+		assert.Equal(t, v1beta1.StatusPending, m.GetMilvusHealthStatus())
+	})
+
+	t.Run("old healthy to stopped", func(t *testing.T) {
+		m := MilvusHealthStatusInfo{}
+		m.CurrentState = v1beta1.StatusHealthy
+		m.DeploymentComplete = true
+		m.IsStopping = true
+		assert.Equal(t, v1beta1.StatusStopped, m.GetMilvusHealthStatus())
+	})
+
+	t.Run("creating to other", func(t *testing.T) {
+		m := MilvusHealthStatusInfo{}
+		m.CurrentState = v1beta1.StatusPending
+		// stay creating
+		assert.Equal(t, v1beta1.StatusPending, m.GetMilvusHealthStatus())
+		m.DeploymentComplete = true
+		// to healthy
+		m.IsHealthy = true
+		assert.Equal(t, v1beta1.StatusHealthy, m.GetMilvusHealthStatus())
+		// to stopped
+		m.IsStopping = true
+		assert.Equal(t, v1beta1.StatusStopped, m.GetMilvusHealthStatus())
+	})
+
+	t.Run("healthy to other", func(t *testing.T) {
+		m := MilvusHealthStatusInfo{}
+		m.CurrentState = v1beta1.StatusHealthy
+		// to updating
+		m.DeploymentComplete = false
+		assert.Equal(t, v1beta1.StatusPending, m.GetMilvusHealthStatus())
+		// to unhealthy
+		m.DeploymentComplete = true
+		m.IsHealthy = false
+		assert.Equal(t, v1beta1.StatusUnhealthy, m.GetMilvusHealthStatus())
+		// stay healthy
+		m.IsHealthy = true
+		assert.Equal(t, v1beta1.StatusHealthy, m.GetMilvusHealthStatus())
+	})
+
+	t.Run("updating to other", func(t *testing.T) {
+		m := MilvusHealthStatusInfo{}
+		m.CurrentState = v1beta1.StatusPending
+		// to healthy
+		m.DeploymentComplete = true
+		m.IsHealthy = true
+		m.IsStopping = false
+		assert.Equal(t, v1beta1.StatusHealthy, m.GetMilvusHealthStatus())
+		// to stopped
+		m.IsStopping = true
+		assert.Equal(t, v1beta1.StatusStopped, m.GetMilvusHealthStatus())
+		// stay updating
+		m.DeploymentComplete = false
+		assert.Equal(t, v1beta1.StatusPending, m.GetMilvusHealthStatus())
+	})
+
+	t.Run("unhealthy to other", func(t *testing.T) {
+		m := MilvusHealthStatusInfo{}
+		m.CurrentState = v1beta1.StatusUnhealthy
+		// stay unhealthy
+		m.DeploymentComplete = true
+		m.IsHealthy = false
+		assert.Equal(t, v1beta1.StatusUnhealthy, m.GetMilvusHealthStatus())
+		// to healthy
+		m.IsHealthy = true
+		assert.Equal(t, v1beta1.StatusHealthy, m.GetMilvusHealthStatus())
+		// to updating
+		m.DeploymentComplete = false
+		assert.Equal(t, v1beta1.StatusPending, m.GetMilvusHealthStatus())
+	})
+
+	t.Run("stopped to other", func(t *testing.T) {
+		m := MilvusHealthStatusInfo{}
+		m.CurrentState = v1beta1.StatusStopped
+		m.IsStopping = true
+		m.DeploymentComplete = true
+		// stay stopped
+		assert.Equal(t, v1beta1.StatusStopped, m.GetMilvusHealthStatus())
+		// to updating
+		m.IsStopping = false
+		assert.Equal(t, v1beta1.StatusPending, m.GetMilvusHealthStatus())
 	})
 }

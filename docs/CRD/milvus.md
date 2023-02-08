@@ -352,7 +352,7 @@ The status spec of the CR Milvus is described as below:
 ``` yaml
 status:
   # Show the generous status of the Milvus
-  # It can be "Creating", "Healthy", "Unhealthy"
+  # It can be "Pending", "Healthy", "Unhealthy", "Stopped", "Deleting
   status: "Healthy"
   # Contains details for the current condition of Milvus and its dependency
   conditions: 

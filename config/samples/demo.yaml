@@ -13,6 +13,7 @@ spec:
   config: {}
   components:
     standalone:
+      replicas: 1
       serviceType: LoadBalancer
   dependencies:
     etcd:

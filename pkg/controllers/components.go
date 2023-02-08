@@ -108,6 +108,17 @@ var (
 	}
 )
 
+func IsMilvusDeploymentsComplete(m *v1beta1.Milvus) bool {
+	components := GetComponentsBySpec(m.Spec)
+	status := m.Status.ComponentsDeployStatus
+	for _, component := range components {
+		if status[component.Name].GetState() != v1beta1.DeploymentComplete {
+			return false
+		}
+	}
+	return true
+}
+
 // GetComponentsBySpec returns the components by the spec
 func GetComponentsBySpec(spec v1beta1.MilvusSpec) []MilvusComponent {
 	if spec.Mode == v1beta1.MilvusModeStandalone {
@@ -360,6 +371,7 @@ func (c MilvusComponent) GetDeploymentStrategy(configs map[string]interface{}) a
 			Type: appsv1.RollingUpdateDeploymentStrategyType,
 			RollingUpdate: &appsv1.RollingUpdateDeployment{
 				MaxUnavailable: &intstr.IntOrString{Type: intstr.Int, IntVal: 0},
+				MaxSurge:       &intstr.IntOrString{Type: intstr.String, StrVal: "25%"},
 			},
 		}
 	}

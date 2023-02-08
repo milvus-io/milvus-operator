@@ -36,7 +36,12 @@ spec:
   # Omit other fields ...
   mode: cluster
   components:
-    replicas: 3
+    dataNode:
+      replicas: 3
+    indexNode:
+      replicas: 3
+    queryNode:
+      replicas: 3
     mixCoord:
       replicas: 1
     proxy:

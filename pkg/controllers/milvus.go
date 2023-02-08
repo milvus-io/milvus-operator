@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -11,7 +12,6 @@ import (
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/helm"
 	"github.com/milvus-io/milvus-operator/pkg/util"
-	"github.com/pkg/errors"
 )
 
 func IsSetDefaultDone(mc *v1beta1.Milvus) bool {
@@ -21,7 +21,7 @@ func IsSetDefaultDone(mc *v1beta1.Milvus) bool {
 // SetDefaultStatus update status if default not set; return true if updated, return false if not, return err if update failed
 func (r *MilvusReconciler) SetDefaultStatus(ctx context.Context, mc *v1beta1.Milvus) error {
 	if mc.Status.Status == "" {
-		mc.Status.Status = v1beta1.StatusCreating
+		mc.Status.Status = v1beta1.StatusPending
 		// metrics
 		milvusStatusCollector.WithLabelValues(mc.Namespace, mc.Name).Set(MilvusStatusToCode(mc.Status.Status))
 
