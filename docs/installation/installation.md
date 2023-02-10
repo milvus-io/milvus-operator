@@ -12,7 +12,7 @@ For quick start, install with one line command:
 ```shell
 helm install milvus-operator \
   -n milvus-operator --create-namespace \
-  https://github.com/milvus-io/milvus-operator/releases/download/v0.7.4/milvus-operator-0.7.4.tgz
+  https://github.com/milvus-io/milvus-operator/releases/download/v0.7.5/milvus-operator-0.7.5.tgz
 ```
 
 If you already have `cert-manager` v1.0+ installed which is not in its default configuration, you may encounter some error with the check of cert-manager installation. you can install with special options to disable the check:
@@ -20,7 +20,7 @@ If you already have `cert-manager` v1.0+ installed which is not in its default c
 ```
 helm install milvus-operator \
   -n milvus-operator --create-namespace \
-  https://github.com/milvus-io/milvus-operator/releases/download/v0.7.4/milvus-operator-0.7.4.tgz \
+  https://github.com/milvus-io/milvus-operator/releases/download/v0.7.5/milvus-operator-0.7.5.tgz \
   --set checker.disableCertManagerCheck=true
 ```
 
@@ -39,7 +39,7 @@ use helm commands to upgrade earlier milvus-operator to current version:
 
 ```shell
 helm upgrade -n milvus-operator milvus-operator --reuse-values \
-  https://github.com/milvus-io/milvus-operator/releases/download/v0.7.4/milvus-operator-0.7.4.tgz
+  https://github.com/milvus-io/milvus-operator/releases/download/v0.7.5/milvus-operator-0.7.5.tgz
 ```
 
 ## Delete operator
