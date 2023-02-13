@@ -221,77 +221,36 @@ func TestIsEqual(t *testing.T) {
 }
 
 func TestDeploymentReady(t *testing.T) {
-	deployment := appsv1.Deployment{}
-	deployment.Generation = 1
-	deployment.Status.ObservedGeneration = 1
-	deployment.Status.Replicas = 1
+	status := appsv1.DeploymentStatus{}
 
 	t.Run("notReady", func(t *testing.T) {
-		deployment.Status.Conditions = []appsv1.DeploymentCondition{
+		status.Conditions = []appsv1.DeploymentCondition{
 			{
 				Type:   appsv1.DeploymentAvailable,
 				Status: corev1.ConditionFalse,
 			},
 		}
-		assert.False(t, DeploymentReady(deployment))
-	})
-
-	t.Run("hasProgressing", func(t *testing.T) {
-		deployment.Status.Conditions = []appsv1.DeploymentCondition{
-			{
-				Type:   appsv1.DeploymentProgressing,
-				Status: corev1.ConditionFalse,
-			},
-		}
-		assert.False(t, DeploymentReady(deployment))
-	})
-
-	t.Run("stopped", func(t *testing.T) {
-		deployment.Status.Replicas = 0
-		deployment.Status.Conditions = []appsv1.DeploymentCondition{
-			{
-				Type:   appsv1.DeploymentAvailable,
-				Status: corev1.ConditionTrue,
-			},
-			{
-				Type:   appsv1.DeploymentProgressing,
-				Reason: v1beta1.NewReplicaSetAvailableReason,
-				Status: corev1.ConditionTrue,
-			},
-		}
-		assert.False(t, DeploymentReady(deployment))
-		deployment.Status.Replicas = 1
+		assert.False(t, DeploymentReady(status))
 	})
 
 	t.Run("ready", func(t *testing.T) {
-		deployment.Status.Conditions = []appsv1.DeploymentCondition{
+		status.Conditions = []appsv1.DeploymentCondition{
 			{
 				Type:   appsv1.DeploymentAvailable,
 				Status: corev1.ConditionTrue,
 			},
-			{
-				Type:   appsv1.DeploymentProgressing,
-				Reason: v1beta1.NewReplicaSetAvailableReason,
-				Status: corev1.ConditionTrue,
-			},
 		}
-		assert.True(t, DeploymentReady(deployment))
+		assert.True(t, DeploymentReady(status))
 	})
 
-	t.Run("hasFailure", func(t *testing.T) {
-		deployment.Status.Conditions = []appsv1.DeploymentCondition{
+	t.Run("failure", func(t *testing.T) {
+		status.Conditions = []appsv1.DeploymentCondition{
 			{
 				Type:   appsv1.DeploymentReplicaFailure,
 				Status: corev1.ConditionTrue,
 			},
 		}
-		assert.False(t, DeploymentReady(deployment))
-	})
-
-	t.Run("generation not observed", func(t *testing.T) {
-		deployment.Generation = 2
-		assert.False(t, DeploymentReady(deployment))
-		deployment.Generation = 1
+		assert.False(t, DeploymentReady(status))
 	})
 }
 

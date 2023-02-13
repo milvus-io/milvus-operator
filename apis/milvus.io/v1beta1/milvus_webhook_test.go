@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/milvus-io/milvus-operator/pkg/config"
+	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,6 +47,7 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 			},
 		},
 		Com: MilvusComponents{
+			ImageUpdateMode: ImageUpdateModeRollingUpgrade,
 			ComponentSpec: ComponentSpec{
 				Image: config.DefaultMilvusImage,
 			},
@@ -88,6 +90,7 @@ func TestMilvus_Default_NotExternal(t *testing.T) {
 	delete(clusterDefault.Dep.Etcd.InCluster.Values.Data, "replicaCount")
 	delete(clusterDefault.Dep.Storage.InCluster.Values.Data, "mode")
 	clusterDefault.Com = MilvusComponents{
+		ImageUpdateMode: ImageUpdateModeRollingUpgrade,
 		ComponentSpec: ComponentSpec{
 			Image: config.DefaultMilvusImage,
 		},
@@ -278,4 +281,56 @@ func Test_DefaultLabels_Legacy(t *testing.T) {
 	new.Status.Status = StatusHealthy
 	new.DefaultMeta()
 	assert.Equal(t, new.Labels[OperatorVersionLabel], LegacyVersion)
+}
+
+func Test_DefaultConf_EnableRollingUpdate(t *testing.T) {
+
+	t.Run("default nil", func(t *testing.T) {
+		m := Milvus{}
+		m.DefaultConf()
+		assert.Nil(t, m.Spec.Com.EnableRollingUpdate)
+	})
+
+	t.Run("enable by config", func(t *testing.T) {
+		m := Milvus{}
+		m.Spec.Conf.Data = map[string]interface{}{}
+		m.setRollingUpdate(true)
+		m.DefaultConf()
+		assert.True(t, *m.Spec.Com.EnableRollingUpdate)
+	})
+
+	t.Run("set true", func(t *testing.T) {
+		m := Milvus{}
+		m.Spec.Com.EnableRollingUpdate = util.BoolPtr(true)
+		m.DefaultConf()
+		assert.True(t, m.isRollingUpdateEnabledByConfig())
+	})
+
+	t.Run("set false", func(t *testing.T) {
+		m := Milvus{}
+		m.Spec.Com.EnableRollingUpdate = util.BoolPtr(false)
+		m.DefaultConf()
+		assert.False(t, m.isRollingUpdateEnabledByConfig())
+	})
+
+	t.Run("rocksmq false", func(t *testing.T) {
+		m := Milvus{}
+		m.DefaultConf()
+		m.setRollingUpdate(true)
+		m.Spec.Com.EnableRollingUpdate = util.BoolPtr(true)
+		m.Spec.Dep.MsgStreamType = MsgStreamTypeRocksMQ
+		m.DefaultConf()
+		assert.False(t, m.isRollingUpdateEnabledByConfig())
+	})
+}
+
+func TestMilvus_validateCommon_EnableRollingUpdate(t *testing.T) {
+	mc := Milvus{}
+	mc.Spec.Com.EnableRollingUpdate = util.BoolPtr(true)
+	err := mc.validateCommon()
+	assert.NotNil(t, err)
+
+	mc.Spec.Dep.MsgStreamType = MsgStreamTypeKafka
+	err = mc.validateCommon()
+	assert.Nil(t, err)
 }

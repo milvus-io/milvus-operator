@@ -144,6 +144,8 @@ docker-tool-push:
 docker-local-build:
 	docker build -t ${IMG} -f local.Dockerfile . 
 
+docker-local: build-release docker-local-build
+
 ##@ Deployment
 
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.

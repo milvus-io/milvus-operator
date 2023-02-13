@@ -882,6 +882,8 @@ spec:
                     generation:
                       format: int64
                       type: integer
+                    image:
+                      type: string
                     status:
                       properties:
                         availableReplicas:
@@ -930,6 +932,7 @@ spec:
                       type: object
                   required:
                   - generation
+                  - image
                   - status
                   type: object
                 type: object
@@ -1026,7 +1029,23 @@ spec:
     storage: false
     subresources:
       status: {}
-  - name: v1beta1
+  - additionalPrinterColumns:
+    - description: Milvus mode
+      jsonPath: .spec.mode
+      name: Mode
+      type: string
+    - description: Milvus status
+      jsonPath: .status.status
+      name: Status
+      type: string
+    - description: Milvus updated
+      jsonPath: .status.conditions[?(@.type=="MilvusUpdated")].status
+      name: Updated
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1beta1
     schema:
       openAPIV3Schema:
         properties:
@@ -2438,6 +2457,8 @@ spec:
                     type: object
                   disableMetric:
                     type: boolean
+                  enableRollingUpdate:
+                    type: boolean
                   env:
                     items:
                       properties:
@@ -2509,6 +2530,13 @@ spec:
                           type: string
                       type: object
                     type: array
+                  imageUpdateMode:
+                    default: rollingUpgrade
+                    enum:
+                    - rollingUpgrade
+                    - rollingDowngrade
+                    - all
+                    type: string
                   indexCoord:
                     properties:
                       affinity:
@@ -7043,6 +7071,8 @@ spec:
                     generation:
                       format: int64
                       type: integer
+                    image:
+                      type: string
                     status:
                       properties:
                         availableReplicas:
@@ -7091,6 +7121,7 @@ spec:
                       type: object
                   required:
                   - generation
+                  - image
                   - status
                   type: object
                 type: object

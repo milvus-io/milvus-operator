@@ -56,9 +56,6 @@ const (
 	// TODO: use configurable port?
 	MilvusPort     = ProxyPort
 	StandalonePort = MilvusPort
-
-	// enableActiveStandByConfig is a config in coordinators to determine whether a coordinator can be rolling updated
-	enableActiveStandByConfig = "enableActiveStandby"
 )
 
 // MilvusComponent contains basic info of a milvus cluster component
@@ -121,7 +118,7 @@ func IsMilvusDeploymentsComplete(m *v1beta1.Milvus) bool {
 
 // GetComponentsBySpec returns the components by the spec
 func GetComponentsBySpec(spec v1beta1.MilvusSpec) []MilvusComponent {
-	if spec.Mode == v1beta1.MilvusModeStandalone {
+	if spec.Mode != v1beta1.MilvusModeCluster {
 		return StandaloneComponents
 	}
 	if spec.Com.MixCoord != nil {
@@ -280,6 +277,41 @@ func (c MilvusComponent) GetComponentSpec(spec v1beta1.MilvusSpec) v1beta1.Compo
 	return comSpec
 }
 
+func (c MilvusComponent) GetDependencies(spec v1beta1.MilvusSpec) []MilvusComponent {
+	if spec.Mode != v1beta1.MilvusModeCluster {
+		return []MilvusComponent{}
+	}
+	// cluster mode
+	isMixCoord := spec.Com.MixCoord != nil
+	isDowngrade := spec.Com.ImageUpdateMode == v1beta1.ImageUpdateModeRollingDowngrade
+
+	var depGraph = clusterDependencyGraph
+	if isMixCoord {
+		depGraph = mixCoordClusterDependencyGraph
+	}
+	if isDowngrade {
+		return depGraph.GetReversedDependencies(c)
+	}
+	return depGraph.GetDependencies(c)
+}
+
+// IsImageUpdated returns whether the image of the component is updated
+func (c MilvusComponent) IsImageUpdated(m *v1beta1.Milvus) bool {
+	if m.Status.ComponentsDeployStatus == nil {
+		return false
+	}
+	deployStatus := m.Status.ComponentsDeployStatus[c.GetName()]
+	if m.Spec.Com.Image != deployStatus.Image {
+		return false
+	}
+
+	if deployStatus.GetState() != v1beta1.DeploymentComplete {
+		return false
+	}
+
+	return true
+}
+
 // GetConfCheckSum returns the checksum of the component configuration
 func GetConfCheckSum(spec v1beta1.MilvusSpec) string {
 	conf := map[string]interface{}{}
@@ -351,12 +383,12 @@ func (c MilvusComponent) GetDeploymentStrategy(configs map[string]interface{}) a
 	switch {
 	case c.IsCoord() && c.Name != MixCoordName:
 		configFieldName := coordConfigFieldName[c.Name]
-		useRollingUpdate, _ = util.GetBoolValue(configs, configFieldName, enableActiveStandByConfig)
+		useRollingUpdate, _ = util.GetBoolValue(configs, configFieldName, v1beta1.EnableActiveStandByConfig)
 	case c.Name == MixCoordName, c.IsStandalone():
 		useRollingUpdate = true
 		// if any coord disabled ActiveStandBy, we'll not use rolling update
 		for _, configFieldName := range coordConfigFieldName {
-			enableActiveStandBy, _ := util.GetBoolValue(configs, configFieldName, enableActiveStandByConfig)
+			enableActiveStandBy, _ := util.GetBoolValue(configs, configFieldName, v1beta1.EnableActiveStandByConfig)
 			if !enableActiveStandBy {
 				useRollingUpdate = false
 				break
