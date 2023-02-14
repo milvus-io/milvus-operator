@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -145,4 +146,16 @@ func TestGetServiceComponent(t *testing.T) {
 	m.Spec.Mode = MilvusModeCluster
 	m.Default()
 	assert.Equal(t, &m.Spec.Com.Proxy.ServiceComponent, m.Spec.GetServiceComponent())
+}
+
+func TestIsRollingUpdateEnabled(t *testing.T) {
+	m := Milvus{}
+	m.Default()
+	assert.False(t, m.IsRollingUpdateEnabled())
+
+	m.Spec.Com.EnableRollingUpdate = util.BoolPtr(false)
+	assert.False(t, m.IsRollingUpdateEnabled())
+
+	m.Spec.Com.EnableRollingUpdate = util.BoolPtr(true)
+	assert.True(t, m.IsRollingUpdateEnabled())
 }

@@ -1,0 +1,9 @@
+# This is a sample to deploy a standalone milvus in milvus-operator's default configurations.
+apiVersion: milvus.io/v1beta1
+kind: Milvus
+metadata:
+  name: my-release
+spec:
+  components:
+    enableRollingUpdate: true
+    imageUpdateMode: rollingUpgrade # rollingUpgrade / rollingDowngrade / all

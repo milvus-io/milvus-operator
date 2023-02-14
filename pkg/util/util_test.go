@@ -256,3 +256,8 @@ func (v mockMarshal) MarshalJSON() ([]byte, error) {
 func (v mockMarshal) UnmarshalJSON(data []byte) error {
 	return errors.New("")
 }
+
+func TestTruePtr(t *testing.T) {
+	assert.True(t, *BoolPtr(true))
+	assert.False(t, *BoolPtr(false))
+}

@@ -393,7 +393,7 @@ func TestMilvusComponent_GetDeploymentStrategy(t *testing.T) {
 	})
 
 	enableActiveStandByMap := map[string]interface{}{
-		enableActiveStandByConfig: true,
+		v1beta1.EnableActiveStandByConfig: true,
 	}
 	configs = map[string]interface{}{
 		"dataCoord": enableActiveStandByMap,
@@ -453,4 +453,83 @@ func TestMilvusComponent_SetReplicas(t *testing.T) {
 	com = MilvusStandalone
 	err = com.SetReplicas(spec, &replicas)
 	assert.Error(t, err)
+}
+
+func TestMilvusComponent_GetDependencies(t *testing.T) {
+	m := v1beta1.Milvus{}
+	assert.Len(t, MilvusStandalone.GetDependencies(m.Spec), 0)
+
+	t.Run("clusterMode", func(t *testing.T) {
+		m := v1beta1.Milvus{}
+		m.Spec.Mode = v1beta1.MilvusModeCluster
+		m.Default()
+		assert.Len(t, RootCoord.GetDependencies(m.Spec), 0)
+		assert.Equal(t, RootCoord, DataCoord.GetDependencies(m.Spec)[0])
+		assert.Equal(t, DataCoord, IndexCoord.GetDependencies(m.Spec)[0])
+		assert.Equal(t, IndexCoord, QueryCoord.GetDependencies(m.Spec)[0])
+		assert.Equal(t, QueryCoord, DataNode.GetDependencies(m.Spec)[0])
+		assert.Equal(t, QueryCoord, IndexNode.GetDependencies(m.Spec)[0])
+		assert.Equal(t, QueryCoord, QueryNode.GetDependencies(m.Spec)[0])
+		assert.Len(t, Proxy.GetDependencies(m.Spec), 3)
+	})
+
+	t.Run("clusterModeDowngrade", func(t *testing.T) {
+		m := v1beta1.Milvus{}
+		m.Spec.Mode = v1beta1.MilvusModeCluster
+		m.Spec.Com.ImageUpdateMode = v1beta1.ImageUpdateModeRollingDowngrade
+		m.Default()
+		assert.Equal(t, DataCoord, RootCoord.GetDependencies(m.Spec)[0])
+		assert.Equal(t, IndexCoord, DataCoord.GetDependencies(m.Spec)[0])
+		assert.Equal(t, QueryCoord, IndexCoord.GetDependencies(m.Spec)[0])
+		assert.Len(t, QueryCoord.GetDependencies(m.Spec), 3)
+		assert.Equal(t, Proxy, DataNode.GetDependencies(m.Spec)[0])
+		assert.Equal(t, Proxy, IndexNode.GetDependencies(m.Spec)[0])
+		assert.Equal(t, Proxy, QueryNode.GetDependencies(m.Spec)[0])
+		assert.Len(t, Proxy.GetDependencies(m.Spec), 0)
+	})
+
+	t.Run("mixcoord", func(t *testing.T) {
+		m := v1beta1.Milvus{}
+		m.Spec.Mode = v1beta1.MilvusModeCluster
+		m.Spec.Com.MixCoord = &v1beta1.MilvusMixCoord{}
+		m.Default()
+		assert.Len(t, MixCoord.GetDependencies(m.Spec), 0)
+		assert.Equal(t, MixCoord, DataNode.GetDependencies(m.Spec)[0])
+		assert.Equal(t, MixCoord, IndexNode.GetDependencies(m.Spec)[0])
+		assert.Equal(t, MixCoord, QueryNode.GetDependencies(m.Spec)[0])
+		assert.Len(t, Proxy.GetDependencies(m.Spec), 3)
+	})
+
+	t.Run("mixcoordDowngrade", func(t *testing.T) {
+		m := v1beta1.Milvus{}
+		m.Spec.Mode = v1beta1.MilvusModeCluster
+		m.Spec.Com.ImageUpdateMode = v1beta1.ImageUpdateModeRollingDowngrade
+		m.Spec.Com.MixCoord = &v1beta1.MilvusMixCoord{}
+		m.Default()
+		assert.Len(t, MixCoord.GetDependencies(m.Spec), 3)
+		assert.Equal(t, Proxy, DataNode.GetDependencies(m.Spec)[0])
+		assert.Equal(t, Proxy, IndexNode.GetDependencies(m.Spec)[0])
+		assert.Equal(t, Proxy, QueryNode.GetDependencies(m.Spec)[0])
+		assert.Len(t, Proxy.GetDependencies(m.Spec), 0)
+	})
+
+}
+
+func TestMilvusComponent_IsImageUpdated(t *testing.T) {
+	m := &v1beta1.Milvus{}
+	assert.False(t, MilvusStandalone.IsImageUpdated(m))
+
+	m.Spec.Com.Image = "milvusdb/milvus:v10"
+	s := v1beta1.ComponentDeployStatus{
+		Generation: 1,
+		Image:      "milvusdb/milvus:v9",
+		Status:     readyDeployStatus,
+	}
+	m.Status.ComponentsDeployStatus = make(map[string]v1beta1.ComponentDeployStatus)
+	m.Status.ComponentsDeployStatus[StandaloneName] = s
+	assert.False(t, MilvusStandalone.IsImageUpdated(m))
+
+	s.Image = m.Spec.Com.Image
+	m.Status.ComponentsDeployStatus[StandaloneName] = s
+	assert.True(t, MilvusStandalone.IsImageUpdated(m))
 }

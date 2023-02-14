@@ -86,8 +86,32 @@ type ComponentSpec struct {
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
 }
 
+// ImageUpdateMode is how the milvus components' image should be updated. works only when rolling update is enabled.
+type ImageUpdateMode string
+
+const (
+	// ImageUpdateModeRollingUpgrade means all components' image will be updated in a rolling upgrade order
+	ImageUpdateModeRollingUpgrade ImageUpdateMode = "rollingUpgrade"
+	// ImageUpdateModeRollingDowngrade means all components' image will be updated in a rolling downgrade order
+	ImageUpdateModeRollingDowngrade ImageUpdateMode = "rollingDowngrade"
+	// ImageUpdateModeAll means all components' image will be updated immediately to spec.image
+	ImageUpdateModeAll ImageUpdateMode = "all"
+)
+
 type MilvusComponents struct {
 	ComponentSpec `json:",inline"`
+
+	// ImageUpdateMode is how the milvus components' image should be updated. works only when rolling update is enabled.
+	// +kubebuilder:validation:Enum=rollingUpgrade;rollingDowngrade;all
+	// +kubebuilder:default:="rollingUpgrade"
+	// +kubebuilder:validation:Optional
+	ImageUpdateMode ImageUpdateMode `json:"imageUpdateMode,omitempty"`
+
+	// Note: it's still in beta, do not use for production. EnableRollingUpdate whether to enable rolling update for milvus component
+	// there is nearly zero downtime for rolling update
+	// TODO: enable rolling update by default for next major version
+	// +kubebuilder:validation:Optional
+	EnableRollingUpdate *bool `json:"enableRollingUpdate,omitempty"`
 
 	// +kubebuilder:validation:Optional
 	DisableMetric bool `json:"disableMetric"`

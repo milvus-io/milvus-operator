@@ -65,6 +65,9 @@ var _ webhook.Validator = &Milvus{}
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type
 func (r *Milvus) ValidateCreate() error {
 	var allErrs field.ErrorList
+	if err := r.validateCommon(); err != nil {
+		allErrs = append(allErrs, err)
+	}
 
 	if errs := r.validateExternal(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
@@ -77,6 +80,16 @@ func (r *Milvus) ValidateCreate() error {
 	return apierrors.NewInvalid(schema.GroupKind{Group: GroupVersion.Group, Kind: "Milvus"}, r.Name, allErrs)
 }
 
+func (r *Milvus) validateCommon() *field.Error {
+	if r.Spec.Mode != MilvusModeCluster &&
+		(r.Spec.Dep.MsgStreamType == "" || r.Spec.Dep.MsgStreamType == MsgStreamTypeRocksMQ) &&
+		r.Spec.Com.EnableRollingUpdate != nil && *r.Spec.Com.EnableRollingUpdate {
+		fp := field.NewPath("spec").Child("components").Child("enableRollingUpdate")
+		return field.Invalid(fp, r.Spec.Com.EnableRollingUpdate, "enableRollingUpdate is not supported for msgStream rocksmq. Set it to false or set spec.msgStreamType to kafka/pulsar")
+	}
+	return nil
+}
+
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
 func (r *Milvus) ValidateUpdate(old runtime.Object) error {
 	_, ok := old.(*Milvus)
@@ -85,6 +98,10 @@ func (r *Milvus) ValidateUpdate(old runtime.Object) error {
 	}
 
 	var allErrs field.ErrorList
+	if err := r.validateCommon(); err != nil {
+		allErrs = append(allErrs, err)
+	}
+
 	if errs := r.validateExternal(); len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
 	}
@@ -201,6 +218,9 @@ func (r *Milvus) DefaultMode() {
 func (r *Milvus) DefaultComponents() {
 	spec := &r.Spec
 	setDefaultStr(&spec.Com.Image, config.DefaultMilvusImage)
+	if spec.Com.ImageUpdateMode == "" {
+		spec.Com.ImageUpdateMode = ImageUpdateModeRollingUpgrade
+	}
 	if spec.Mode == MilvusModeCluster {
 		if spec.Com.Proxy == nil {
 			spec.Com.Proxy = &MilvusProxy{}
@@ -420,5 +440,46 @@ func (r *Milvus) DefaultConf() {
 		r.Spec.Conf.Data = map[string]interface{}{}
 	} else {
 		deleteUnsettableConf(r.Spec.Conf.Data)
+	}
+
+	if r.Spec.Com.EnableRollingUpdate == nil {
+		if r.isRollingUpdateEnabledByConfig() {
+			r.Spec.Com.EnableRollingUpdate = util.BoolPtr(true)
+		}
+	}
+	if r.Spec.Com.EnableRollingUpdate != nil &&
+		*r.Spec.Com.EnableRollingUpdate {
+		r.setRollingUpdate(true)
+	}
+}
+
+var rollingUpdateConfigFields = []string{
+	"rootCoord",
+	"dataCoord",
+	"indexCoord",
+	"queryCoord",
+}
+
+// EnableActiveStandByConfig is a config in coordinators to determine whether a coordinator can be rolling updated
+const EnableActiveStandByConfig = "enableActiveStandby"
+
+func (r *Milvus) isRollingUpdateEnabledByConfig() bool {
+	if r.Spec.Mode != MilvusModeCluster {
+		if r.Spec.Dep.MsgStreamType == MsgStreamTypeRocksMQ {
+			return false
+		}
+	}
+	for _, configFieldName := range rollingUpdateConfigFields {
+		enableActiveStandBy, _ := util.GetBoolValue(r.Spec.Conf.Data, configFieldName, EnableActiveStandByConfig)
+		if !enableActiveStandBy {
+			return false
+		}
+	}
+	return true
+}
+
+func (r *Milvus) setRollingUpdate(enabled bool) {
+	for _, configFieldName := range rollingUpdateConfigFields {
+		util.SetValue(r.Spec.Conf.Data, enabled, configFieldName, EnableActiveStandByConfig)
 	}
 }

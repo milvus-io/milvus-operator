@@ -80,8 +80,8 @@ var unhealthySyncInterval = 30 * time.Second
 
 func (r *MilvusStatusSyncer) RunIfNot() {
 	r.Once.Do(func() {
-		go LoopWithInterval(r.ctx, r.syncNotHealthy, unhealthySyncInterval, r.logger)
-		go LoopWithInterval(r.ctx, r.syncHealthy, unhealthySyncInterval*2, r.logger)
+		go LoopWithInterval(r.ctx, r.syncUnealthyOrUpdating, unhealthySyncInterval, r.logger)
+		go LoopWithInterval(r.ctx, r.syncHealthyUpdated, unhealthySyncInterval*2, r.logger)
 		go LoopWithInterval(r.ctx, r.updateMetrics, unhealthySyncInterval, r.logger)
 	})
 }
@@ -124,14 +124,14 @@ func (r *MilvusStatusSyncer) updateMetrics() error {
 	return nil
 }
 
-func (r *MilvusStatusSyncer) syncNotHealthy() error {
-	milvusList := &v1beta1.MilvusList{}
+func (r *MilvusStatusSyncer) syncUnealthyOrUpdating() error {
 	startTime := time.Now()
-	r.logger.Info("syncNotHealthy start", "time", startTime)
+	r.logger.Info("syncUnealthyOrUpdating start", "time", startTime)
 	// use func to avoid capture
 	defer func() {
-		r.logger.Info("syncNotHealthy end", "duration", time.Since(startTime))
+		r.logger.Info("syncUnealthyOrUpdating end", "duration", time.Since(startTime))
 	}()
+	milvusList := &v1beta1.MilvusList{}
 	err := r.List(r.ctx, milvusList)
 	if err != nil {
 		return errors.Wrap(err, "list milvus failed")
@@ -141,7 +141,8 @@ func (r *MilvusStatusSyncer) syncNotHealthy() error {
 	for i := range milvusList.Items {
 		mc := &milvusList.Items[i]
 		if mc.Status.Status == "" ||
-			mc.Status.Status == v1beta1.StatusHealthy ||
+			(mc.Status.Status == v1beta1.StatusHealthy &&
+				IsMilvusConditionTrueByType(mc.Status.Conditions, v1beta1.MilvusUpdated)) ||
 			mc.DeletionTimestamp != nil {
 			continue
 		}
@@ -161,7 +162,13 @@ func (r *MilvusStatusSyncer) syncNotHealthy() error {
 	return errors.Wrap(ret, "UpdateStatus failed")
 }
 
-func (r *MilvusStatusSyncer) syncHealthy() error {
+func (r *MilvusStatusSyncer) syncHealthyUpdated() error {
+	startTime := time.Now()
+	r.logger.Info("syncHealthyUpdated start", "time", startTime)
+	// use func to avoid capture
+	defer func() {
+		r.logger.Info("syncHealthyUpdated end", "duration", time.Since(startTime))
+	}()
 	milvusList := &v1beta1.MilvusList{}
 	err := r.List(r.ctx, milvusList)
 	if err != nil {
@@ -172,7 +179,8 @@ func (r *MilvusStatusSyncer) syncHealthy() error {
 	for i := range milvusList.Items {
 		mc := &milvusList.Items[i]
 		if mc.DeletionTimestamp != nil ||
-			mc.Status.Status != v1beta1.StatusHealthy {
+			mc.Status.Status != v1beta1.StatusHealthy ||
+			!IsMilvusConditionTrueByType(mc.Status.Conditions, v1beta1.MilvusUpdated) {
 			continue
 		}
 		if argsArray == nil {
@@ -254,12 +262,12 @@ func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, m
 		return err
 	}
 	UpdateCondition(&mc.Status, milvusCond)
+	UpdateCondition(&mc.Status, GetMilvusUpdatedCondition(mc))
 
 	statusInfo := MilvusHealthStatusInfo{
-		CurrentState:       mc.Status.Status,
-		IsStopping:         mc.Spec.IsStopping(),
-		DeploymentComplete: IsMilvusDeploymentsComplete(mc),
-		IsHealthy:          milvusCond.Status == corev1.ConditionTrue,
+		LastState:  mc.Status.Status,
+		IsStopping: mc.Spec.IsStopping(),
+		IsHealthy:  milvusCond.Status == corev1.ConditionTrue,
 	}
 	mc.Status.Status = statusInfo.GetMilvusHealthStatus()
 	return r.Status().Update(ctx, mc)
@@ -419,40 +427,83 @@ func (r *componentsDeployStatusUpdaterImpl) Update(ctx context.Context, mc *v1be
 		if deployment == nil {
 			continue
 		}
-		mc.Status.ComponentsDeployStatus[component.Name] = v1beta1.ComponentDeployStatus{
+		status := v1beta1.ComponentDeployStatus{
 			Generation: deployment.Generation,
 			Status:     deployment.Status,
 		}
+		containerIdx := GetContainerIndex(deployment.Spec.Template.Spec.Containers, component.Name)
+		if containerIdx >= 0 {
+			status.Image = deployment.Spec.Template.Spec.Containers[containerIdx].Image
+		}
+		mc.Status.ComponentsDeployStatus[component.Name] = status
 	}
 	return nil
 }
 
 type MilvusHealthStatusInfo struct {
-	CurrentState       v1beta1.MilvusHealthStatus
-	IsStopping         bool
-	DeploymentComplete bool
-	IsHealthy          bool
+	LastState  v1beta1.MilvusHealthStatus
+	IsStopping bool
+	IsHealthy  bool
 }
 
 func (m MilvusHealthStatusInfo) GetMilvusHealthStatus() v1beta1.MilvusHealthStatus {
-	if !m.DeploymentComplete {
-		return v1beta1.StatusPending
-	}
-
-	// m.DeploymentComplete
 	if m.IsStopping {
 		return v1beta1.StatusStopped
 	}
 
-	// m.DeploymentComplete && !m.IsStopping
 	if m.IsHealthy {
 		return v1beta1.StatusHealthy
 	}
-	// m.DeploymentComplete && !m.IsStopping && !m.IsHealthy
-	if m.CurrentState == v1beta1.StatusHealthy ||
-		m.CurrentState == v1beta1.StatusUnhealthy {
+	// if !m.IsStopping && !m.IsHealthy
+	if m.LastState == v1beta1.StatusHealthy ||
+		m.LastState == v1beta1.StatusUnhealthy {
 		return v1beta1.StatusUnhealthy
 	}
 
 	return v1beta1.StatusPending
+}
+
+func GetMilvusUpdatedCondition(m *v1beta1.Milvus) v1beta1.MilvusCondition {
+	components := GetComponentsBySpec(m.Spec)
+	status := m.Status.ComponentsDeployStatus
+	var updatingComponent []string
+	var isUpdatingImage bool
+	for _, component := range components {
+		componentStatus := status[component.Name]
+		if componentStatus.GetState() != v1beta1.DeploymentComplete {
+			updatingComponent = append(updatingComponent, component.Name)
+		}
+		if m.IsRollingUpdateEnabled() &&
+			componentStatus.Image != m.Spec.Com.Image {
+			isUpdatingImage = true
+		}
+
+	}
+
+	var reason string
+	var msg string
+	var updated = corev1.ConditionFalse
+	switch {
+	case isUpdatingImage &&
+		m.Spec.Com.ImageUpdateMode == v1beta1.ImageUpdateModeRollingUpgrade:
+		reason = v1beta1.ReasonMilvusUpgradingImage
+		msg = fmt.Sprintf("Milvus is performing rolling upgrade pending components[%s]", strings.Join(updatingComponent, ","))
+	case isUpdatingImage &&
+		m.Spec.Com.ImageUpdateMode == v1beta1.ImageUpdateModeRollingDowngrade:
+		reason = v1beta1.ReasonMilvusDowngradingImage
+		msg = fmt.Sprintf("{Milvus is performing rolling downgrade, pending components[%s]}", strings.Join(updatingComponent, ","))
+	case len(updatingComponent) > 0: // updating
+		reason = v1beta1.ReasonMilvusComponentsUpdating
+		msg = fmt.Sprintf("Milvus components[%s] are updating", strings.Join(updatingComponent, ","))
+	default:
+		reason = v1beta1.ReasonMilvusComponentsUpdated
+		msg = "Milvus components are all updated"
+		updated = corev1.ConditionTrue
+	}
+	return v1beta1.MilvusCondition{
+		Type:    v1beta1.MilvusUpdated,
+		Status:  updated,
+		Reason:  reason,
+		Message: msg,
+	}
 }

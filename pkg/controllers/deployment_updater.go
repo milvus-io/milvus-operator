@@ -23,6 +23,7 @@ type deploymentUpdater interface {
 	GetSecretRef() string
 	GetPersistenceConfig() *v1beta1.Persistence
 	GetMilvus() *v1beta1.Milvus
+	RollingUpdateImageDependencyReady() bool
 }
 
 func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) error {
@@ -35,6 +36,9 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	deployment.Spec.Paused = mergedComSpec.Paused
 	deployment.Spec.Replicas = updater.GetReplicas()
 	deployment.Spec.Strategy = updater.GetDeploymentStrategy()
+	if updater.GetMilvus().IsRollingUpdateEnabled() {
+		deployment.Spec.MinReadySeconds = 30
+	}
 	isCreating := deployment.Spec.Selector == nil
 	if isCreating {
 		deployment.Spec.Selector = new(metav1.LabelSelector)
@@ -130,7 +134,13 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	}
 
 	container.ImagePullPolicy = *mergedComSpec.ImagePullPolicy
-	container.Image = mergedComSpec.Image
+	if isCreating ||
+		!updater.GetMilvus().IsRollingUpdateEnabled() || // rolling update is disabled
+		updater.GetMilvus().Spec.Com.ImageUpdateMode == v1beta1.ImageUpdateModeAll || // image update mode is update all
+		updater.RollingUpdateImageDependencyReady() {
+		container.Image = mergedComSpec.Image
+	}
+
 	container.Resources = *mergedComSpec.Resources
 	// only set at first time render avoid trigling restart
 	if isCreating {
@@ -208,4 +218,14 @@ func (m milvusDeploymentUpdater) GetSecretRef() string {
 
 func (m milvusDeploymentUpdater) GetMilvus() *v1beta1.Milvus {
 	return &m.Milvus
+}
+
+func (m milvusDeploymentUpdater) RollingUpdateImageDependencyReady() bool {
+	deps := m.component.GetDependencies(m.Spec)
+	for _, dep := range deps {
+		if !dep.IsImageUpdated(m.GetMilvus()) {
+			return false
+		}
+	}
+	return true
 }

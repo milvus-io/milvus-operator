@@ -146,6 +146,9 @@ type MilvusStatus struct {
 type ComponentDeployStatus struct {
 	// Generation of the deployment
 	Generation int64 `json:"generation"`
+	// Image of the deployment
+	// it's used to check if the component is updated in rolling update
+	Image string `json:"image"`
 	// Status of the deployment
 	Status appsv1.DeploymentStatus `json:"status"`
 }
@@ -289,7 +292,7 @@ type MiluvsConditionType string
 type MilvusHealthStatus string
 
 const (
-	// StatusPending is the status of creating or updating.
+	// StatusPending is the status of creating or restarting.
 	StatusPending MilvusHealthStatus = "Pending"
 	// StatusHealthy is the status of healthy.
 	StatusHealthy MilvusHealthStatus = "Healthy"
@@ -308,6 +311,8 @@ const (
 	MsgStreamReady MiluvsConditionType = "MsgStreamReady"
 	// MilvusReady means all components of Milvus are ready.
 	MilvusReady MiluvsConditionType = "MilvusReady"
+	// MilvusUpdated means the Milvus has updated according to its spec.
+	MilvusUpdated MiluvsConditionType = "MilvusUpdated"
 
 	// ReasonEndpointsHealthy means the endpoint is healthy
 	ReasonEndpointsHealthy string = "EndpointsHealthy"
@@ -317,6 +322,14 @@ const (
 	ReasonMilvusComponentNotHealthy string = "MilvusComponentNotHealthy"
 	// ReasonMilvusStopped means milvus cluster is stopped
 	ReasonMilvusStopped string = "MilvusStopped"
+	// ReasonMilvusComponentsUpdated means milvus components are updated
+	ReasonMilvusComponentsUpdated string = "MilvusComponentsUpdated"
+	// ReasonMilvusComponentsUpdating means some milvus components are not updated
+	ReasonMilvusComponentsUpdating string = "MilvusComponentsUpdating"
+	// ReasonMilvusUpgradingImage means milvus is upgrading image
+	ReasonMilvusUpgradingImage string = "MilvusUpgradingImage"
+	// ReasonMilvusDowngradingImage means milvus is downgrading image
+	ReasonMilvusDowngradingImage string = "MilvusDowngradingImage"
 
 	ReasonEtcdReady          = "EtcdReady"
 	ReasonEtcdNotReady       = "EtcdNotReady"
@@ -338,6 +351,10 @@ const (
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=milvuses,singular=milvus,shortName=mi
 // +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="Mode",type="string",JSONPath=".spec.mode",description="Milvus mode"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.status",description="Milvus status"
+// +kubebuilder:printcolumn:name="Updated",type="string",JSONPath=".status.conditions[?(@.type==\"MilvusUpdated\")].status",description="Milvus updated"
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // Milvus is the Schema for the milvus API
 type Milvus struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -349,6 +366,10 @@ type Milvus struct {
 
 // Hub marks this type as a conversion hub.
 func (*Milvus) Hub() {}
+
+func (m *Milvus) IsRollingUpdateEnabled() bool {
+	return m.Spec.Com.EnableRollingUpdate != nil && *m.Spec.Com.EnableRollingUpdate
+}
 
 // +kubebuilder:object:root=true
 // MilvusList contains a list of Milvus

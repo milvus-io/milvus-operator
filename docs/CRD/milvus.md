@@ -53,6 +53,17 @@ spec:
 
     # Components global specifications
 
+    # Enable rolling update, supported in milvus v2.2.3.
+    # For compatity reason defaults to false, but we suggest you to enable it if you are using milvus v2.2.3 or above.
+    enableRollingUpdate: true # Optional default=false
+
+    # imageUpdateMode is the mode when update components' image.
+    # rollingUpgrade: to update the components' image in the order of coords -> nodes -> proxy
+    # rollingDowngrade: to update the components' image in the order of proxy -> nodes -> coords
+    # all: to update all the components' image rightaway.
+    # one of rollingUpgrade / rollingDowngrade / all
+    imageUpdateMode: rollingUpgrade # Optional default=rollingUpgrade
+
     # Paused is used to pause all components' deployment rollout
     paused: false # Optional
 

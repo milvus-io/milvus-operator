@@ -3,9 +3,66 @@
 
 This topic describes how to ugrade your Milvus with Milvus Operator.
 
+## Upgrade and downgrade through rolling update
+
+For Milvus version >= v2.2.3, it supports rolling update for all components with mininum downtime.
+
+You can enable it through the `spec.components.enableRollingUpdate`.
+
+Then you can upgrade the image of Milvus through the `spec.components.image`.
+
+Milvus-operator will follow the dependency order to update the components so that there will be as less downtime as possible.
+
+```yaml
+apiVersion: milvus.io/v1beta1
+kind: Milvus
+metadata:
+  name: my-release
+spec:
+  components:
+    enableRollingUpdate: true
+    image: milvusdb/milvus:<some-new-version>
+```
+
+When you need to `downgrade` the image, you can specifiy the field `spec.components.imageUpdateMode` to `rollingDowngrade`. It will downgrade the image in the reverse order of the upgrade.
+
+```yaml
+apiVersion: milvus.io/v1beta1
+kind: Milvus
+metadata:
+  name: my-release
+spec:
+  components:
+    enableRollingUpdate: true
+    # imageUpdateMode defaults to rollingUpgrade
+    # rollingUpgrade / rollingDowngrade / all
+    imageUpdateMode: rollingDowngrade 
+    image: milvusdb/milvus:<some-old-version>
+```
+
+The ordered rolling upgrade may take a long time. In some emergency cases, you may just want to update the images together. You can set the field `spec.components.imageUpdateMode` to `all` to update all the components' image rightaway.
+
+```yaml
+apiVersion: milvus.io/v1beta1
+kind: Milvus
+metadata:
+  name: my-release
+spec:
+  components:
+    enableRollingUpdate: true
+    # imageUpdateMode defaults to rollingUpgrade
+    # rollingUpgrade / rollingDowngrade / all
+    imageUpdateMode: all 
+    image: milvusdb/milvus:<some-version>
+```
+
+`enableRollingUpdate` not only works when you update images. But also when you update the fields in `spec.config`.
+
 ## Upgrade By Change Milvus Image
 
-Usually you can simply update your Milvus' image to upgrade to a new version.
+For Milvus version earlier than v2.2.3, it only supports rolling update for proxy and nodes. 
+
+Usually you can simply update your Milvus' image to upgrade to a new version. But the `coordinator` pods will first go down and then the new ones will be created. This will be a certain downtime.
 
 #### Example
 
@@ -20,15 +77,16 @@ labels:
 app: milvus
 spec:
   # Omit other fields ...
-  image: milvusdb/milvus:v2.1.4
+  components:
+   image: milvusdb/milvus:v2.1.4
 ```
 
-> If you want to upgrade to Milvus v2.2.0, changing the image will lost your built index. you'll have to rebuild the index after upgrading. Or you can migrate your metadata before upgrade. Check the next section for more details.
+> If you want to upgrade Milvus from v2.1.4 or earlier to v2.2.0+, changing the image will lost your built index. you'll have to rebuild the index after upgrading. Or you can migrate your metadata before upgrade. Check the next section for more details.
 
 ## Upgrading Milvus 2.1.x to Milvus 2.2.x
 The metadata structure of Milvus 2.2.x is different from that of Milvus 2.1.x. Therefore, you need to migrate the metadata of Milvus 2.1.x to Milvus 2.2.x. The following steps describe how to upgrade Milvus 2.1.4 to Milvus 2.2.0.
 
-#### 1. Upgrade you Milvus Operator to v0.7.4
+#### 1. Upgrade you Milvus Operator to v0.7.4 or later
 
 Run the following command to upgrade the version of your Milvus Operator to v0.7.4
 

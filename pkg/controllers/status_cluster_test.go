@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
+	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -108,51 +109,63 @@ func TestMilvusStatusSyncer_GetDependencyCondition(t *testing.T) {
 	})
 }
 
-func TestStatusSyncer_syncNotHealthy(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockCli := NewMockK8sClient(ctrl)
-	ctx := context.Background()
-	logger := logf.Log.WithName("test")
-	s := NewMilvusStatusSyncer(ctx, mockCli, logger)
-
-	mockRunner := NewMockGroupRunner(ctrl)
-	defaultGroupRunner = mockRunner
-
-	// list failed err
-	mockCli.EXPECT().List(gomock.Any(), gomock.Any()).Return(errors.New("test"))
-	err := s.syncNotHealthy()
-	assert.Error(t, err)
-
-	// status not set, healthy, not run
-	mockCli.EXPECT().List(gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, list *v1beta1.MilvusList, opts ...client.ListOption) {
-			list.Items = []v1beta1.Milvus{
-				{},
-				{},
-			}
-			list.Items[1].Status.Status = v1beta1.StatusHealthy
-		})
-	mockRunner.EXPECT().RunDiffArgs(gomock.Any(), gomock.Any(), gomock.Len(0))
-	s.syncNotHealthy()
-
-	// status unhealthy, run
-	mockCli.EXPECT().List(gomock.Any(), gomock.Any()).
-		Do(func(ctx context.Context, list *v1beta1.MilvusList, opts ...client.ListOption) {
-			list.Items = []v1beta1.Milvus{
-				{},
-				{},
-				{},
-			}
-			list.Items[1].Status.Status = v1beta1.StatusUnhealthy
-			list.Items[2].Status.Status = v1beta1.StatusUnhealthy
-		})
-	mockRunner.EXPECT().RunDiffArgs(gomock.Any(), gomock.Any(), gomock.Len(2))
-	s.syncNotHealthy()
+var updatedCondition = v1beta1.MilvusCondition{
+	Type:   v1beta1.MilvusUpdated,
+	Status: corev1.ConditionTrue,
 }
 
-func TestStatusSyncer_syncHealthy(t *testing.T) {
+func TestStatusSyncer_syncUnealthyOrUpdating(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockCli := NewMockK8sClient(ctrl)
+	ctx := context.Background()
+	logger := logf.Log.WithName("test")
+	s := NewMilvusStatusSyncer(ctx, mockCli, logger)
+
+	mockRunner := NewMockGroupRunner(ctrl)
+	defaultGroupRunner = mockRunner
+
+	t.Run("list failed err", func(t *testing.T) {
+		mockCli.EXPECT().List(gomock.Any(), gomock.Any()).Return(errors.New("test"))
+		err := s.syncUnealthyOrUpdating()
+		assert.Error(t, err)
+	})
+
+	t.Run("status not set, updated, not run", func(t *testing.T) {
+		mockCli.EXPECT().List(gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, list *v1beta1.MilvusList, opts ...client.ListOption) {
+				list.Items = []v1beta1.Milvus{
+					{},
+					{},
+				}
+				list.Items[1].Status.Status = v1beta1.StatusHealthy
+				list.Items[1].Status.Conditions = []v1beta1.MilvusCondition{updatedCondition}
+			})
+		mockRunner.EXPECT().RunDiffArgs(gomock.Any(), gomock.Any(), gomock.Len(0))
+		err := s.syncUnealthyOrUpdating()
+		assert.NoError(t, err)
+	})
+
+	t.Run("status unhealthy, not updated, run", func(t *testing.T) {
+		mockCli.EXPECT().List(gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, list *v1beta1.MilvusList, opts ...client.ListOption) {
+				list.Items = []v1beta1.Milvus{
+					{},
+					{},
+					{},
+				}
+				list.Items[0].Status.Status = v1beta1.StatusUnhealthy
+				list.Items[1].Status.Status = v1beta1.StatusUnhealthy
+				list.Items[2].Status.Status = v1beta1.StatusUnhealthy
+				list.Items[2].Status.Conditions = []v1beta1.MilvusCondition{updatedCondition}
+			})
+		mockRunner.EXPECT().RunDiffArgs(gomock.Any(), gomock.Any(), gomock.Len(3))
+		s.syncUnealthyOrUpdating()
+	})
+}
+
+func TestStatusSyncer_syncHealthyUpdated(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -166,22 +179,24 @@ func TestStatusSyncer_syncHealthy(t *testing.T) {
 
 	// list failed err
 	mockCli.EXPECT().List(gomock.Any(), gomock.Any()).Return(errors.New("test"))
-	err := s.syncHealthy()
+	err := s.syncHealthyUpdated()
 	assert.Error(t, err)
 
-	// status not set, unhealthy, not run
+	// status not set, unhealthy, updated, not run
 	mockCli.EXPECT().List(gomock.Any(), gomock.Any()).
 		Do(func(ctx context.Context, list *v1beta1.MilvusList, opts ...client.ListOption) {
 			list.Items = []v1beta1.Milvus{
 				{},
 				{},
+				{},
 			}
 			list.Items[1].Status.Status = v1beta1.StatusUnhealthy
+			list.Items[2].Status.Status = v1beta1.StatusHealthy
 		})
 	mockRunner.EXPECT().RunDiffArgs(gomock.Any(), gomock.Any(), gomock.Len(0))
-	s.syncHealthy()
+	s.syncHealthyUpdated()
 
-	// status unhealthy, run
+	// status healthy updated, run
 	mockCli.EXPECT().List(gomock.Any(), gomock.Any()).
 		Do(func(ctx context.Context, list *v1beta1.MilvusList, opts ...client.ListOption) {
 			list.Items = []v1beta1.Milvus{
@@ -190,10 +205,12 @@ func TestStatusSyncer_syncHealthy(t *testing.T) {
 				{},
 			}
 			list.Items[1].Status.Status = v1beta1.StatusHealthy
+			list.Items[1].Status.Conditions = []v1beta1.MilvusCondition{updatedCondition}
 			list.Items[2].Status.Status = v1beta1.StatusHealthy
+			list.Items[2].Status.Conditions = []v1beta1.MilvusCondition{updatedCondition}
 		})
 	mockRunner.EXPECT().RunDiffArgs(gomock.Any(), gomock.Any(), gomock.Len(2))
-	s.syncHealthy()
+	s.syncHealthyUpdated()
 }
 
 func TestStatusSyncer_UpdateStatusRoutine(t *testing.T) {
@@ -328,6 +345,8 @@ func TestStatusSyncer_UpdateReplicas(t *testing.T) {
 	mockCli := NewMockK8sClient(ctrl)
 	ctx := context.Background()
 	m := &v1beta1.Milvus{}
+	m.Spec.Mode = v1beta1.MilvusModeCluster
+	m.Default()
 	s := new(replicaUpdaterImpl)
 
 	t.Run("all ok", func(t *testing.T) {
@@ -525,18 +544,16 @@ func TestMilvusHealthStatusInfo_GetMilvusHealthStatus(t *testing.T) {
 
 	t.Run("old healthy to stopped", func(t *testing.T) {
 		m := MilvusHealthStatusInfo{}
-		m.CurrentState = v1beta1.StatusHealthy
-		m.DeploymentComplete = true
+		m.LastState = v1beta1.StatusHealthy
 		m.IsStopping = true
 		assert.Equal(t, v1beta1.StatusStopped, m.GetMilvusHealthStatus())
 	})
 
-	t.Run("creating to other", func(t *testing.T) {
+	t.Run("pending to other", func(t *testing.T) {
 		m := MilvusHealthStatusInfo{}
-		m.CurrentState = v1beta1.StatusPending
-		// stay creating
+		m.LastState = v1beta1.StatusPending
+		// stay pending
 		assert.Equal(t, v1beta1.StatusPending, m.GetMilvusHealthStatus())
-		m.DeploymentComplete = true
 		// to healthy
 		m.IsHealthy = true
 		assert.Equal(t, v1beta1.StatusHealthy, m.GetMilvusHealthStatus())
@@ -547,59 +564,99 @@ func TestMilvusHealthStatusInfo_GetMilvusHealthStatus(t *testing.T) {
 
 	t.Run("healthy to other", func(t *testing.T) {
 		m := MilvusHealthStatusInfo{}
-		m.CurrentState = v1beta1.StatusHealthy
-		// to updating
-		m.DeploymentComplete = false
-		assert.Equal(t, v1beta1.StatusPending, m.GetMilvusHealthStatus())
+		m.LastState = v1beta1.StatusHealthy
 		// to unhealthy
-		m.DeploymentComplete = true
 		m.IsHealthy = false
 		assert.Equal(t, v1beta1.StatusUnhealthy, m.GetMilvusHealthStatus())
 		// stay healthy
 		m.IsHealthy = true
 		assert.Equal(t, v1beta1.StatusHealthy, m.GetMilvusHealthStatus())
-	})
-
-	t.Run("updating to other", func(t *testing.T) {
-		m := MilvusHealthStatusInfo{}
-		m.CurrentState = v1beta1.StatusPending
-		// to healthy
-		m.DeploymentComplete = true
-		m.IsHealthy = true
-		m.IsStopping = false
-		assert.Equal(t, v1beta1.StatusHealthy, m.GetMilvusHealthStatus())
 		// to stopped
 		m.IsStopping = true
 		assert.Equal(t, v1beta1.StatusStopped, m.GetMilvusHealthStatus())
-		// stay updating
-		m.DeploymentComplete = false
-		assert.Equal(t, v1beta1.StatusPending, m.GetMilvusHealthStatus())
 	})
 
 	t.Run("unhealthy to other", func(t *testing.T) {
 		m := MilvusHealthStatusInfo{}
-		m.CurrentState = v1beta1.StatusUnhealthy
+		m.LastState = v1beta1.StatusUnhealthy
 		// stay unhealthy
-		m.DeploymentComplete = true
 		m.IsHealthy = false
 		assert.Equal(t, v1beta1.StatusUnhealthy, m.GetMilvusHealthStatus())
 		// to healthy
 		m.IsHealthy = true
 		assert.Equal(t, v1beta1.StatusHealthy, m.GetMilvusHealthStatus())
-		// to updating
-		m.DeploymentComplete = false
-		assert.Equal(t, v1beta1.StatusPending, m.GetMilvusHealthStatus())
 	})
 
 	t.Run("stopped to other", func(t *testing.T) {
 		m := MilvusHealthStatusInfo{}
-		m.CurrentState = v1beta1.StatusStopped
+		m.LastState = v1beta1.StatusStopped
 		m.IsStopping = true
-		m.DeploymentComplete = true
 		// stay stopped
 		assert.Equal(t, v1beta1.StatusStopped, m.GetMilvusHealthStatus())
 		// to updating
 		m.IsStopping = false
 		assert.Equal(t, v1beta1.StatusPending, m.GetMilvusHealthStatus())
+	})
+}
+
+func TestGetMilvusUpdatedCondition(t *testing.T) {
+
+	t.Run("creating", func(t *testing.T) {
+		m := &v1beta1.Milvus{}
+		cond := GetMilvusUpdatedCondition(m)
+		assert.Equal(t, corev1.ConditionFalse, cond.Status)
+		assert.Equal(t, v1beta1.ReasonMilvusComponentsUpdating, cond.Reason)
+		assert.Contains(t, cond.Message, StandaloneName)
+	})
+
+	t.Run("standalone updated", func(t *testing.T) {
+		m := &v1beta1.Milvus{}
+		m.Default()
+		m.Status.ComponentsDeployStatus = map[string]v1beta1.ComponentDeployStatus{
+			StandaloneName: {
+				Generation: 1,
+				Image:      m.Spec.Com.Image,
+				Status:     readyDeployStatus,
+			},
+		}
+		cond := GetMilvusUpdatedCondition(m)
+		assert.Equal(t, corev1.ConditionTrue, cond.Status)
+	})
+
+	t.Run("cluster upgrade", func(t *testing.T) {
+		m := &v1beta1.Milvus{}
+		m.Spec.Mode = v1beta1.MilvusModeCluster
+		m.Spec.Com.EnableRollingUpdate = util.BoolPtr(true)
+		m.Spec.Com.ImageUpdateMode = v1beta1.ImageUpdateModeRollingUpgrade
+		m.Default()
+		m.Status.ComponentsDeployStatus = map[string]v1beta1.ComponentDeployStatus{
+			MixCoordName: {
+				Generation: 1,
+				Image:      m.Spec.Com.Image,
+				Status:     readyDeployStatus,
+			},
+		}
+		cond := GetMilvusUpdatedCondition(m)
+		assert.Equal(t, corev1.ConditionFalse, cond.Status)
+		assert.Equal(t, v1beta1.ReasonMilvusUpgradingImage, cond.Reason)
+		assert.NotContains(t, cond.Message, MixCoordName)
+	})
+
+	t.Run("cluster downgrade", func(t *testing.T) {
+		m := &v1beta1.Milvus{}
+		m.Spec.Mode = v1beta1.MilvusModeCluster
+		m.Spec.Com.EnableRollingUpdate = util.BoolPtr(true)
+		m.Spec.Com.ImageUpdateMode = v1beta1.ImageUpdateModeRollingDowngrade
+		m.Default()
+		m.Status.ComponentsDeployStatus = map[string]v1beta1.ComponentDeployStatus{
+			ProxyName: {
+				Generation: 1,
+				Image:      m.Spec.Com.Image,
+			},
+		}
+		cond := GetMilvusUpdatedCondition(m)
+		assert.Equal(t, corev1.ConditionFalse, cond.Status)
+		assert.Equal(t, v1beta1.ReasonMilvusDowngradingImage, cond.Reason)
+		assert.Contains(t, cond.Message, ProxyName)
 	})
 }

@@ -152,3 +152,7 @@ func DeepCopyValues(input map[string]interface{}) map[string]interface{} {
 
 	return out
 }
+
+func BoolPtr(val bool) *bool {
+	return &val
+}

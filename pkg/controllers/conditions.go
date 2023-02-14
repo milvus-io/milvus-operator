@@ -334,7 +334,7 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1bet
 	componentDeploy := makeComponentDeploymentMap(mc, deployList.Items)
 	for _, component := range allComponents {
 		deployment := componentDeploy[component.Name]
-		if deployment != nil && DeploymentReady(*deployment) {
+		if deployment != nil && DeploymentReady(deployment.Status) {
 			continue
 		}
 		notReadyComponents = append(notReadyComponents, component.Name)
@@ -372,4 +372,21 @@ func makeComponentDeploymentMap(mc v1beta1.Milvus, deploys []appsv1.Deployment) 
 		}
 	}
 	return m
+}
+
+func GetMilvusConditionByType(conditions []v1beta1.MilvusCondition, Type v1beta1.MiluvsConditionType) *v1beta1.MilvusCondition {
+	for _, condition := range conditions {
+		if condition.Type == Type {
+			return &condition
+		}
+	}
+	return nil
+}
+
+func IsMilvusConditionTrueByType(conditions []v1beta1.MilvusCondition, Type v1beta1.MiluvsConditionType) bool {
+	cond := GetMilvusConditionByType(conditions, Type)
+	if cond == nil {
+		return false
+	}
+	return cond.Status == corev1.ConditionTrue
 }

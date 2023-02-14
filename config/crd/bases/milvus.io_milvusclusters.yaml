@@ -1431,6 +1431,8 @@ spec:
                     type: object
                   disableMetric:
                     type: boolean
+                  enableRollingUpdate:
+                    type: boolean
                   env:
                     items:
                       properties:
@@ -1502,6 +1504,13 @@ spec:
                           type: string
                       type: object
                     type: array
+                  imageUpdateMode:
+                    default: rollingUpgrade
+                    enum:
+                    - rollingUpgrade
+                    - rollingDowngrade
+                    - all
+                    type: string
                   indexCoord:
                     properties:
                       affinity:
@@ -6030,6 +6039,8 @@ spec:
                     generation:
                       format: int64
                       type: integer
+                    image:
+                      type: string
                     status:
                       properties:
                         availableReplicas:
@@ -6078,6 +6089,7 @@ spec:
                       type: object
                   required:
                   - generation
+                  - image
                   - status
                   type: object
                 type: object

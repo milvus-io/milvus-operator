@@ -22,6 +22,22 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
+var readyDeployStatus = appsv1.DeploymentStatus{
+	Conditions: []appsv1.DeploymentCondition{
+		{
+			Type:   appsv1.DeploymentProgressing,
+			Status: corev1.ConditionTrue,
+			Reason: v1beta1.NewReplicaSetAvailableReason,
+		},
+		{
+			Type:   appsv1.DeploymentAvailable,
+			Status: corev1.ConditionTrue,
+		},
+	},
+	ObservedGeneration: 1,
+	Replicas:           1,
+}
+
 func TestGetCondition(t *testing.T) {
 	bak := endpointCheckCache
 	defer func() { endpointCheckCache = bak }()
@@ -378,11 +394,7 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 				list.Items[0].OwnerReferences = []metav1.OwnerReference{
 					{Controller: &trueVal, UID: "uid"},
 				}
-				list.Items[0].Status.Conditions = []appsv1.DeploymentCondition{
-					{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
-					{Type: appsv1.DeploymentProgressing, Reason: v1beta1.NewReplicaSetAvailableReason, Status: corev1.ConditionTrue},
-				}
-				list.Items[0].Status.Replicas = 1
+				list.Items[0].Status = readyDeployStatus
 			})
 		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
 		assert.NoError(t, err)
@@ -405,11 +417,7 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 					list.Items[i].OwnerReferences = []metav1.OwnerReference{
 						{Controller: &trueVal, UID: "uid"},
 					}
-					list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
-						{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
-						{Type: appsv1.DeploymentProgressing, Reason: v1beta1.NewReplicaSetAvailableReason, Status: corev1.ConditionTrue},
-					}
-					list.Items[i].Status.Replicas = 1
+					list.Items[i].Status = readyDeployStatus
 				}
 			})
 		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
@@ -433,11 +441,7 @@ func TestGetMilvusInstanceCondition(t *testing.T) {
 					list.Items[i].OwnerReferences = []metav1.OwnerReference{
 						{Controller: &trueVal, UID: "uid"},
 					}
-					list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
-						{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionTrue},
-						{Type: appsv1.DeploymentProgressing, Reason: v1beta1.NewReplicaSetAvailableReason, Status: corev1.ConditionTrue},
-					}
-					list.Items[i].Status.Replicas = 1
+					list.Items[i].Status = readyDeployStatus
 				}
 			})
 		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
@@ -489,4 +493,18 @@ func TestMakeComponentDeploymentMap(t *testing.T) {
 	ctrl.SetControllerReference(&mc, &deploy, scheme)
 	ret := makeComponentDeploymentMap(mc, []appsv1.Deployment{deploy})
 	assert.NotNil(t, ret[ProxyName])
+}
+
+func TestIsMilvusConditionTrueByType(t *testing.T) {
+	conds := []v1beta1.MilvusCondition{}
+	ret := IsMilvusConditionTrueByType(conds, v1beta1.StorageReady)
+	assert.False(t, ret)
+
+	cond := v1beta1.MilvusCondition{
+		Type:   v1beta1.StorageReady,
+		Status: corev1.ConditionTrue,
+	}
+	conds = []v1beta1.MilvusCondition{cond}
+	ret = IsMilvusConditionTrueByType(conds, v1beta1.StorageReady)
+	assert.True(t, ret)
 }
