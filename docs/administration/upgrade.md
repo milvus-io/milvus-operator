@@ -86,9 +86,9 @@ spec:
 ## Upgrading Milvus 2.1.x to Milvus 2.2.x
 The metadata structure of Milvus 2.2.x is different from that of Milvus 2.1.x. Therefore, you need to migrate the metadata of Milvus 2.1.x to Milvus 2.2.x. The following steps describe how to upgrade Milvus 2.1.4 to Milvus 2.2.0.
 
-#### 1. Upgrade you Milvus Operator to v0.7.4 or later
+#### 1. Upgrade you Milvus Operator to latest stable version
 
-Run the following command to upgrade the version of your Milvus Operator to v0.7.4
+Run the following command to upgrade the version of your Milvus Operator to latest stable version.
 
 ```
 helm repo add milvus-operator https://milvus-io.github.io/milvus-operator/
