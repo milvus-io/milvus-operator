@@ -20,6 +20,7 @@ ${SED} "s/^appVersion: .*/appVersion: \"${OPERATOR_VERSION}\"/g" ./charts/milvus
 ${SED} "s/^  tag: \".*\"/  tag: \"v${OPERATOR_VERSION}\"/g" ./charts/milvus-operator/values.yaml
 ${SED} "s|milvus-operator/releases/download/.*/milvus-operator-.*.tgz|milvus-operator/releases/download/v${OPERATOR_VERSION}/milvus-operator-${OPERATOR_VERSION}.tgz|g" ./README.md ./docs/installation/installation.md
 ${SED} "s|milvus-operator/.*/deploy/manifests/deployment.yaml|milvus-operator/v${OPERATOR_VERSION}/deploy/manifests/deployment.yaml|g" ./README.md
+${SED} "s|milvus-operator/.*/deploy/manifests/deployment.yaml|milvus-operator/v${OPERATOR_VERSION}/deploy/manifests/deployment.yaml|g" ./docs/installation/installation.md
 
 # milvus version
 ${SED} "s|milvusdb/milvus:.*|milvusdb/milvus:v${MILVUS_VERSION}|g" ./Makefile
