@@ -3,9 +3,9 @@
 IMG ?= milvusdb/milvus-operator:dev-latest
 TOOL_IMG ?= milvus-config-tool:dev-latest
 SIT_IMG ?= milvus-operator:sit
-VERSION ?= 0.7.6
+VERSION ?= 0.7.7
 TOOL_VERSION ?= 0.1.1
-MILVUS_HELM_VERSION ?= milvus-4.0.6
+MILVUS_HELM_VERSION ?= milvus-4.0.7
 RELEASE_IMG ?= milvusdb/milvus-operator:v$(VERSION)
 TOOL_RELEASE_IMG ?= milvusdb/milvus-config-tool:v$(TOOL_VERSION)
 
