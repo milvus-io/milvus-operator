@@ -15,7 +15,7 @@ entries:
     name: milvus-operator
     type: application
     urls:
-    - /milvus-operator/charts/milvus-operator-0.7.7.tgz
+    - https://github.com/milvus-io/milvus-operator/releases/download/v0.7.7/milvus-operator-0.7.7.tgz
     version: 0.7.7
   - apiVersion: v2
     appVersion: 0.7.6
@@ -31,7 +31,7 @@ entries:
     name: milvus-operator
     type: application
     urls:
-    - /milvus-operator/charts/milvus-operator-0.7.6.tgz
+    - https://github.com/milvus-io/milvus-operator/releases/download/v0.7.6/milvus-operator-0.7.6.tgz
     version: 0.7.6
   - apiVersion: v2
     appVersion: 0.7.5
@@ -47,7 +47,7 @@ entries:
     name: milvus-operator
     type: application
     urls:
-    - /milvus-operator/charts/milvus-operator-0.7.5.tgz
+    - https://github.com/milvus-io/milvus-operator/releases/download/v0.7.5/milvus-operator-0.7.5.tgz
     version: 0.7.5
   - apiVersion: v2
     appVersion: 0.7.4
@@ -63,7 +63,7 @@ entries:
     name: milvus-operator
     type: application
     urls:
-    - /milvus-operator/charts/milvus-operator-0.7.4.tgz
+    - https://github.com/milvus-io/milvus-operator/releases/download/v0.7.4/milvus-operator-0.7.4.tgz
     version: 0.7.4
   - apiVersion: v2
     appVersion: 0.7.3
@@ -79,7 +79,7 @@ entries:
     name: milvus-operator
     type: application
     urls:
-    - /milvus-operator/charts/milvus-operator-0.7.3.tgz
+    - https://github.com/milvus-io/milvus-operator/releases/download/v0.7.3/milvus-operator-0.7.3.tgz
     version: 0.7.3
   - apiVersion: v2
     appVersion: 0.7.2
@@ -95,7 +95,7 @@ entries:
     name: milvus-operator
     type: application
     urls:
-    - /milvus-operator/charts/milvus-operator-0.7.2.tgz
+    - https://github.com/milvus-io/milvus-operator/releases/download/v0.7.2/milvus-operator-0.7.2.tgz
     version: 0.7.2
   - apiVersion: v2
     appVersion: 0.7.1
@@ -111,7 +111,7 @@ entries:
     name: milvus-operator
     type: application
     urls:
-    - /milvus-operator/charts/milvus-operator-0.7.1.tgz
+    - https://github.com/milvus-io/milvus-operator/releases/download/v0.7.1/milvus-operator-0.7.1.tgz
     version: 0.7.1
   - apiVersion: v2
     appVersion: 0.7.0
@@ -127,7 +127,7 @@ entries:
     name: milvus-operator
     type: application
     urls:
-    - /milvus-operator/charts/milvus-operator-0.7.0.tgz
+    - https://github.com/milvus-io/milvus-operator/releases/download/v0.7.0milvus-operator-0.7.0.tgz
     version: 0.7.0
   - apiVersion: v2
     appVersion: 0.6.9
