@@ -16,6 +16,7 @@ entries:
     type: application
     urls:
     - /milvus-operator/charts/milvus-operator-0.7.7.tgz
+    version: 0.7.7
   - apiVersion: v2
     appVersion: 0.7.6
     created: "2023-02-15T11:28:03.020116+08:00"
@@ -160,4 +161,4 @@ entries:
     urls:
     - https://github.com/milvus-io/milvus-operator/releases/download/v0.6.8/milvus-operator-0.6.8.tgz
     version: 0.6.8
-generated: "2023-02-15T11:28:03.020116+08:00"
+generated: "2022-10-10T18:52:26.159626+08:00"
