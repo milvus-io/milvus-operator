@@ -35,8 +35,20 @@ type PersistentVolumeClaim struct {
 	// +optional
 	Annotations map[string]string `json:"annotations,omitempty"`
 
-	// Spec defines the desired characteristics of a volume requested by a pod author.
+	// PersistentVolumeClaimSpec defines the desired characteristics of a volume requested by a pod author.
 	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
 	// +kubebuilder:validation:Optional
-	Spec corev1.PersistentVolumeClaimSpec `json:"spec,omitempty"`
+	corev1.PersistentVolumeClaimSpec `json:",inline"`
+
+	// DeprecatedSpec defines the desired characteristics of a volume requested by a pod author.
+	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
+	// +kubebuilder:validation:Optional
+	DeprecatedSpec *corev1.PersistentVolumeClaimSpec `json:"spec,omitempty"`
+}
+
+func (p PersistentVolumeClaim) GetSpec() corev1.PersistentVolumeClaimSpec {
+	if p.DeprecatedSpec != nil {
+		return *p.DeprecatedSpec
+	}
+	return p.PersistentVolumeClaimSpec
 }

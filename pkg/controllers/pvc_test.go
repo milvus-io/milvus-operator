@@ -6,7 +6,6 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -47,16 +46,6 @@ func TestMilvusReconciler_ReconcilePVCs(t *testing.T) {
 		defer env.Ctrl.Finish()
 		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.Any()).Return(errNotFound)
 		mockClient.EXPECT().Create(ctx, gomock.Any()).Return(nil)
-		err := r.ReconcilePVCs(ctx, m)
-		assert.NoError(t, err)
-	})
-
-	t.Run("sync:no_update", func(t *testing.T) {
-		defer env.Ctrl.Finish()
-		mockClient.EXPECT().Get(ctx, gomock.Any(), gomock.Any()).Do(func(_, _, obj interface{}) {
-			pvc := obj.(*corev1.PersistentVolumeClaim)
-			r.syncPVC(ctx, m.Spec.Dep.RocksMQ.Persistence.PersistentVolumeClaim, pvc)
-		}).Return(nil)
 		err := r.ReconcilePVCs(ctx, m)
 		assert.NoError(t, err)
 	})

@@ -5914,15 +5914,73 @@ spec:
                             type: boolean
                           persistentVolumeClaim:
                             properties:
+                              accessModes:
+                                items:
+                                  type: string
+                                type: array
                               annotations:
                                 additionalProperties:
                                   type: string
+                                type: object
+                              dataSource:
+                                properties:
+                                  apiGroup:
+                                    type: string
+                                  kind:
+                                    type: string
+                                  name:
+                                    type: string
+                                required:
+                                - kind
+                                - name
                                 type: object
                               existingClaim:
                                 type: string
                               labels:
                                 additionalProperties:
                                   type: string
+                                type: object
+                              resources:
+                                properties:
+                                  limits:
+                                    additionalProperties:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                      x-kubernetes-int-or-string: true
+                                    type: object
+                                  requests:
+                                    additionalProperties:
+                                      anyOf:
+                                      - type: integer
+                                      - type: string
+                                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                      x-kubernetes-int-or-string: true
+                                    type: object
+                                type: object
+                              selector:
+                                properties:
+                                  matchExpressions:
+                                    items:
+                                      properties:
+                                        key:
+                                          type: string
+                                        operator:
+                                          type: string
+                                        values:
+                                          items:
+                                            type: string
+                                          type: array
+                                      required:
+                                      - key
+                                      - operator
+                                      type: object
+                                    type: array
+                                  matchLabels:
+                                    additionalProperties:
+                                      type: string
+                                    type: object
                                 type: object
                               spec:
                                 properties:
@@ -5991,6 +6049,12 @@ spec:
                                   volumeName:
                                     type: string
                                 type: object
+                              storageClassName:
+                                type: string
+                              volumeMode:
+                                type: string
+                              volumeName:
+                                type: string
                             type: object
                           pvcDeletion:
                             type: boolean
