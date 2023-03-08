@@ -369,15 +369,28 @@ func GetLivenessProbe() *corev1.Probe {
 				Scheme: corev1.URISchemeHTTP,
 			},
 		},
-		TimeoutSeconds:   3,
-		PeriodSeconds:    30,
-		FailureThreshold: 2,
+		TimeoutSeconds:   10,
+		PeriodSeconds:    15,
+		FailureThreshold: 3,
 		SuccessThreshold: 1,
 	}
 }
 
-var GetReadinessProbe = GetLivenessProbe
-
+func GetReadinessProbe() *corev1.Probe {
+	return &corev1.Probe{
+		Handler: corev1.Handler{
+			HTTPGet: &corev1.HTTPGetAction{
+				Path:   "/healthz",
+				Port:   intstr.FromInt(9091),
+				Scheme: corev1.URISchemeHTTP,
+			},
+		},
+		TimeoutSeconds:   3,
+		PeriodSeconds:    15,
+		FailureThreshold: 2,
+		SuccessThreshold: 1,
+	}
+}
 func (c MilvusComponent) GetDeploymentStrategy(configs map[string]interface{}) appsv1.DeploymentStrategy {
 	var useRollingUpdate bool
 	switch {
