@@ -373,9 +373,11 @@ func TestMilvusComponent_GetLivenessProbe_GetReadinessProbe(t *testing.T) {
 	lProbe := GetLivenessProbe()
 	assert.Equal(t, "/healthz", lProbe.HTTPGet.Path)
 	assert.Equal(t, intstr.FromInt(MetricPort), lProbe.HTTPGet.Port)
+	assert.Equal(t, int32(10), lProbe.TimeoutSeconds)
+	assert.Equal(t, int32(15), lProbe.PeriodSeconds)
 
 	rProbe := GetReadinessProbe()
-	assert.Equal(t, lProbe, rProbe)
+	assert.Equal(t, int32(3), rProbe.TimeoutSeconds)
 }
 
 func TestMilvusComponent_GetDeploymentStrategy(t *testing.T) {
