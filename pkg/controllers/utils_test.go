@@ -316,6 +316,68 @@ func TestIsClusterDependencyReady(t *testing.T) {
 	assert.True(t, IsDependencyReady(status.Conditions))
 }
 
+func TestGetNotReadyDependencyConditions(t *testing.T) {
+	t.Run("all condition not set", func(t *testing.T) {
+		conds := []v1beta1.MilvusCondition{}
+		ret := GetNotReadyDependencyConditions(conds)
+		assert.Len(t, ret, 3)
+	})
+
+	t.Run("all condition ready", func(t *testing.T) {
+		conds := []v1beta1.MilvusCondition{
+			{
+				Type:   v1beta1.EtcdReady,
+				Status: corev1.ConditionTrue,
+			},
+			{
+				Type:   v1beta1.MsgStreamReady,
+				Status: corev1.ConditionTrue,
+			},
+			{
+				Type:   v1beta1.StorageReady,
+				Status: corev1.ConditionTrue,
+			},
+		}
+		ret := GetNotReadyDependencyConditions(conds)
+		assert.Len(t, ret, 0)
+	})
+
+	t.Run("some condition not ready", func(t *testing.T) {
+		conds := []v1beta1.MilvusCondition{
+			{
+				Type:   v1beta1.EtcdReady,
+				Status: corev1.ConditionTrue,
+			},
+			{
+				Type:   v1beta1.MsgStreamReady,
+				Status: corev1.ConditionFalse,
+			},
+			{
+				Type:   v1beta1.StorageReady,
+				Status: corev1.ConditionTrue,
+			},
+		}
+		ret := GetNotReadyDependencyConditions(conds)
+		assert.Len(t, ret, 1)
+		assert.NotNil(t, ret[v1beta1.MsgStreamReady])
+	})
+
+	t.Run("milvus condition ignored", func(t *testing.T) {
+		conds := []v1beta1.MilvusCondition{
+			{
+				Type:   v1beta1.MilvusReady,
+				Status: corev1.ConditionFalse,
+			},
+			{
+				Type:   v1beta1.EtcdReady,
+				Status: corev1.ConditionTrue,
+			},
+		}
+		ret := GetNotReadyDependencyConditions(conds)
+		assert.Len(t, ret, 2)
+	})
+}
+
 func TestUpdateCondition(t *testing.T) {
 	// append if not existed
 	status := v1beta1.MilvusStatus{

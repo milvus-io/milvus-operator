@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -307,11 +308,23 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1bet
 	}
 
 	if !IsDependencyReady(mc.Status.Conditions) {
+		notReadyConditions := GetNotReadyDependencyConditions(mc.Status.Conditions)
+		reason := v1beta1.ReasonDependencyNotReady
+		var msg string
+		for depType, notReadyCondition := range notReadyConditions {
+			if notReadyCondition != nil {
+				msg += fmt.Sprintf("dep[%s]: %s;", depType, notReadyCondition.Message)
+			} else {
+				msg = "condition not probed yet"
+			}
+		}
+		ctrl.LoggerFrom(ctx).Info("milvus dependency unhealty", "reason", reason, "msg", msg)
+
 		return v1beta1.MilvusCondition{
 			Type:    v1beta1.MilvusReady,
 			Status:  corev1.ConditionFalse,
-			Reason:  v1beta1.ReasonDependencyNotReady,
-			Message: "Milvus Dependencies is not ready",
+			Reason:  reason,
+			Message: msg,
 		}, nil
 	}
 
@@ -358,6 +371,7 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1bet
 		cond.Status = corev1.ConditionFalse
 		cond.Reason = v1beta1.ReasonMilvusComponentNotHealthy
 		cond.Message = fmt.Sprintf("%s not ready, detail: %s", notReadyComponents, errDetail)
+		ctrl.LoggerFrom(ctx).Info("milvus unhealty", "reason", cond.Reason, "msg", cond.Message)
 	}
 
 	return cond, nil
