@@ -289,6 +289,25 @@ func IsDependencyReady(conditions []v1beta1.MilvusCondition) bool {
 	return ready == 3
 }
 
+func GetNotReadyDependencyConditions(conditions []v1beta1.MilvusCondition) map[v1beta1.MiluvsConditionType]*v1beta1.MilvusCondition {
+	ret := map[v1beta1.MiluvsConditionType]*v1beta1.MilvusCondition{
+		v1beta1.EtcdReady:      nil,
+		v1beta1.StorageReady:   nil,
+		v1beta1.MsgStreamReady: nil,
+	}
+	for _, c := range conditions {
+		switch c.Type {
+		case v1beta1.EtcdReady, v1beta1.StorageReady, v1beta1.MsgStreamReady:
+			if c.Status == corev1.ConditionTrue {
+				delete(ret, c.Type)
+				continue
+			}
+			ret[c.Type] = &c
+		}
+	}
+	return ret
+}
+
 func UpdateCondition(status *v1beta1.MilvusStatus, c v1beta1.MilvusCondition) {
 	for i := range status.Conditions {
 		cp := &status.Conditions[i]
