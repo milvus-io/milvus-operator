@@ -243,7 +243,7 @@ type MilvusIngress struct {
 // MilvusCondition contains details for the current condition of this milvus/milvus cluster instance
 type MilvusCondition struct {
 	// Type is the type of the condition.
-	Type MiluvsConditionType `json:"type"`
+	Type MilvusConditionType `json:"type"`
 	// Status is the status of the condition.
 	// Can be True, False, Unknown.
 	Status corev1.ConditionStatus `json:"status"`
@@ -268,7 +268,7 @@ func InitLabelAnnotation(obj client.Object) {
 	}
 }
 
-func GetMilvusConditionByType(status *MilvusStatus, conditionType MiluvsConditionType) *MilvusCondition {
+func GetMilvusConditionByType(status *MilvusStatus, conditionType MilvusConditionType) *MilvusCondition {
 	for _, condition := range status.Conditions {
 		if condition.Type == conditionType {
 			return &condition
@@ -285,8 +285,8 @@ func (m *Milvus) RemoveStoppedAtAnnotation() {
 	delete(m.GetAnnotations(), StoppedAtAnnotation)
 }
 
-// MiluvsConditionType is a valid value for MiluvsConditionType.Type.
-type MiluvsConditionType string
+// MilvusConditionType is a valid value for MilvusConditionType.Type.
+type MilvusConditionType string
 
 // MilvusHealthStatus is a type for milvus status.
 type MilvusHealthStatus string
@@ -304,15 +304,15 @@ const (
 	StatusStopped MilvusHealthStatus = "Stopped"
 
 	// EtcdReady means the Etcd is ready.
-	EtcdReady MiluvsConditionType = "EtcdReady"
+	EtcdReady MilvusConditionType = "EtcdReady"
 	// StorageReady means the Storage is ready.
-	StorageReady MiluvsConditionType = "StorageReady"
+	StorageReady MilvusConditionType = "StorageReady"
 	// MsgStreamReady means the MsgStream is ready.
-	MsgStreamReady MiluvsConditionType = "MsgStreamReady"
+	MsgStreamReady MilvusConditionType = "MsgStreamReady"
 	// MilvusReady means all components of Milvus are ready.
-	MilvusReady MiluvsConditionType = "MilvusReady"
+	MilvusReady MilvusConditionType = "MilvusReady"
 	// MilvusUpdated means the Milvus has updated according to its spec.
-	MilvusUpdated MiluvsConditionType = "MilvusUpdated"
+	MilvusUpdated MilvusConditionType = "MilvusUpdated"
 
 	// ReasonEndpointsHealthy means the endpoint is healthy
 	ReasonEndpointsHealthy string = "EndpointsHealthy"
