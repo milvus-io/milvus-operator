@@ -388,7 +388,7 @@ func makeComponentDeploymentMap(mc v1beta1.Milvus, deploys []appsv1.Deployment) 
 	return m
 }
 
-func GetMilvusConditionByType(conditions []v1beta1.MilvusCondition, Type v1beta1.MiluvsConditionType) *v1beta1.MilvusCondition {
+func GetMilvusConditionByType(conditions []v1beta1.MilvusCondition, Type v1beta1.MilvusConditionType) *v1beta1.MilvusCondition {
 	for _, condition := range conditions {
 		if condition.Type == Type {
 			return &condition
@@ -397,7 +397,7 @@ func GetMilvusConditionByType(conditions []v1beta1.MilvusCondition, Type v1beta1
 	return nil
 }
 
-func IsMilvusConditionTrueByType(conditions []v1beta1.MilvusCondition, Type v1beta1.MiluvsConditionType) bool {
+func IsMilvusConditionTrueByType(conditions []v1beta1.MilvusCondition, Type v1beta1.MilvusConditionType) bool {
 	cond := GetMilvusConditionByType(conditions, Type)
 	if cond == nil {
 		return false

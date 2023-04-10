@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "crypto/sha256"
 	"fmt"
+	"log"
 	"reflect"
 	"runtime"
 	"strings"
@@ -289,20 +290,22 @@ func IsDependencyReady(conditions []v1beta1.MilvusCondition) bool {
 	return ready == 3
 }
 
-func GetNotReadyDependencyConditions(conditions []v1beta1.MilvusCondition) map[v1beta1.MiluvsConditionType]*v1beta1.MilvusCondition {
-	ret := map[v1beta1.MiluvsConditionType]*v1beta1.MilvusCondition{
+func GetNotReadyDependencyConditions(conditions []v1beta1.MilvusCondition) map[v1beta1.MilvusConditionType]*v1beta1.MilvusCondition {
+	ret := map[v1beta1.MilvusConditionType]*v1beta1.MilvusCondition{
 		v1beta1.EtcdReady:      nil,
 		v1beta1.StorageReady:   nil,
 		v1beta1.MsgStreamReady: nil,
 	}
-	for _, c := range conditions {
-		switch c.Type {
+	for _, iter := range conditions {
+		switch iter.Type {
 		case v1beta1.EtcdReady, v1beta1.StorageReady, v1beta1.MsgStreamReady:
-			if c.Status == corev1.ConditionTrue {
-				delete(ret, c.Type)
+			if iter.Status == corev1.ConditionTrue {
+				delete(ret, iter.Type)
 				continue
 			}
-			ret[c.Type] = &c
+			log.Println("condition not ready", iter.Type, iter.Status, iter.Reason, iter.Message)
+			conditionCopy := iter
+			ret[iter.Type] = &conditionCopy
 		}
 	}
 	return ret

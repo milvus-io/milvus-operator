@@ -321,6 +321,9 @@ func TestGetNotReadyDependencyConditions(t *testing.T) {
 		conds := []v1beta1.MilvusCondition{}
 		ret := GetNotReadyDependencyConditions(conds)
 		assert.Len(t, ret, 3)
+		assert.Nil(t, ret[v1beta1.EtcdReady])
+		assert.Nil(t, ret[v1beta1.MsgStreamReady])
+		assert.Nil(t, ret[v1beta1.StorageReady])
 	})
 
 	t.Run("all condition ready", func(t *testing.T) {
@@ -349,8 +352,10 @@ func TestGetNotReadyDependencyConditions(t *testing.T) {
 				Status: corev1.ConditionTrue,
 			},
 			{
-				Type:   v1beta1.MsgStreamReady,
-				Status: corev1.ConditionFalse,
+				Type:    v1beta1.MsgStreamReady,
+				Status:  corev1.ConditionFalse,
+				Reason:  v1beta1.ReasonMsgStreamReady,
+				Message: "mq msg",
 			},
 			{
 				Type:   v1beta1.StorageReady,
@@ -359,7 +364,12 @@ func TestGetNotReadyDependencyConditions(t *testing.T) {
 		}
 		ret := GetNotReadyDependencyConditions(conds)
 		assert.Len(t, ret, 1)
+		for k, v := range ret {
+			print(k, v.Type)
+		}
 		assert.NotNil(t, ret[v1beta1.MsgStreamReady])
+		assert.Equal(t, v1beta1.ReasonMsgStreamReady, ret[v1beta1.MsgStreamReady].Reason)
+		assert.Equal(t, "mq msg", ret[v1beta1.MsgStreamReady].Message)
 	})
 
 	t.Run("milvus condition ignored", func(t *testing.T) {
