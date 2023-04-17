@@ -31,7 +31,7 @@ func init() {
 	//+kubebuilder:scaffold:scheme
 }
 
-func NewManager(metricsAddr, probeAddr string, enableLeaderElection bool) (ctrl.Manager, error) {
+func NewManager(k8sQps, k8sBurst int, metricsAddr, probeAddr string, enableLeaderElection bool) (ctrl.Manager, error) {
 	syncPeriod := time.Second * time.Duration(config.SyncIntervalSec)
 	ctrlOptions := ctrl.Options{
 		Scheme:                 scheme,
@@ -44,6 +44,8 @@ func NewManager(metricsAddr, probeAddr string, enableLeaderElection bool) (ctrl.
 	}
 
 	conf := ctrl.GetConfigOrDie()
+	conf.QPS = float32(k8sQps)
+	conf.Burst = k8sBurst
 	mgr, err := ctrl.NewManager(conf, ctrlOptions)
 	if err != nil {
 		mgrLog.Error(err, "unable to start manager")
