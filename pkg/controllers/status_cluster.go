@@ -219,6 +219,7 @@ func (r *MilvusStatusSyncer) UpdateStatusRoutine(ctx context.Context, mc *v1beta
 }
 
 func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, mc *v1beta1.Milvus) error {
+	beginStatus := mc.Status.DeepCopy()
 	if !mc.Spec.IsStopping() {
 		funcs := []Func{
 			r.GetEtcdCondition,
@@ -270,6 +271,9 @@ func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, m
 		IsHealthy:  milvusCond.Status == corev1.ConditionTrue,
 	}
 	mc.Status.Status = statusInfo.GetMilvusHealthStatus()
+	if IsEqual(beginStatus, mc.Status) {
+		return nil
+	}
 	return r.Status().Update(ctx, mc)
 }
 
