@@ -25,14 +25,17 @@ func (r *MilvusReconciler) updatePodMonitor(
 	if interval == "" {
 		interval = "30s"
 	}
-	podmonitor.Spec.PodMetricsEndpoints = []monitoringv1.PodMetricsEndpoint{
-		{
-			HonorLabels: true,
-			Interval:    interval,
-			Path:        MetricPath,
-			Port:        MetricPortName,
-		},
+	if len(podmonitor.Spec.PodMetricsEndpoints) == 0 {
+		podmonitor.Spec.PodMetricsEndpoints = []monitoringv1.PodMetricsEndpoint{
+			{
+				HonorLabels: true,
+				Interval:    interval,
+				Path:        MetricPath,
+				Port:        MetricPortName,
+			},
+		}
 	}
+
 	podmonitor.Spec.NamespaceSelector = monitoringv1.NamespaceSelector{
 		MatchNames: []string{mc.Namespace},
 	}
