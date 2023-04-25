@@ -47,7 +47,7 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 		deployment.Spec.Selector.MatchLabels = appLabels
 	}
 	template := &deployment.Spec.Template
-
+	currentTemplate := template.DeepCopy()
 	//update initContainers
 	configContainerIdx := GetContainerIndex(template.Spec.InitContainers, configContainerName)
 	spec := updater.GetMilvus().Spec
@@ -159,12 +159,31 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	}
 
 	container.Resources = *mergedComSpec.Resources
-	// only set at first time render avoid trigling restart
-	if isCreating {
-		container.StartupProbe = GetStartupProbe()
-		container.LivenessProbe = GetLivenessProbe()
-		container.ReadinessProbe = GetReadinessProbe()
-		template.Spec.TerminationGracePeriodSeconds = int64Ptr(300)
+	// no rolling update
+	if IsEqual(currentTemplate, template) {
+		return nil
+	}
+	// will perform rolling update
+	// we add some other perfered updates
+	container.StartupProbe = GetStartupProbe()
+	container.LivenessProbe = GetLivenessProbe()
+	container.ReadinessProbe = GetReadinessProbe()
+	if componentName == ProxyName || componentName == StandaloneName {
+		// When the proxy or standalone receives a SIGTERM,
+		// will stop handling new requests immediatelly
+		// but it maybe still not removed from the load balancer.
+		// We add sleep 30s to hold the SIGTERM so that
+		// the load balancer controller has enough time to remove it.
+		container.Lifecycle = &corev1.Lifecycle{
+			PreStop: &corev1.Handler{
+				Exec: &corev1.ExecAction{
+					Command: []string{
+						"sleep",
+						"30",
+					},
+				},
+			},
+		}
 	}
 
 	////update or append sidecar container
@@ -179,6 +198,7 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 		}
 	}
 
+	template.Spec.TerminationGracePeriodSeconds = int64Ptr(300)
 	return nil
 }
 
