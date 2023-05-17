@@ -171,6 +171,16 @@ type Component struct {
 	// +kubebuilder:validation:Maximum=65535
 	// not used for now
 	Port int32 `json:"port,omitempty"`
+
+	// SideCars is same as []corev1.Container, we use a Values here to avoid the CRD become too large
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	SideCars []Values `json:"sidecars,omitempty"`
+
+	// SideCars is same as []corev1.Container, we use a Values here to avoid the CRD become too large
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	InitContainers []Values `json:"initContainers,omitempty"`
 }
 
 type MilvusQueryNode struct {

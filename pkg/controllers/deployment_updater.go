@@ -16,6 +16,8 @@ type deploymentUpdater interface {
 	GetControllerRef() metav1.Object
 	GetScheme() *runtime.Scheme
 	GetReplicas() *int32
+	GetSideCars() []corev1.Container
+	GetInitContainers() []corev1.Container
 	GetDeploymentStrategy() appsv1.DeploymentStrategy
 	GetConfCheckSum() string
 	GetMergedComponentSpec() ComponentSpec
@@ -45,6 +47,8 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 		deployment.Spec.Selector.MatchLabels = appLabels
 	}
 	template := &deployment.Spec.Template
+
+	//update initContainers
 	configContainerIdx := GetContainerIndex(template.Spec.InitContainers, configContainerName)
 	spec := updater.GetMilvus().Spec
 	if configContainerIdx < 0 {
@@ -56,6 +60,18 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 	} else if spec.Com.UpdateToolImage {
 		renderInitContainer(&template.Spec.InitContainers[configContainerIdx], spec.Com.ToolImage)
 	}
+
+	initContainers := updater.GetInitContainers()
+	if len(initContainers) > 0 {
+		for _, c := range initContainers {
+			if i := GetContainerIndex(template.Spec.InitContainers, c.Name); i >= 0 {
+				template.Spec.InitContainers[i] = c
+			} else {
+				template.Spec.InitContainers = append(template.Spec.InitContainers, c)
+			}
+		}
+	}
+
 	if template.Labels == nil {
 		template.Labels = map[string]string{}
 	}
@@ -149,6 +165,19 @@ func updateDeployment(deployment *appsv1.Deployment, updater deploymentUpdater) 
 		container.ReadinessProbe = GetReadinessProbe()
 		template.Spec.TerminationGracePeriodSeconds = int64Ptr(300)
 	}
+
+	////update or append sidecar container
+	sidecars := updater.GetSideCars()
+	if len(sidecars) > 0 {
+		for _, c := range sidecars {
+			if i := GetContainerIndex(template.Spec.Containers, c.Name); i >= 0 {
+				template.Spec.Containers[i] = c
+			} else {
+				template.Spec.Containers = append(template.Spec.Containers, c)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -188,24 +217,38 @@ func (m milvusDeploymentUpdater) GetPortName() string {
 func (m milvusDeploymentUpdater) GetControllerRef() metav1.Object {
 	return &m.Milvus
 }
+
 func (m milvusDeploymentUpdater) GetScheme() *runtime.Scheme {
 	return m.scheme
 }
+
 func (m milvusDeploymentUpdater) GetReplicas() *int32 {
 	return m.component.GetReplicas(m.Spec)
 }
+
+func (m milvusDeploymentUpdater) GetSideCars() []corev1.Container {
+	return m.component.GetSideCars(m.Spec)
+}
+
+func (m milvusDeploymentUpdater) GetInitContainers() []corev1.Container {
+	return m.component.GetInitContainers(m.Spec)
+}
+
 func (m milvusDeploymentUpdater) GetDeploymentStrategy() appsv1.DeploymentStrategy {
 	return m.component.GetDeploymentStrategy(m.Milvus.Spec.Conf.Data)
 }
+
 func (m milvusDeploymentUpdater) GetConfCheckSum() string {
 	return GetConfCheckSum(m.Spec)
 }
+
 func (m milvusDeploymentUpdater) GetMergedComponentSpec() ComponentSpec {
 	return MergeComponentSpec(
 		m.component.GetComponentSpec(m.Spec),
 		m.Spec.Com.ComponentSpec,
 	)
 }
+
 func (m milvusDeploymentUpdater) GetArgs() []string {
 	if len(m.GetMergedComponentSpec().Commands) > 0 {
 		return append([]string{RunScriptPath}, m.GetMergedComponentSpec().Commands...)

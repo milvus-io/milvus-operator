@@ -1848,6 +1848,11 @@ spec:
                               type: string
                           type: object
                         type: array
+                      initContainers:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       nodeSelector:
                         additionalProperties:
                           type: string
@@ -1894,6 +1899,11 @@ spec:
                         type: string
                       serviceAccountName:
                         type: string
+                      sidecars:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       tolerations:
                         items:
                           properties:
@@ -2367,6 +2377,11 @@ spec:
                               type: string
                           type: object
                         type: array
+                      initContainers:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       nodeSelector:
                         additionalProperties:
                           type: string
@@ -2413,6 +2428,11 @@ spec:
                         type: string
                       serviceAccountName:
                         type: string
+                      sidecars:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       tolerations:
                         items:
                           properties:
@@ -2968,6 +2988,11 @@ spec:
                               type: string
                           type: object
                         type: array
+                      initContainers:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       nodeSelector:
                         additionalProperties:
                           type: string
@@ -3014,6 +3039,11 @@ spec:
                         type: string
                       serviceAccountName:
                         type: string
+                      sidecars:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       tolerations:
                         items:
                           properties:
@@ -3487,6 +3517,11 @@ spec:
                               type: string
                           type: object
                         type: array
+                      initContainers:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       nodeSelector:
                         additionalProperties:
                           type: string
@@ -3533,6 +3568,11 @@ spec:
                         type: string
                       serviceAccountName:
                         type: string
+                      sidecars:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       tolerations:
                         items:
                           properties:
@@ -4008,6 +4048,11 @@ spec:
                               type: string
                           type: object
                         type: array
+                      initContainers:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       nodeSelector:
                         additionalProperties:
                           type: string
@@ -4054,6 +4099,11 @@ spec:
                         type: string
                       serviceAccountName:
                         type: string
+                      sidecars:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       tolerations:
                         items:
                           properties:
@@ -4564,6 +4614,11 @@ spec:
                               type: array
                             type: object
                         type: object
+                      initContainers:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       nodeSelector:
                         additionalProperties:
                           type: string
@@ -4625,6 +4680,11 @@ spec:
                         - NodePort
                         - LoadBalancer
                         type: string
+                      sidecars:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       tolerations:
                         items:
                           properties:
@@ -5098,6 +5158,11 @@ spec:
                               type: string
                           type: object
                         type: array
+                      initContainers:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       nodeSelector:
                         additionalProperties:
                           type: string
@@ -5144,6 +5209,11 @@ spec:
                         type: string
                       serviceAccountName:
                         type: string
+                      sidecars:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       tolerations:
                         items:
                           properties:
@@ -5617,6 +5687,11 @@ spec:
                               type: string
                           type: object
                         type: array
+                      initContainers:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       nodeSelector:
                         additionalProperties:
                           type: string
@@ -5663,6 +5738,11 @@ spec:
                         type: string
                       serviceAccountName:
                         type: string
+                      sidecars:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       tolerations:
                         items:
                           properties:
@@ -6155,6 +6235,11 @@ spec:
                               type: string
                           type: object
                         type: array
+                      initContainers:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       nodeSelector:
                         additionalProperties:
                           type: string
@@ -6201,6 +6286,11 @@ spec:
                         type: string
                       serviceAccountName:
                         type: string
+                      sidecars:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       tolerations:
                         items:
                           properties:
@@ -6701,6 +6791,11 @@ spec:
                               type: array
                             type: object
                         type: object
+                      initContainers:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       nodeSelector:
                         additionalProperties:
                           type: string
@@ -6762,6 +6857,11 @@ spec:
                         - NodePort
                         - LoadBalancer
                         type: string
+                      sidecars:
+                        items:
+                          type: object
+                        type: array
+                        x-kubernetes-preserve-unknown-fields: true
                       tolerations:
                         items:
                           properties:

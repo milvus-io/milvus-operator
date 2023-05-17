@@ -270,6 +270,50 @@ func (c MilvusComponent) GetComponentPort(spec v1beta1.MilvusSpec) int32 {
 	return c.DefaultPort
 }
 
+// GetSideCars returns the component sidecar conatiners
+func (c MilvusComponent) GetSideCars(spec v1beta1.MilvusSpec) []corev1.Container {
+	componentField := reflect.ValueOf(spec.Com).FieldByName(c.FieldName)
+	if componentField.IsNil() {
+		return nil
+	}
+
+	values, _ := componentField.Elem().
+		FieldByName("Component").
+		FieldByName("SideCars").Interface().([]v1beta1.Values)
+
+	sidecars := make([]corev1.Container, 0)
+	for _, v := range values {
+		var sidecar corev1.Container
+		if err := v.AsObject(&sidecar); err == nil {
+			sidecars = append(sidecars, sidecar)
+		}
+	}
+
+	return sidecars
+}
+
+// GetSideCars returns the component init conatiners
+func (c MilvusComponent) GetInitContainers(spec v1beta1.MilvusSpec) []corev1.Container {
+	componentField := reflect.ValueOf(spec.Com).FieldByName(c.FieldName)
+	if componentField.IsNil() {
+		return nil
+	}
+
+	values, _ := componentField.Elem().
+		FieldByName("Component").
+		FieldByName("InitContainers").Interface().([]v1beta1.Values)
+
+	initConainers := make([]corev1.Container, 0)
+	for _, v := range values {
+		var initContainer corev1.Container
+		if err := v.AsObject(&initContainer); err == nil {
+			initConainers = append(initConainers, initContainer)
+		}
+	}
+
+	return initConainers
+}
+
 // GetComponentSpec returns the component spec
 func (c MilvusComponent) GetComponentSpec(spec v1beta1.MilvusSpec) v1beta1.ComponentSpec {
 	value := reflect.ValueOf(spec.Com).FieldByName(c.FieldName).Elem().FieldByName("ComponentSpec")
