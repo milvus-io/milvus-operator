@@ -8,6 +8,7 @@ TOOL_VERSION ?= 0.1.1
 MILVUS_HELM_VERSION ?= milvus-4.0.13
 RELEASE_IMG ?= milvusdb/milvus-operator:v$(VERSION)
 TOOL_RELEASE_IMG ?= milvusdb/milvus-config-tool:v$(TOOL_VERSION)
+KIND_CLUSTER ?= kind
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd:preserveUnknownFields=false,maxDescLen=0"
@@ -181,10 +182,10 @@ deploy-manifests: manifests kustomize helm-generate
 	helm template milvus-operator --create-namespace -n milvus-operator ./charts/milvus-operator-$(VERSION).tgz  >> deploy/manifests/deployment.yaml
 
 kind-dev: kind
-	sudo $(KIND) create cluster --config config/kind/kind-dev.yaml --name kind-dev
+	sudo $(KIND) create cluster --config config/kind/kind-dev.yaml --name ${KIND_CLUSTER}
 
 uninstall-kind-dev: kind
-	sudo $(KIND) delete cluster --name kind-dev
+	sudo $(KIND) delete cluster --name ${KIND_CLUSTER}
 
 # Install local certificate
 # Required for webhook server to start
@@ -239,20 +240,20 @@ sit-prepare-images: sit-prepare-operator-images
 
 sit-load-operator-images:
 	@echo "Loading operator images"
-	kind load docker-image ${SIT_IMG}
-	kind load docker-image quay.io/jetstack/cert-manager-controller:v1.5.3
-	kind load docker-image quay.io/jetstack/cert-manager-webhook:v1.5.3
-	kind load docker-image quay.io/jetstack/cert-manager-cainjector:v1.5.3
+	kind load docker-image ${SIT_IMG} --name ${KIND_CLUSTER}
+	kind load docker-image quay.io/jetstack/cert-manager-controller:v1.5.3 --name ${KIND_CLUSTER}
+	kind load docker-image quay.io/jetstack/cert-manager-webhook:v1.5.3 --name ${KIND_CLUSTER}
+	kind load docker-image quay.io/jetstack/cert-manager-cainjector:v1.5.3 --name ${KIND_CLUSTER}
 
 sit-load-images: sit-load-operator-images
 	@echo "Loading images"
-	kind load docker-image milvusdb/milvus:v2.2.8
-	kind load docker-image apachepulsar/pulsar:2.8.2
-	kind load docker-image bitnami/kafka:3.1.0-debian-10-r52
-	kind load docker-image milvusdb/etcd:3.5.0-r6
-	kind load docker-image minio/minio:RELEASE.2021-02-14T04-01-33Z
-	kind load docker-image minio/mc:RELEASE.2021-02-14T04-28-06Z
-	kind load docker-image haorenfsa/pymilvus:latest
+	kind load docker-image milvusdb/milvus:v2.2.8 --name ${KIND_CLUSTER}
+	kind load docker-image apachepulsar/pulsar:2.8.2 --name ${KIND_CLUSTER}
+	kind load docker-image bitnami/kafka:3.1.0-debian-10-r52 --name ${KIND_CLUSTER}
+	kind load docker-image milvusdb/etcd:3.5.0-r6 --name ${KIND_CLUSTER}
+	kind load docker-image minio/minio:RELEASE.2021-02-14T04-01-33Z --name ${KIND_CLUSTER}
+	kind load docker-image minio/mc:RELEASE.2021-02-14T04-28-06Z --name ${KIND_CLUSTER}
+	kind load docker-image haorenfsa/pymilvus:latest --name ${KIND_CLUSTER}
 
 sit-generate-manifest:
 	cat deploy/manifests/deployment.yaml | sed  "s#${RELEASE_IMG}#${SIT_IMG}#g" > test/test_gen.yaml
