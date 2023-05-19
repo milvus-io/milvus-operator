@@ -4,10 +4,12 @@ import (
 	"context"
 
 	pkgerr "github.com/pkg/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 )
@@ -15,13 +17,17 @@ import (
 func (r *MilvusReconciler) updateService(
 	mc v1beta1.Milvus, service *corev1.Service, component MilvusComponent,
 ) error {
-	appLabels := NewComponentAppLabels(mc.Name, component.GetName())
-	service.Labels = MergeLabels(service.Labels, appLabels)
+	serviceLabels := NewAppLabels(mc.Name)
+	service.Labels = MergeLabels(service.Labels, serviceLabels)
+
+	// backward compatibility, remove redundant label
+	delete(service.Labels, AppLabelComponent)
+
 	if err := SetControllerReference(&mc, service, r.Scheme); err != nil {
 		return err
 	}
 	service.Spec.Ports = MergeServicePort(service.Spec.Ports, component.GetServicePorts(mc.Spec))
-	service.Spec.Selector = appLabels
+	service.Spec.Selector = NewServicePodLabels(mc.Name)
 	service.Spec.Type = component.GetServiceType(mc.Spec)
 
 	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
@@ -39,8 +45,21 @@ func (r *MilvusReconciler) updateService(
 func (r *MilvusReconciler) ReconcileComponentService(
 	ctx context.Context, mc v1beta1.Milvus, component MilvusComponent,
 ) error {
-	if component.IsNode() || component.IsCoord() {
+	if !component.IsService() {
 		return nil
+	}
+
+	isChangingMode := mc.IsChangingMode()
+	isPodServiceLabelAdded := mc.IsPodServiceLabelAdded()
+	if !isPodServiceLabelAdded && !isChangingMode {
+		return nil
+	}
+
+	if isChangingMode && !isPodServiceLabelAdded {
+		err := r.labelServicePods(ctx, mc, component)
+		if err != nil {
+			return pkgerr.Wrap(err, "label service pods")
+		}
 	}
 
 	namespacedName := NamespacedName(mc.Namespace, GetServiceInstanceName(mc.Name))
@@ -92,4 +111,35 @@ func (r *MilvusReconciler) ReconcileServices(ctx context.Context, mc v1beta1.Mil
 	}
 
 	return pkgerr.Wrap(err, "reconcile milvus services")
+}
+
+func (r *MilvusReconciler) labelServicePods(ctx context.Context, mc v1beta1.Milvus, component MilvusComponent) error {
+	pods := &corev1.PodList{}
+	opts := &client.ListOptions{
+		Namespace: mc.Namespace,
+	}
+	serviceComponents := []MilvusComponent{MilvusStandalone, Proxy}
+
+	for _, serviceComponent := range serviceComponents {
+		opts.LabelSelector = labels.SelectorFromSet(NewComponentAppLabels(
+			mc.Name,
+			serviceComponent.Name,
+		))
+		if err := r.List(ctx, pods, opts); err != nil {
+			return pkgerr.Wrapf(err, "list [%s] pods", serviceComponent.Name)
+		}
+		for _, pod := range pods.Items {
+			if pod.Labels == nil {
+				pod.Labels = map[string]string{}
+			}
+			if pod.Labels[v1beta1.ServiceLabel] != v1beta1.TrueStr {
+				pod.Labels[v1beta1.ServiceLabel] = v1beta1.TrueStr
+				if err := r.Update(ctx, &pod); err != nil {
+					return pkgerr.Wrapf(err, "label pod %s", pod.Name)
+				}
+			}
+		}
+	}
+
+	return nil
 }

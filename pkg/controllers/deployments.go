@@ -6,12 +6,14 @@ import (
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
+	"github.com/pkg/errors"
+	pkgerr "github.com/pkg/errors"
 )
 
 const (
@@ -32,6 +34,7 @@ const (
 
 var (
 	MilvusConfigMapMode int32 = 420
+	ErrRequeue                = pkgerr.New("requeue")
 )
 
 func GetStorageSecretRefEnv(secretRef string) []corev1.EnvVar {
@@ -73,10 +76,11 @@ func (r *MilvusReconciler) updateDeployment(
 func (r *MilvusReconciler) ReconcileComponentDeployment(
 	ctx context.Context, mc v1beta1.Milvus, component MilvusComponent,
 ) error {
+
 	namespacedName := NamespacedName(mc.Namespace, component.GetDeploymentName(mc.Name))
 	old := &appsv1.Deployment{}
 	err := r.Get(ctx, namespacedName, old)
-	if errors.IsNotFound(err) {
+	if kerrors.IsNotFound(err) {
 		new := &appsv1.Deployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      component.GetDeploymentName(mc.Name),
@@ -91,6 +95,20 @@ func (r *MilvusReconciler) ReconcileComponentDeployment(
 		return r.Create(ctx, new)
 	} else if err != nil {
 		return err
+	}
+
+	// if milvus CR annotation shows its pod's milvus.io/service=true label not added, but
+	// the service pod (proxy / standalone)'s label shows it's added, then update the annotation
+	// and raise err to requeue the reconcile
+	if component.IsService() &&
+		!mc.IsPodServiceLabelAdded() &&
+		old.Spec.Template.Labels[v1beta1.ServiceLabel] == v1beta1.TrueStr {
+
+		mc.Annotations[v1beta1.PodServiceLabelAddedAnnotation] = v1beta1.TrueStr
+		if err := r.Update(ctx, &mc); err != nil {
+			return errors.Wrap(err, "update milvus annotation")
+		}
+		return errors.Wrap(ErrRequeue, "requeue after updated milvus annotation")
 	}
 
 	cur := old.DeepCopy()

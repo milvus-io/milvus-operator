@@ -36,6 +36,7 @@ const (
 	MessageDecodeErr         = "accesskey or secretkey decode error"
 	MessageMilvusHealthy     = "All Milvus components are healthy"
 	MessageMilvusStopped     = "All Milvus components are stopped"
+	MessageMilvusStopping    = "All Milvus components are stopping"
 )
 
 var (
