@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"strconv"
@@ -155,4 +156,17 @@ func DeepCopyValues(input map[string]interface{}) map[string]interface{} {
 
 func BoolPtr(val bool) *bool {
 	return &val
+}
+
+func DoWithBackoff(name string, fn func() error, maxRetry int, backOff time.Duration) error {
+	var err error
+	for i := 0; i < maxRetry; i++ {
+		err = fn()
+		if err == nil {
+			return nil
+		}
+		log.Printf("%s with backoff failed, retry %d, err: %v\n", name, i, err)
+		time.Sleep(backOff)
+	}
+	return errors.Wrap(err, name+" with backoff failed")
 }

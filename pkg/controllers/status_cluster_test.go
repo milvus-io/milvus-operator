@@ -375,17 +375,24 @@ func TestStatusSyncer_UpdateReplicas(t *testing.T) {
 
 // mockEndpointCheckCache is for test
 type mockEndpointCheckCache struct {
-	isUpToDate bool
-	condition  *v1beta1.MilvusCondition
+	cacheInited bool
+	isProbing   bool
+	condition   *v1beta1.MilvusCondition
 }
 
-func (m *mockEndpointCheckCache) Get(endpoint []string) (condition *v1beta1.MilvusCondition, isUpToDate bool) {
-	return m.condition, m.isUpToDate
+func (m *mockEndpointCheckCache) Get(endpoint []string) (condition *v1beta1.MilvusCondition, cacheInited bool) {
+	return m.condition, m.cacheInited
 }
 
 func (m *mockEndpointCheckCache) Set(endpoints []string, condition *v1beta1.MilvusCondition) {
 	m.condition = condition
 }
+
+func (m *mockEndpointCheckCache) TryStartProbeFor(endpoint []string) bool {
+	return !m.isProbing
+}
+
+func (m *mockEndpointCheckCache) EndProbeFor(endpoint []string) {}
 
 func mockConditionGetter() v1beta1.MilvusCondition {
 	return v1beta1.MilvusCondition{Reason: "update"}

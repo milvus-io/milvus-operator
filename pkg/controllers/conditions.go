@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/external"
+	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -27,11 +29,19 @@ import (
 var pulsarNewClient = pulsar.NewClient
 
 func GetCondition(getter func() v1beta1.MilvusCondition, eps []string) v1beta1.MilvusCondition {
-	// check cache
-	condition, uptodate := endpointCheckCache.Get(eps)
-	if uptodate {
-		return *condition
+	// lock & get again
+	for !endpointCheckCache.TryStartProbeFor(eps) {
+		// check cache
+		condition, found := endpointCheckCache.Get(eps)
+		if found {
+			return *condition
+		}
+		// backoff and retry again
+		log.Println("Endpoint is start being probed, backoff and retry. This should only happen when milvus-operator is just started")
+		backoffTime := 500 * time.Millisecond
+		time.Sleep(backoffTime)
 	}
+	defer endpointCheckCache.EndProbeFor(eps)
 	ret := getter()
 	endpointCheckCache.Set(eps, &ret)
 	return ret
@@ -200,42 +210,45 @@ func GetEndpointsHealth(endpoints []string) map[string]EtcdEndPointHealth {
 		go func(ep string) {
 			defer wg.Done()
 
-			cli, err := etcdNewClient(clientv3.Config{
-				Endpoints:   []string{ep},
-				DialTimeout: 5 * time.Second,
-			})
-			if err != nil {
-				hch <- EtcdEndPointHealth{Ep: ep, Health: false, Error: err.Error()}
+			var checkEtcd = func() error {
+				cli, err := etcdNewClient(clientv3.Config{
+					Endpoints:   []string{ep},
+					DialTimeout: 5 * time.Second,
+				})
+				if err != nil {
+					return errors.Wrap(err, "failed to create etcd client")
+				}
+				defer cli.Close()
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				_, err = cli.Get(ctx, etcdHealthKey, clientv3.WithSerializable()) // use serializable to avoid linear read overhead
+				// permission denied is OK since proposal goes through consensus to get it
+				if err != nil && err != rpctypes.ErrPermissionDenied {
+					return err
+				}
+				resp, err := cli.AlarmList(ctx)
+				if err != nil {
+					return errors.Wrap(err, "Unable to fetch the alarm list")
+				}
+				// err == nil
+				if len(resp.Alarms) < 1 {
+					return nil
+				}
+				// if len(resp.Alarms) > 0
+				errMsg := "Active Alarm(s): "
+				for _, v := range resp.Alarms {
+					errMsg += errMsg + v.Alarm.String()
+				}
+				return errors.New(errMsg)
+			}
+			const backOffInterval = time.Second * 1
+			const maxRetry = 3
+			err := util.DoWithBackoff("checkEtcd", checkEtcd, maxRetry, backOffInterval)
+			if err == nil {
+				hch <- EtcdEndPointHealth{Ep: ep, Health: true}
 				return
 			}
-			defer cli.Close()
-
-			eh := EtcdEndPointHealth{Ep: ep, Health: false}
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			_, err = cli.Get(ctx, etcdHealthKey, clientv3.WithSerializable()) // use serializable to avoid linear read overhead
-			// permission denied is OK since proposal goes through consensus to get it
-			if err == nil || err == rpctypes.ErrPermissionDenied {
-				eh.Health = true
-			} else {
-				eh.Error = err.Error()
-			}
-
-			if eh.Health {
-				resp, err := cli.AlarmList(ctx)
-				if err == nil && len(resp.Alarms) > 0 {
-					eh.Health = false
-					eh.Error = "Active Alarm(s): "
-					for _, v := range resp.Alarms {
-						eh.Error += eh.Error + v.Alarm.String()
-					}
-				} else if err != nil {
-					eh.Health = false
-					eh.Error = "Unable to fetch the alarm list"
-				}
-
-			}
-			cancel()
-			hch <- eh
+			hch <- EtcdEndPointHealth{Ep: ep, Health: false, Error: err.Error()}
 		}(ep)
 	}
 
@@ -319,13 +332,6 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1bet
 			}
 		}
 		ctrl.LoggerFrom(ctx).Info("milvus dependency unhealty", "reason", reason, "msg", msg)
-
-		return v1beta1.MilvusCondition{
-			Type:    v1beta1.MilvusReady,
-			Status:  corev1.ConditionFalse,
-			Reason:  reason,
-			Message: msg,
-		}, nil
 	}
 
 	deployList := &appsv1.DeploymentList{}
@@ -348,7 +354,16 @@ func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1bet
 	for _, component := range allComponents {
 		deployment := componentDeploy[component.Name]
 		if deployment != nil && DeploymentReady(deployment.Status) {
-			continue
+			// deployment ready, check replicas
+			if deployment.Status.ReadyReplicas > 0 {
+				continue
+			}
+			switch component.Name {
+			case ProxyName, StandaloneName:
+				// proxy and standalone must have at least one replica
+			default:
+				continue
+			}
 		}
 		notReadyComponents = append(notReadyComponents, component.Name)
 		if errDetail == nil {

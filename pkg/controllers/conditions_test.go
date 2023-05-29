@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/apache/pulsar-client-go/pulsar"
 	"github.com/golang/mock/gomock"
@@ -42,16 +43,35 @@ func TestGetCondition(t *testing.T) {
 	bak := endpointCheckCache
 	defer func() { endpointCheckCache = bak }()
 
-	t.Run("use cache", func(t *testing.T) {
+	t.Run("cache inited & probing", func(t *testing.T) {
 		condition := v1beta1.MilvusCondition{Reason: "test"}
-		endpointCheckCache = &mockEndpointCheckCache{condition: &condition, isUpToDate: true}
+		endpointCheckCache = &mockEndpointCheckCache{condition: &condition, isProbing: true, cacheInited: true}
 		ret := GetCondition(mockConditionGetter, []string{})
 		assert.Equal(t, condition, ret)
 	})
-	t.Run("not use cache", func(t *testing.T) {
-		endpointCheckCache = &mockEndpointCheckCache{condition: nil, isUpToDate: false}
+
+	t.Run("cache inited & not probing, update condition", func(t *testing.T) {
+		condition := v1beta1.MilvusCondition{Reason: "update"}
+		endpointCheckCache = &mockEndpointCheckCache{condition: &condition, cacheInited: true}
+		ret := GetCondition(mockConditionGetter, []string{})
+		assert.Equal(t, condition, ret)
+	})
+
+	t.Run("cache not inited & not probing", func(t *testing.T) {
+		endpointCheckCache = &mockEndpointCheckCache{condition: nil, cacheInited: false}
 		ret := GetCondition(mockConditionGetter, []string{})
 		assert.Equal(t, v1beta1.MilvusCondition{Reason: "update"}, ret)
+	})
+
+	t.Run("cache not inited & probing", func(t *testing.T) {
+		mockCheckCache := &mockEndpointCheckCache{condition: nil}
+		endpointCheckCache = mockCheckCache
+		go func() {
+			time.Sleep(time.Second)
+			mockCheckCache.cacheInited = true
+		}()
+		ret := GetCondition(mockConditionGetter, []string{})
+		assert.Equal(t, v1beta1.MilvusCondition{Reason: "test"}, ret)
 	})
 }
 
