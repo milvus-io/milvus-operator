@@ -47,6 +47,8 @@ func main() {
 	var enablePprof bool
 	var probeAddr string
 	var workDir string
+	var k8sQps int = 100
+	var k8sBurst int = 100
 	showVersion := flag.Bool("version", false, "Show version")
 	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
@@ -62,6 +64,8 @@ func main() {
 	flag.IntVar(&config.MaxConcurrentHealthCheck, "concurrent-healthcheck", config.MaxConcurrentHealthCheck, "The max concurrent healthcheck")
 	flag.IntVar(&config.SyncIntervalSec, "sync-interval", config.SyncIntervalSec, "The interval of sync milvus")
 	flag.BoolVar(&enablePprof, "pprof", enablePprof, "Enable pprof")
+	flag.IntVar(&k8sQps, "k8s-qps", k8sQps, "The qps of k8s client")
+	flag.IntVar(&k8sBurst, "k8s-burst", k8sQps, "The burst of k8s client")
 	opts := zap.Options{
 		Development: true,
 	}
@@ -88,7 +92,7 @@ func main() {
 
 	values.MustInitDefaultValuesProvider()
 
-	mgr, err := manager.NewManager(metricsAddr, probeAddr, enableLeaderElection)
+	mgr, err := manager.NewManager(k8sQps, k8sBurst, metricsAddr, probeAddr, enableLeaderElection)
 	if err != nil {
 		setupLog.Error(err, "new manager")
 		os.Exit(1)

@@ -78,7 +78,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-	k8sManager, err = manager.NewManager(":8080", ":8081", false)
+	k8sManager, err = manager.NewManager(10, 10, ":8080", ":8081", false)
 	Expect(err).ToNot(HaveOccurred())
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
