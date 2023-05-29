@@ -29,8 +29,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-//go:generate mockgen -source=./milvusupgrade_controller.go -destination=./milvusupgrade_controller_mock.go -package=controllers
-
 // MilvusUpgradeReconciler reconciles a MilvusUpgrade object
 type MilvusUpgradeReconciler struct {
 	client.Client

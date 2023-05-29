@@ -9,6 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/external"
+	"github.com/prashantv/gostub"
 	"github.com/stretchr/testify/assert"
 	pb "go.etcd.io/etcd/api/v3/etcdserverpb"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
@@ -16,7 +17,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -36,20 +36,29 @@ var readyDeployStatus = appsv1.DeploymentStatus{
 	},
 	ObservedGeneration: 1,
 	Replicas:           1,
+	ReadyReplicas:      1,
 }
 
 func TestGetCondition(t *testing.T) {
 	bak := endpointCheckCache
 	defer func() { endpointCheckCache = bak }()
 
-	t.Run("use cache", func(t *testing.T) {
+	t.Run("cache inited & probing", func(t *testing.T) {
 		condition := v1beta1.MilvusCondition{Reason: "test"}
-		endpointCheckCache = &mockEndpointCheckCache{condition: &condition, isUpToDate: true}
+		endpointCheckCache = &mockEndpointCheckCache{condition: &condition, isProbing: true, cacheInited: true}
 		ret := GetCondition(mockConditionGetter, []string{})
 		assert.Equal(t, condition, ret)
 	})
-	t.Run("not use cache", func(t *testing.T) {
-		endpointCheckCache = &mockEndpointCheckCache{condition: nil, isUpToDate: false}
+
+	t.Run("cache inited & not probing, update condition", func(t *testing.T) {
+		condition := v1beta1.MilvusCondition{Reason: "update"}
+		endpointCheckCache = &mockEndpointCheckCache{condition: &condition, cacheInited: true}
+		ret := GetCondition(mockConditionGetter, []string{})
+		assert.Equal(t, condition, ret)
+	})
+
+	t.Run("cache not inited & not probing", func(t *testing.T) {
+		endpointCheckCache = &mockEndpointCheckCache{condition: nil, cacheInited: false}
 		ret := GetCondition(mockConditionGetter, []string{})
 		assert.Equal(t, v1beta1.MilvusCondition{Reason: "update"}, ret)
 	})
@@ -104,33 +113,40 @@ func TestGetPulsarCondition(t *testing.T) {
 	mockPulsarNewClient := NewMockPulsarClient(ctrl)
 	errTest := errors.New("test")
 
-	// new client failed, no err
-	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, errTest)
-	ret := GetPulsarCondition(ctx, logger, v1beta1.MilvusPulsar{})
-	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1beta1.ReasonMsgStreamNotReady, ret.Reason)
+	t.Run("new client failed, no err", func(t *testing.T) {
+		stubs := gostub.Stub(&pulsarNewClient, getMockPulsarNewClient(mockPulsarNewClient, errTest))
+		defer stubs.Reset()
+		ret := GetPulsarCondition(ctx, logger, v1beta1.MilvusPulsar{})
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+		assert.Equal(t, v1beta1.ReasonMsgStreamNotReady, ret.Reason)
+	})
 
-	// new client ok, create read failed, no err
-	gomock.InOrder(
-		mockPulsarNewClient.EXPECT().CreateReader(gomock.Any()).Return(nil, errTest),
-		mockPulsarNewClient.EXPECT().Close(),
-	)
-	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, nil)
-	ret = GetPulsarCondition(ctx, logger, v1beta1.MilvusPulsar{})
-	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1beta1.ReasonMsgStreamNotReady, ret.Reason)
+	t.Run("new client ok, create read failed, no err", func(t *testing.T) {
+		stubs := gostub.Stub(&pulsarNewClient, getMockPulsarNewClient(mockPulsarNewClient, nil))
+		defer stubs.Reset()
+		gomock.InOrder(
+			mockPulsarNewClient.EXPECT().CreateReader(gomock.Any()).Return(nil, errTest),
+			mockPulsarNewClient.EXPECT().Close(),
+		)
+		ret := GetPulsarCondition(ctx, logger, v1beta1.MilvusPulsar{})
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+		assert.Equal(t, v1beta1.ReasonMsgStreamNotReady, ret.Reason)
+	})
 
-	// new client ok, create read ok, no err
-	mockReader := NewMockPulsarReader(ctrl)
-	gomock.InOrder(
-		mockPulsarNewClient.EXPECT().CreateReader(gomock.Any()).Return(mockReader, nil),
-		mockReader.EXPECT().Close(),
-		mockPulsarNewClient.EXPECT().Close(),
-	)
-	pulsarNewClient = getMockPulsarNewClient(mockPulsarNewClient, nil)
-	ret = GetPulsarCondition(ctx, logger, v1beta1.MilvusPulsar{})
-	assert.Equal(t, corev1.ConditionTrue, ret.Status)
-	assert.Equal(t, v1beta1.ReasonMsgStreamReady, ret.Reason)
+	t.Run("new client ok, create read ok, no err", func(t *testing.T) {
+		stubs := gostub.Stub(&pulsarNewClient, getMockPulsarNewClient(mockPulsarNewClient, nil))
+		defer stubs.Reset()
+		mockReader := NewMockPulsarReader(ctrl)
+		gomock.InOrder(
+			mockPulsarNewClient.EXPECT().CreateReader(gomock.Any()).Return(mockReader, nil),
+			mockReader.EXPECT().Close(),
+			mockPulsarNewClient.EXPECT().Close(),
+		)
+		ret := GetPulsarCondition(ctx, logger, v1beta1.MilvusPulsar{})
+		assert.Equal(t, corev1.ConditionTrue, ret.Status)
+		assert.Equal(t, v1beta1.ReasonMsgStreamReady, ret.Reason)
+	})
+
 }
 
 func getMockCheckMinIOFunc(err error) checkMinIOFunc {
@@ -142,10 +158,6 @@ func getMockCheckMinIOFunc(err error) checkMinIOFunc {
 func TestGetMinioCondition(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	checkMinIObak := checkMinIO
-	defer func() {
-		checkMinIO = checkMinIObak
-	}()
 
 	ctx := context.TODO()
 	logger := logf.Log.WithName("test")
@@ -185,7 +197,8 @@ func TestGetMinioCondition(t *testing.T) {
 
 	t.Run("new client failed", func(t *testing.T) {
 		defer ctrl.Finish()
-		checkMinIO = getMockCheckMinIOFunc(errTest)
+		stubs := gostub.Stub(&checkMinIO, getMockCheckMinIOFunc(errTest))
+		defer stubs.Reset()
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
 			Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
 				secret.Data = map[string][]byte{
@@ -200,7 +213,8 @@ func TestGetMinioCondition(t *testing.T) {
 	})
 
 	t.Run("new client ok, check ok", func(t *testing.T) {
-		checkMinIO = getMockCheckMinIOFunc(nil)
+		stubs := gostub.Stub(&checkMinIO, getMockCheckMinIOFunc(nil))
+		defer stubs.Reset()
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
 			Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
 				secret.Data = map[string][]byte{
@@ -214,6 +228,8 @@ func TestGetMinioCondition(t *testing.T) {
 
 	// one online check ok
 	t.Run(`is "not found" err`, func(t *testing.T) {
+		stubs := gostub.Stub(&checkMinIO, getMockCheckMinIOFunc(nil))
+		defer stubs.Reset()
 		mockK8sCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).
 			Do(func(ctx interface{}, key interface{}, secret *corev1.Secret) {
 				secret.Data = map[string][]byte{
@@ -246,44 +262,40 @@ func TestGetEtcdCondition(t *testing.T) {
 	assert.Equal(t, v1beta1.ReasonEtcdNotReady, ret.Reason)
 
 	// new client failed
-	etcdNewClient = getMockNewEtcdClient(nil, errTest)
-	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
-	assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	assert.Equal(t, v1beta1.ReasonEtcdNotReady, ret.Reason)
+	t.Run("new client failed", func(t *testing.T) {
+		stubs := gostub.Stub(&etcdNewClient, getMockNewEtcdClient(nil, errTest))
+		defer stubs.Reset()
+		ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
+		assert.Equal(t, corev1.ConditionFalse, ret.Status)
+		assert.Equal(t, v1beta1.ReasonEtcdNotReady, ret.Reason)
+	})
 
 	// etcd get failed
 	mockEtcdCli := NewMockEtcdClient(ctrl)
-	etcdNewClient = getMockNewEtcdClient(mockEtcdCli, nil)
-	gomock.InOrder(
-		mockEtcdCli.EXPECT().Get(gomock.Any(), etcdHealthKey, gomock.Any()).Return(nil, errTest),
-		mockEtcdCli.EXPECT().Close(),
-	)
+	stubs := gostub.Stub(&etcdNewClient, getMockNewEtcdClient(mockEtcdCli, nil))
+	defer stubs.Reset()
+	mockEtcdCli.EXPECT().Get(gomock.Any(), etcdHealthKey, gomock.Any()).Return(nil, errTest).AnyTimes()
+	mockEtcdCli.EXPECT().Close().AnyTimes()
 	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
 	assert.Equal(t, v1beta1.ReasonEtcdNotReady, ret.Reason)
 
 	// etcd get, err permession denied, alarm failed
-	etcdNewClient = getMockNewEtcdClient(mockEtcdCli, nil)
-	gomock.InOrder(
-		mockEtcdCli.EXPECT().Get(gomock.Any(), etcdHealthKey, gomock.Any()).Return(nil, rpctypes.ErrPermissionDenied),
-		mockEtcdCli.EXPECT().AlarmList(gomock.Any()).Return(nil, errTest),
-		mockEtcdCli.EXPECT().Close(),
-	)
+	mockEtcdCli.EXPECT().Get(gomock.Any(), etcdHealthKey, gomock.Any()).Return(nil, rpctypes.ErrPermissionDenied).AnyTimes()
+	mockEtcdCli.EXPECT().AlarmList(gomock.Any()).Return(nil, errTest).AnyTimes()
+	mockEtcdCli.EXPECT().Close().AnyTimes()
 	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
 	assert.Equal(t, v1beta1.ReasonEtcdNotReady, ret.Reason)
 
 	// etcd get, err permession denied, no alarm ok
-	etcdNewClient = getMockNewEtcdClient(mockEtcdCli, nil)
-	gomock.InOrder(
-		mockEtcdCli.EXPECT().Get(gomock.Any(), etcdHealthKey, gomock.Any()).Return(nil, rpctypes.ErrPermissionDenied),
-		mockEtcdCli.EXPECT().AlarmList(gomock.Any()).Return(&clientv3.AlarmResponse{
-			Alarms: []*pb.AlarmMember{
-				{Alarm: pb.AlarmType_NOSPACE},
-			},
-		}, nil),
-		mockEtcdCli.EXPECT().Close(),
-	)
+	mockEtcdCli.EXPECT().Get(gomock.Any(), etcdHealthKey, gomock.Any()).Return(nil, rpctypes.ErrPermissionDenied).AnyTimes()
+	mockEtcdCli.EXPECT().AlarmList(gomock.Any()).Return(&clientv3.AlarmResponse{
+		Alarms: []*pb.AlarmMember{
+			{Alarm: pb.AlarmType_NOSPACE},
+		},
+	}, nil).AnyTimes()
+	mockEtcdCli.EXPECT().Close().AnyTimes()
 	ret = GetEtcdCondition(ctx, []string{"etcd:2379"})
 	assert.Equal(t, corev1.ConditionFalse, ret.Status)
 	assert.Equal(t, v1beta1.ReasonEtcdNotReady, ret.Reason)
@@ -329,152 +341,6 @@ func TestGetMilvusEndpoint(t *testing.T) {
 			}
 		})
 	assert.Equal(t, "1.1.1.1:10086", GetMilvusEndpoint(ctx, logger, mockClient, info))
-
-}
-
-func TestGetMilvusInstanceCondition(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	mockClient := NewMockK8sClient(ctrl)
-	ctx := context.TODO()
-
-	inst := metav1.ObjectMeta{
-		Namespace: "ns",
-		Name:      "mc",
-		UID:       "uid",
-	}
-	milvus := &v1beta1.Milvus{
-		ObjectMeta: inst,
-	}
-	trueVal := true
-
-	milvus.Spec.Mode = v1beta1.MilvusModeStandalone
-	milvus.Default()
-	t.Run(("dependency not ready"), func(t *testing.T) {
-		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
-		assert.NoError(t, err)
-		assert.Equal(t, corev1.ConditionFalse, ret.Status)
-		assert.Equal(t, v1beta1.ReasonDependencyNotReady, ret.Reason)
-
-		milvus.Status.Conditions = []v1beta1.MilvusCondition{
-			{Type: v1beta1.EtcdReady, Status: corev1.ConditionTrue},
-			{Type: v1beta1.MsgStreamReady, Status: corev1.ConditionFalse},
-			{Type: v1beta1.StorageReady, Status: corev1.ConditionTrue},
-		}
-		ret, err = GetMilvusInstanceCondition(ctx, mockClient, *milvus)
-		assert.NoError(t, err)
-		assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	})
-
-	t.Run(("get milvus condition error"), func(t *testing.T) {
-		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
-		assert.NoError(t, err)
-		assert.Equal(t, corev1.ConditionFalse, ret.Status)
-		assert.Equal(t, v1beta1.ReasonDependencyNotReady, ret.Reason)
-
-		milvus.Status.Conditions = []v1beta1.MilvusCondition{
-			{Type: v1beta1.EtcdReady, Status: corev1.ConditionTrue},
-			{Type: v1beta1.MsgStreamReady, Status: corev1.ConditionTrue},
-			{Type: v1beta1.StorageReady, Status: corev1.ConditionTrue},
-		}
-		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
-		ret, err = GetMilvusInstanceCondition(ctx, mockClient, *milvus)
-		assert.Error(t, err)
-	})
-
-	t.Run(("standalone milvus ok"), func(t *testing.T) {
-		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
-			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
-				list.Items = []appsv1.Deployment{
-					{},
-				}
-				list.Items[0].Labels = map[string]string{
-					AppLabelComponent: StandaloneName,
-				}
-				list.Items[0].OwnerReferences = []metav1.OwnerReference{
-					{Controller: &trueVal, UID: "uid"},
-				}
-				list.Items[0].Status = readyDeployStatus
-			})
-		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
-		assert.NoError(t, err)
-		assert.Equal(t, corev1.ConditionTrue, ret.Status)
-	})
-
-	milvus.Spec.Mode = v1beta1.MilvusModeCluster
-	milvus.Default()
-	t.Run(("cluster all ok"), func(t *testing.T) {
-		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
-			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
-				list.Items = []appsv1.Deployment{
-					{}, {}, {}, {},
-					{}, {}, {}, {},
-				}
-				for i := 0; i < 8; i++ {
-					list.Items[i].Labels = map[string]string{
-						AppLabelComponent: MilvusComponents[i].Name,
-					}
-					list.Items[i].OwnerReferences = []metav1.OwnerReference{
-						{Controller: &trueVal, UID: "uid"},
-					}
-					list.Items[i].Status = readyDeployStatus
-				}
-			})
-		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
-		assert.NoError(t, err)
-		assert.Equal(t, corev1.ConditionTrue, ret.Status)
-	})
-
-	milvus.Spec.Com.MixCoord = &v1beta1.MilvusMixCoord{}
-	milvus.Default()
-	t.Run(("cluster mixture 5 ok"), func(t *testing.T) {
-		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
-			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
-				list.Items = []appsv1.Deployment{
-					{}, {}, {}, {},
-					{},
-				}
-				for i := 0; i < 5; i++ {
-					list.Items[i].Labels = map[string]string{
-						AppLabelComponent: MixtureComponents[i].Name,
-					}
-					list.Items[i].OwnerReferences = []metav1.OwnerReference{
-						{Controller: &trueVal, UID: "uid"},
-					}
-					list.Items[i].Status = readyDeployStatus
-				}
-			})
-		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
-		assert.NoError(t, err)
-		assert.Equal(t, corev1.ConditionTrue, ret.Status)
-	})
-
-	milvus.Spec.Com.MixCoord = nil
-	milvus.Default()
-	t.Run(("cluster 1 unready"), func(t *testing.T) {
-		mockClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).
-			Do(func(ctx interface{}, list *appsv1.DeploymentList, opts interface{}) {
-				list.Items = []appsv1.Deployment{
-					{}, {}, {}, {},
-					{}, {}, {}, {},
-				}
-				for i := 0; i < 8; i++ {
-					list.Items[i].OwnerReferences = []metav1.OwnerReference{
-						{Controller: &trueVal, UID: "uid"},
-					}
-					list.Items[i].Status.Conditions = []appsv1.DeploymentCondition{
-						{Type: appsv1.DeploymentAvailable, Reason: v1beta1.NewReplicaSetAvailableReason, Status: corev1.ConditionTrue},
-					}
-					list.Items[i].Status.Replicas = 1
-				}
-				list.Items[7].Status.Conditions = []appsv1.DeploymentCondition{
-					{Type: appsv1.DeploymentAvailable, Status: corev1.ConditionFalse},
-				}
-			})
-		ret, err := GetMilvusInstanceCondition(ctx, mockClient, *milvus)
-		assert.NoError(t, err)
-		assert.Equal(t, corev1.ConditionFalse, ret.Status)
-	})
 
 }
 

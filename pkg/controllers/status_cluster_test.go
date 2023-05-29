@@ -8,6 +8,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/util"
+	"github.com/prashantv/gostub"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -64,16 +65,22 @@ func TestMilvusStatusSyncer_UpdateIngressStatus(t *testing.T) {
 	})
 }
 
+func init() {
+	util.DefaultMaxRetry = 1
+}
+
 func TestMilvusStatusSyncer_GetDependencyCondition(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-
 	mockCli := NewMockK8sClient(ctrl)
 	ctx := context.Background()
 	logger := logf.Log.WithName("test")
 	s := NewMilvusStatusSyncer(ctx, mockCli, logger)
 	milvus := v1beta1.Milvus{}
 	milvus.Spec.Conf.Data = map[string]interface{}{}
+	milvus.Spec.Dep.Etcd.Endpoints = []string{"etcd"}
+	milvus.Spec.Dep.Kafka.BrokerList = []string{"kafka"}
+	milvus.Spec.Dep.Pulsar.Endpoint = "pulsar"
 	t.Run("GetMinioCondition", func(t *testing.T) {
 		defer ctrl.Finish()
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("test"))
@@ -216,6 +223,9 @@ func TestStatusSyncer_syncHealthyUpdated(t *testing.T) {
 func TestStatusSyncer_UpdateStatusRoutine(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
+	mockComponentConditionGetter := NewMockComponentConditionGetter(ctrl)
+	stubs := gostub.Stub(&singletonComponentConditionGetter, mockComponentConditionGetter)
+	defer stubs.Reset()
 
 	mockCli := NewMockK8sClient(ctrl)
 	ctx := context.Background()
@@ -263,7 +273,6 @@ func TestStatusSyncer_UpdateStatusRoutine(t *testing.T) {
 			Return([]Result{
 				{Data: v1beta1.MilvusCondition{}},
 			})
-		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockDeployStatusUpdater.EXPECT().Update(gomock.Any(), gomock.Any()).Return(errMock)
 		err = s.UpdateStatusRoutine(ctx, m)
 		assert.Error(t, err)
@@ -297,6 +306,10 @@ func TestStatusSyncer_UpdateStatusRoutine(t *testing.T) {
 			Return([]Result{
 				{Data: v1beta1.MilvusCondition{}},
 			})
+		mockComponentConditionGetter.EXPECT().GetMilvusInstanceCondition(gomock.Any(), gomock.Any(), gomock.Any()).Return(v1beta1.MilvusCondition{
+			Type:   v1beta1.MilvusReady,
+			Status: corev1.ConditionFalse,
+		}, nil)
 		mockCli.EXPECT().Status().Return(mockCli)
 		mockCli.EXPECT().Update(gomock.Any(), gomock.Any())
 		m.Status.Status = v1beta1.StatusHealthy
@@ -328,6 +341,10 @@ func TestStatusSyncer_UpdateStatusRoutine(t *testing.T) {
 			Return([]Result{
 				{Data: v1beta1.MilvusCondition{}},
 			})
+		mockComponentConditionGetter.EXPECT().GetMilvusInstanceCondition(gomock.Any(), gomock.Any(), gomock.Any()).Return(v1beta1.MilvusCondition{
+			Type:   v1beta1.MilvusReady,
+			Status: corev1.ConditionFalse,
+		}, nil)
 		mockCli.EXPECT().Status().Return(mockCli)
 		mockCli.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		mockCli.EXPECT().Update(gomock.Any(), gomock.Any())
@@ -375,17 +392,24 @@ func TestStatusSyncer_UpdateReplicas(t *testing.T) {
 
 // mockEndpointCheckCache is for test
 type mockEndpointCheckCache struct {
-	isUpToDate bool
-	condition  *v1beta1.MilvusCondition
+	cacheInited bool
+	isProbing   bool
+	condition   *v1beta1.MilvusCondition
 }
 
-func (m *mockEndpointCheckCache) Get(endpoint []string) (condition *v1beta1.MilvusCondition, isUpToDate bool) {
-	return m.condition, m.isUpToDate
+func (m *mockEndpointCheckCache) Get(endpoint []string) (condition *v1beta1.MilvusCondition, cacheInited bool) {
+	return m.condition, m.cacheInited
 }
 
 func (m *mockEndpointCheckCache) Set(endpoints []string, condition *v1beta1.MilvusCondition) {
 	m.condition = condition
 }
+
+func (m *mockEndpointCheckCache) TryStartProbeFor(endpoint []string) bool {
+	return !m.isProbing
+}
+
+func (m *mockEndpointCheckCache) EndProbeFor(endpoint []string) {}
 
 func mockConditionGetter() v1beta1.MilvusCondition {
 	return v1beta1.MilvusCondition{Reason: "update"}

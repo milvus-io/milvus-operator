@@ -1,14 +1,11 @@
 package controllers
 
 import (
-	"context"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestComponentErrorDetail_String(t *testing.T) {
@@ -80,93 +77,6 @@ func TestComponentErrorDetail_String(t *testing.T) {
 	})
 }
 
-func TestGetComponentErrorDetail(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-	ctx := context.Background()
-	cli := NewMockK8sClient(ctrl)
-	component := "proxy"
-
-	t.Run("deployment nil", func(t *testing.T) {
-		ret, err := GetComponentErrorDetail(ctx, cli, component, nil)
-		assert.NoError(t, err)
-		assert.Equal(t, component, ret.ComponentName)
-	})
-
-	deploy := &appsv1.Deployment{}
-	deploy.Namespace = "ns"
-	deploy.Name = "test"
-	deploy.Spec.Selector = &metav1.LabelSelector{
-		MatchLabels: map[string]string{
-			"app": "test",
-		},
-	}
-	deploy.Generation = 1
-
-	t.Run("new generation not observed", func(t *testing.T) {
-		deploy.Status.ObservedGeneration = 0
-		detail, err := GetComponentErrorDetail(ctx, cli, component, deploy)
-		assert.NoError(t, err)
-		assert.True(t, detail.NotObserved)
-	})
-
-	deploy.Status.ObservedGeneration = 1
-	t.Run("creating, no pod", func(t *testing.T) {
-		cli.EXPECT().List(ctx, gomock.Any(), gomock.Any()).Return(nil)
-		ret, err := GetComponentErrorDetail(ctx, cli, component, deploy)
-		assert.NoError(t, err)
-		assert.Equal(t, component, ret.ComponentName)
-		assert.Equal(t, "creating", ret.Deployment.Message)
-	})
-
-	t.Run("creating, pod scheduling", func(t *testing.T) {
-		pod := &corev1.Pod{}
-		pod.Name = "test"
-		pod.Namespace = "ns"
-		cli.EXPECT().List(ctx, gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, list interface{}, opts ...interface{}) error {
-				podList := list.(*corev1.PodList)
-				podList.Items = append(podList.Items, *pod)
-				return nil
-			})
-		ret, err := GetComponentErrorDetail(ctx, cli, component, deploy)
-		assert.NoError(t, err)
-		assert.Equal(t, "scheduling", ret.Pod.Message)
-	})
-
-	t.Run("creating, all pods ready error", func(t *testing.T) {
-		pod := &corev1.Pod{}
-		pod.Name = "test"
-		pod.Namespace = "ns"
-		pod.Status.Conditions = []corev1.PodCondition{
-			{
-				Type:   corev1.PodScheduled,
-				Status: corev1.ConditionTrue,
-			},
-			{
-				Type:   corev1.PodInitialized,
-				Status: corev1.ConditionTrue,
-			},
-			{
-				Type:   corev1.ContainersReady,
-				Status: corev1.ConditionTrue,
-			},
-			{
-				Type:   corev1.PodReady,
-				Status: corev1.ConditionTrue,
-			},
-		}
-		cli.EXPECT().List(ctx, gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, list interface{}, opts ...interface{}) error {
-				podList := list.(*corev1.PodList)
-				podList.Items = append(podList.Items, *pod)
-				return nil
-			})
-		_, err := GetComponentErrorDetail(ctx, cli, component, deploy)
-		assert.Error(t, err)
-	})
-}
-
 func TestGetDeploymentFalseCondition(t *testing.T) {
 	t.Run("creating", func(t *testing.T) {
 		deployment := appsv1.Deployment{}
@@ -197,8 +107,9 @@ func TestGetDeploymentFalseCondition(t *testing.T) {
 			Type:   appsv1.DeploymentProgressing,
 			Status: corev1.ConditionTrue,
 		})
-		_, err := GetDeploymentFalseCondition(deployment)
-		assert.Error(t, err)
+		ret, err := GetDeploymentFalseCondition(deployment)
+		assert.NoError(t, err)
+		assert.Equal(t, "creating", ret.Message)
 	})
 }
 

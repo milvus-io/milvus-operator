@@ -1,14 +1,11 @@
 package controllers
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/labels"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -47,47 +44,6 @@ func (m ComponentErrorDetail) String() string {
 	return ret
 }
 
-func GetComponentErrorDetail(ctx context.Context, cli client.Client, component string, deploy *appsv1.Deployment) (*ComponentErrorDetail, error) {
-	ret := &ComponentErrorDetail{ComponentName: component}
-	if deploy == nil {
-		return ret, nil
-	}
-	if deploy.Status.ObservedGeneration < deploy.Generation {
-		ret.NotObserved = true
-		return ret, nil
-	}
-	var err error
-	ret.Deployment, err = GetDeploymentFalseCondition(*deploy)
-	if err != nil {
-		return ret, err
-	}
-
-	pods := &corev1.PodList{}
-	opts := &client.ListOptions{
-		Namespace: deploy.Namespace,
-	}
-	opts.LabelSelector = labels.SelectorFromSet(deploy.Spec.Selector.MatchLabels)
-	if err := cli.List(ctx, pods, opts); err != nil {
-		return nil, errors.Wrap(err, "list pods")
-	}
-	if len(pods.Items) == 0 {
-		return ret, nil
-	}
-	for _, pod := range pods.Items {
-		if !PodReady(pod) {
-			podCondition, err := GetPodFalseCondition(pod)
-			if err != nil {
-				return nil, err
-			}
-			ret.PodName = pod.Name
-			ret.Pod = podCondition
-			ret.Container = getFirstNotReadyContainerStatus(pod.Status.ContainerStatuses)
-			return ret, nil
-		}
-	}
-	return nil, errors.New("all pods are ready")
-}
-
 func GetDeploymentFalseCondition(deploy appsv1.Deployment) (*appsv1.DeploymentCondition, error) {
 	conditions := deploy.Status.Conditions
 	var conditionsToCheck = []appsv1.DeploymentConditionType{
@@ -117,6 +73,15 @@ func GetDeploymentFalseCondition(deploy appsv1.Deployment) (*appsv1.DeploymentCo
 		if condition.Status != corev1.ConditionTrue {
 			return &condition, nil
 		}
+	}
+
+	if deploy.Status.ReadyReplicas < 1 {
+		return &appsv1.DeploymentCondition{
+			Type:    appsv1.DeploymentProgressing,
+			Status:  corev1.ConditionFalse,
+			Reason:  reasonInitializing,
+			Message: progressingMessage,
+		}, nil
 	}
 
 	return nil, errors.New("all conditions are ok")

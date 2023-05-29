@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
 	"github.com/milvus-io/milvus-operator/pkg/external"
+	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/pkg/errors"
 	"go.etcd.io/etcd/api/v3/v3rpc/rpctypes"
 	clientv3 "go.etcd.io/etcd/client/v3"
@@ -17,9 +19,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,11 +27,19 @@ import (
 var pulsarNewClient = pulsar.NewClient
 
 func GetCondition(getter func() v1beta1.MilvusCondition, eps []string) v1beta1.MilvusCondition {
-	// check cache
-	condition, uptodate := endpointCheckCache.Get(eps)
-	if uptodate {
-		return *condition
+	// lock & get again
+	for !endpointCheckCache.TryStartProbeFor(eps) {
+		// check cache
+		condition, found := endpointCheckCache.Get(eps)
+		if found {
+			return *condition
+		}
+		// backoff and retry again
+		log.Println("Endpoint is start being probed, backoff and retry. This should only happen when milvus-operator is just started")
+		backoffTime := 500 * time.Millisecond
+		time.Sleep(backoffTime)
 	}
+	defer endpointCheckCache.EndProbeFor(eps)
 	ret := getter()
 	endpointCheckCache.Set(eps, &ret)
 	return ret
@@ -200,42 +208,43 @@ func GetEndpointsHealth(endpoints []string) map[string]EtcdEndPointHealth {
 		go func(ep string) {
 			defer wg.Done()
 
-			cli, err := etcdNewClient(clientv3.Config{
-				Endpoints:   []string{ep},
-				DialTimeout: 5 * time.Second,
-			})
-			if err != nil {
-				hch <- EtcdEndPointHealth{Ep: ep, Health: false, Error: err.Error()}
+			var checkEtcd = func() error {
+				cli, err := etcdNewClient(clientv3.Config{
+					Endpoints:   []string{ep},
+					DialTimeout: 5 * time.Second,
+				})
+				if err != nil {
+					return errors.Wrap(err, "failed to create etcd client")
+				}
+				defer cli.Close()
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+				_, err = cli.Get(ctx, etcdHealthKey, clientv3.WithSerializable()) // use serializable to avoid linear read overhead
+				// permission denied is OK since proposal goes through consensus to get it
+				if err != nil && err != rpctypes.ErrPermissionDenied {
+					return err
+				}
+				resp, err := cli.AlarmList(ctx)
+				if err != nil {
+					return errors.Wrap(err, "Unable to fetch the alarm list")
+				}
+				// err == nil
+				if len(resp.Alarms) < 1 {
+					return nil
+				}
+				// if len(resp.Alarms) > 0
+				errMsg := "Active Alarm(s): "
+				for _, v := range resp.Alarms {
+					errMsg += errMsg + v.Alarm.String()
+				}
+				return errors.New(errMsg)
+			}
+			err := util.DoWithBackoff("checkEtcd", checkEtcd, util.DefaultMaxRetry, util.DefualtBackOffInterval)
+			if err == nil {
+				hch <- EtcdEndPointHealth{Ep: ep, Health: true}
 				return
 			}
-			defer cli.Close()
-
-			eh := EtcdEndPointHealth{Ep: ep, Health: false}
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			_, err = cli.Get(ctx, etcdHealthKey, clientv3.WithSerializable()) // use serializable to avoid linear read overhead
-			// permission denied is OK since proposal goes through consensus to get it
-			if err == nil || err == rpctypes.ErrPermissionDenied {
-				eh.Health = true
-			} else {
-				eh.Error = err.Error()
-			}
-
-			if eh.Health {
-				resp, err := cli.AlarmList(ctx)
-				if err == nil && len(resp.Alarms) > 0 {
-					eh.Health = false
-					eh.Error = "Active Alarm(s): "
-					for _, v := range resp.Alarms {
-						eh.Error += eh.Error + v.Alarm.String()
-					}
-				} else if err != nil {
-					eh.Health = false
-					eh.Error = "Unable to fetch the alarm list"
-				}
-
-			}
-			cancel()
-			hch <- eh
+			hch <- EtcdEndPointHealth{Ep: ep, Health: false, Error: err.Error()}
 		}(ep)
 	}
 
@@ -295,86 +304,6 @@ func GetMilvusEndpoint(ctx context.Context, logger logr.Logger, client client.Cl
 	}
 
 	return ""
-}
-
-func GetMilvusInstanceCondition(ctx context.Context, cli client.Client, mc v1beta1.Milvus) (v1beta1.MilvusCondition, error) {
-	if mc.Spec.IsStopping() {
-		return v1beta1.MilvusCondition{
-			Type:    v1beta1.MilvusReady,
-			Status:  corev1.ConditionFalse,
-			Reason:  v1beta1.ReasonMilvusStopped,
-			Message: MessageMilvusStopped,
-		}, nil
-	}
-
-	if !IsDependencyReady(mc.Status.Conditions) {
-		notReadyConditions := GetNotReadyDependencyConditions(mc.Status.Conditions)
-		reason := v1beta1.ReasonDependencyNotReady
-		var msg string
-		for depType, notReadyCondition := range notReadyConditions {
-			if notReadyCondition != nil {
-				msg += fmt.Sprintf("dep[%s]: %s;", depType, notReadyCondition.Message)
-			} else {
-				msg = "condition not probed yet"
-			}
-		}
-		ctrl.LoggerFrom(ctx).Info("milvus dependency unhealty", "reason", reason, "msg", msg)
-
-		return v1beta1.MilvusCondition{
-			Type:    v1beta1.MilvusReady,
-			Status:  corev1.ConditionFalse,
-			Reason:  reason,
-			Message: msg,
-		}, nil
-	}
-
-	deployList := &appsv1.DeploymentList{}
-	opts := &client.ListOptions{
-		Namespace: mc.Namespace,
-	}
-	opts.LabelSelector = labels.SelectorFromSet(map[string]string{
-		AppLabelInstance: mc.GetName(),
-		AppLabelName:     "milvus",
-	})
-	if err := cli.List(ctx, deployList, opts); err != nil {
-		return v1beta1.MilvusCondition{}, err
-	}
-
-	allComponents := GetComponentsBySpec(mc.Spec)
-	var notReadyComponents []string
-	var errDetail *ComponentErrorDetail
-	var err error
-	componentDeploy := makeComponentDeploymentMap(mc, deployList.Items)
-	for _, component := range allComponents {
-		deployment := componentDeploy[component.Name]
-		if deployment != nil && DeploymentReady(deployment.Status) {
-			continue
-		}
-		notReadyComponents = append(notReadyComponents, component.Name)
-		if errDetail == nil {
-			errDetail, err = GetComponentErrorDetail(ctx, cli, component.Name, deployment)
-			if err != nil {
-				return v1beta1.MilvusCondition{}, errors.Wrap(err, "failed to get component err detail")
-			}
-		}
-	}
-
-	cond := v1beta1.MilvusCondition{
-		Type: v1beta1.MilvusReady,
-	}
-
-	if len(notReadyComponents) == 0 {
-		cond.Status = corev1.ConditionTrue
-		cond.Reason = v1beta1.ReasonMilvusHealthy
-		cond.Message = MessageMilvusHealthy
-	} else {
-		cond.Status = corev1.ConditionFalse
-		cond.Reason = v1beta1.ReasonMilvusComponentNotHealthy
-		cond.Message = fmt.Sprintf("%s not ready, detail: %s", notReadyComponents, errDetail)
-		ctrl.LoggerFrom(ctx).Info("milvus unhealty", "reason", cond.Reason, "msg", cond.Message)
-	}
-
-	return cond, nil
 }
 
 func makeComponentDeploymentMap(mc v1beta1.Milvus, deploys []appsv1.Deployment) map[string]*appsv1.Deployment {
