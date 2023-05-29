@@ -146,7 +146,7 @@ func (r *MilvusStatusSyncer) syncUnealthyOrUpdating() error {
 			mc.DeletionTimestamp != nil {
 			continue
 		}
-		argsArray = append(argsArray, mc)
+		argsArray = append(argsArray, &milvusList.Items[i])
 		if len(argsArray) >= config.MaxConcurrentHealthCheck {
 			err = defaultGroupRunner.RunDiffArgs(r.UpdateStatusRoutine, r.ctx, argsArray)
 			if err != nil {
@@ -174,7 +174,7 @@ func (r *MilvusStatusSyncer) syncHealthyUpdated() error {
 	if err != nil {
 		return errors.Wrap(err, "list milvus failed")
 	}
-	var argsArray []*v1beta1.Milvus
+	var argsArray = make([]*v1beta1.Milvus, 0, config.MaxConcurrentHealthCheck)
 	var ret error
 	for i := range milvusList.Items {
 		mc := &milvusList.Items[i]
@@ -183,15 +183,13 @@ func (r *MilvusStatusSyncer) syncHealthyUpdated() error {
 			!IsMilvusConditionTrueByType(mc.Status.Conditions, v1beta1.MilvusUpdated) {
 			continue
 		}
-		if argsArray == nil {
-			argsArray = make([]*v1beta1.Milvus, 0, config.MaxConcurrentHealthCheck)
-		}
-		argsArray = append(argsArray, mc)
+		argsArray = append(argsArray, &milvusList.Items[i])
 		if len(argsArray) >= config.MaxConcurrentHealthCheck {
 			err = defaultGroupRunner.RunDiffArgs(r.UpdateStatusRoutine, r.ctx, argsArray)
 			if err != nil {
 				ret = err
 			}
+			argsArray = make([]*v1beta1.Milvus, 0, config.MaxConcurrentHealthCheck)
 		}
 	}
 	err = defaultGroupRunner.RunDiffArgs(r.UpdateStatusRoutine, r.ctx, argsArray)
@@ -219,6 +217,7 @@ func (r *MilvusStatusSyncer) UpdateStatusRoutine(ctx context.Context, mc *v1beta
 }
 
 func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, mc *v1beta1.Milvus) error {
+	beginStatus := mc.Status.DeepCopy()
 	if !mc.Spec.IsStopping() {
 		funcs := []Func{
 			r.GetEtcdCondition,
@@ -270,6 +269,10 @@ func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, m
 		IsHealthy:  milvusCond.Status == corev1.ConditionTrue,
 	}
 	mc.Status.Status = statusInfo.GetMilvusHealthStatus()
+	if IsEqual(beginStatus, &mc.Status) {
+		return nil
+	}
+	r.logger.Info("update status", "status", mc.Status)
 	return r.Status().Update(ctx, mc)
 }
 
