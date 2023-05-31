@@ -24,6 +24,7 @@ import (
 	"github.com/milvus-io/milvus-operator/pkg/helm/values"
 	"github.com/milvus-io/milvus-operator/pkg/util"
 	"github.com/pkg/errors"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -86,6 +87,13 @@ func (r *Milvus) validateCommon() *field.Error {
 		r.Spec.Com.EnableRollingUpdate != nil && *r.Spec.Com.EnableRollingUpdate {
 		fp := field.NewPath("spec").Child("components").Child("enableRollingUpdate")
 		return field.Invalid(fp, r.Spec.Com.EnableRollingUpdate, "enableRollingUpdate is not supported for msgStream rocksmq. Set it to false or set spec.msgStreamType to kafka/pulsar")
+	}
+	if r.Spec.Com.PodMonitor != nil {
+		err := r.Spec.Com.PodMonitor.AsObject(&monitoringv1.PodMonitor{})
+		if err != nil {
+			fp := field.NewPath("spec").Child("components").Child("podMonitor")
+			return field.Invalid(fp, r.Spec.Com.PodMonitor, fmt.Sprintf("podMonitor is not valid: %s", err))
+		}
 	}
 	return nil
 }

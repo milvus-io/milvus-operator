@@ -16,9 +16,18 @@ func (r *MilvusReconciler) updatePodMonitor(
 
 	appLabels := NewAppLabels(mc.Name)
 	podmonitor.Labels = MergeLabels(podmonitor.Labels, appLabels)
+
 	if err := SetControllerReference(&mc, podmonitor, r.Scheme); err != nil {
 		r.logger.Error(err, "PodMonitor SetControllerReference error", "name", mc.Name, "namespace", mc.Namespace)
 		return err
+	}
+
+	if mc.Spec.Com.PodMonitor != nil {
+		customPodMonitor := &monitoringv1.PodMonitor{}
+		mc.Spec.Com.PodMonitor.MustAsObj(customPodMonitor)
+		podmonitor.Labels = MergeLabels(podmonitor.Labels, customPodMonitor.Labels)
+		podmonitor.Annotations = MergeLabels(podmonitor.Annotations, customPodMonitor.Annotations)
+		podmonitor.Spec = customPodMonitor.Spec
 	}
 
 	interval := mc.Spec.Com.MetricInterval
@@ -85,7 +94,6 @@ func (r *MilvusReconciler) ReconcilePodMonitor(ctx context.Context, mc v1beta1.M
 	}
 
 	if IsEqual(old, cur) {
-		//r.logger.Info("Equal", "cur", cur.Name)
 		return nil
 	}
 

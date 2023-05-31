@@ -120,6 +120,13 @@ type MilvusComponents struct {
 	// +kubebuilder:validation:Optional
 	DisableMetric bool `json:"disableMetric"`
 
+	// PodMonitor podmonitor config for milvus
+	// "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1".PodMonitor
+	// metadata.name & metadata.namespace are not used, we use the name & namespace of the milvus CR
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	PodMonitor *Values `json:"podMonitor,omitempty"`
+
 	// MetricInterval the interval of podmonitor metric scraping in string
 	// +kubebuilder:validation:Optional
 	MetricInterval string `json:"metricInterval"`
