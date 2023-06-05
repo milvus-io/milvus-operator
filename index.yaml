@@ -2,6 +2,54 @@ apiVersion: v1
 entries:
   milvus-operator:
   - apiVersion: v2
+    appVersion: 0.7.13
+    created: "2023-06-02T17:21:15.537401+08:00"
+    description: A Helm chart for deploying Milvus Operator
+    digest: 25ac4c7ad16cd792c79d51f0cf52ea912f6ba84779b445cf61d9f626887a74a4
+    home: https://github.com/milvus-io/milvus-operator
+    kubeVersion: '>= 1.16.0-0'
+    maintainers:
+    - email: devops@zilliz.com
+      name: devops team of zilliz
+      url: zilliz.com
+    name: milvus-operator
+    type: application
+    urls:
+    - https://github.com/milvus-io/milvus-operator/releases/download/v0.7.13/milvus-operator-0.7.13.tgz
+    version: 0.7.13
+  - apiVersion: v2
+    appVersion: 0.7.12
+    created: "2023-06-02T17:21:15.536127+08:00"
+    description: A Helm chart for deploying Milvus Operator
+    digest: 9b1fa298a29218108bc395fbe101df3bf02048e6f91a7b6981fe61af32f68f89
+    home: https://github.com/milvus-io/milvus-operator
+    kubeVersion: '>= 1.16.0-0'
+    maintainers:
+    - email: devops@zilliz.com
+      name: devops team of zilliz
+      url: zilliz.com
+    name: milvus-operator
+    type: application
+    urls:
+    - https://github.com/milvus-io/milvus-operator/releases/download/v0.7.12/milvus-operator-0.7.12.tgz
+    version: 0.7.12
+  - apiVersion: v2
+    appVersion: 0.7.11
+    created: "2023-06-02T17:21:15.532728+08:00"
+    description: A Helm chart for deploying Milvus Operator
+    digest: bfc297c25240c2833282dde7ab1f805aa81a514fb309fc1b4f7582891c7edb0a
+    home: https://github.com/milvus-io/milvus-operator
+    kubeVersion: '>= 1.16.0-0'
+    maintainers:
+    - email: devops@zilliz.com
+      name: devops team of zilliz
+      url: zilliz.com
+    name: milvus-operator
+    type: application
+    urls:
+    - https://github.com/milvus-io/milvus-operator/releases/download/v0.7.11/milvus-operator-0.7.11.tgz
+    version: 0.7.11
+  - apiVersion: v2
     appVersion: 0.7.10
     created: "2023-04-14T11:21:31.674632+08:00"
     description: A Helm chart for deploying Milvus Operator
