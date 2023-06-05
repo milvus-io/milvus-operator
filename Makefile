@@ -3,9 +3,9 @@
 IMG ?= milvusdb/milvus-operator:dev-latest
 TOOL_IMG ?= milvus-config-tool:dev-latest
 SIT_IMG ?= milvus-operator:sit
-VERSION ?= 0.7.12
+VERSION ?= 0.7.13
 TOOL_VERSION ?= 0.1.1
-MILVUS_HELM_VERSION ?= milvus-4.0.13
+MILVUS_HELM_VERSION ?= milvus-4.0.22
 RELEASE_IMG ?= milvusdb/milvus-operator:v$(VERSION)
 TOOL_RELEASE_IMG ?= milvusdb/milvus-config-tool:v$(TOOL_VERSION)
 KIND_CLUSTER ?= kind
@@ -119,7 +119,7 @@ out/config/assets/templates:
 docker-prepare: build-release out/config/assets/templates
 	mkdir -p ./out/config/assets/charts/
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/etcd-6.3.3.tgz -O ./etcd.tgz
-	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/minio-8.0.15.tgz -O ./minio.tgz
+	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/minio-8.0.16.tgz -O ./minio.tgz
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/pulsar-2.7.8.tgz -O ./pulsar.tgz
 	wget https://github.com/milvus-io/milvus-helm/raw/${MILVUS_HELM_VERSION}/charts/milvus/charts/kafka-15.5.1.tgz -O ./kafka.tgz
 	tar -xf ./etcd.tgz -C ./out/config/assets/charts/
@@ -229,13 +229,13 @@ sit-prepare-operator-images:
 
 sit-prepare-images: sit-prepare-operator-images
 	@echo "Preparing images"
-	docker pull milvusdb/milvus:v2.2.8
+	docker pull milvusdb/milvus:v2.2.9
 	
 	docker pull -q apachepulsar/pulsar:2.8.2
 	docker pull -q bitnami/kafka:3.1.0-debian-10-r52
 	docker pull -q milvusdb/etcd:3.5.0-r6
-	docker pull -q minio/minio:RELEASE.2021-02-14T04-01-33Z
-	docker pull -q minio/mc:RELEASE.2021-02-14T04-28-06Z
+	docker pull -q minio/minio:RELEASE.2023-03-20T20-16-18Z
+	docker pull -q minio/mc:RELEASE.2023-03-20T17-17-53Z
 	docker pull -q haorenfsa/pymilvus:latest
 
 sit-load-operator-images:
@@ -247,12 +247,12 @@ sit-load-operator-images:
 
 sit-load-images: sit-load-operator-images
 	@echo "Loading images"
-	kind load docker-image milvusdb/milvus:v2.2.8 --name ${KIND_CLUSTER}
+	kind load docker-image milvusdb/milvus:v2.2.9
 	kind load docker-image apachepulsar/pulsar:2.8.2 --name ${KIND_CLUSTER}
 	kind load docker-image bitnami/kafka:3.1.0-debian-10-r52 --name ${KIND_CLUSTER}
 	kind load docker-image milvusdb/etcd:3.5.0-r6 --name ${KIND_CLUSTER}
-	kind load docker-image minio/minio:RELEASE.2021-02-14T04-01-33Z --name ${KIND_CLUSTER}
-	kind load docker-image minio/mc:RELEASE.2021-02-14T04-28-06Z --name ${KIND_CLUSTER}
+	kind load docker-image minio/minio:RELEASE.2023-03-20T20-16-18Z --name ${KIND_CLUSTER}
+	kind load docker-image minio/mc:RELEASE.2023-03-20T17-17-53Z --name ${KIND_CLUSTER}
 	kind load docker-image haorenfsa/pymilvus:latest --name ${KIND_CLUSTER}
 
 sit-generate-manifest:
