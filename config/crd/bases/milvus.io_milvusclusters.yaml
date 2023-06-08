@@ -846,6 +846,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -1375,6 +1377,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -1986,6 +1990,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -2515,6 +2521,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -3046,6 +3054,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -3134,6 +3144,8 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  priorityClassName:
+                    type: string
                   proxy:
                     properties:
                       affinity:
@@ -3612,6 +3624,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -4156,6 +4170,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -4685,6 +4701,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -5233,6 +5251,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -5789,6 +5809,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0

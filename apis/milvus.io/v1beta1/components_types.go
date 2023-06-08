@@ -84,6 +84,10 @@ type ComponentSpec struct {
 	// ServiceAccountName usually used for situations like accessing s3 with IAM role
 	// +kubebuilder:validation:Optional
 	ServiceAccountName string `json:"serviceAccountName,omitempty"`
+
+	// PriorityClassName indicates the pod's priority.
+	// +kubebuilder:validation:Optional
+	PriorityClassName string `json:"priorityClassName,omitempty"`
 }
 
 // ImageUpdateMode is how the milvus components' image should be updated. works only when rolling update is enabled.

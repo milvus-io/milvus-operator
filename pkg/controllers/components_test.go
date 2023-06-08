@@ -213,6 +213,15 @@ func TestMergeComponentSpec(t *testing.T) {
 		merged = MergeComponentSpec(src, dst).ServiceAccountName
 		assert.Equal(t, "b", merged)
 	})
+
+	t.Run("merge priorityClassName", func(t *testing.T) {
+		dst.PriorityClassName = "a"
+		merged := MergeComponentSpec(src, dst).PriorityClassName
+		assert.Equal(t, "a", merged)
+		src.PriorityClassName = "b"
+		merged = MergeComponentSpec(src, dst).PriorityClassName
+		assert.Equal(t, "b", merged)
+	})
 }
 
 func TestMilvusComponent_GetReplicas(t *testing.T) {
