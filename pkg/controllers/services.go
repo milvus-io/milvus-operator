@@ -20,14 +20,21 @@ func (r *MilvusReconciler) updateService(
 	serviceLabels := NewAppLabels(mc.Name)
 	service.Labels = MergeLabels(service.Labels, serviceLabels)
 
-	// backward compatibility, remove redundant label
-	delete(service.Labels, AppLabelComponent)
-
 	if err := SetControllerReference(&mc, service, r.Scheme); err != nil {
 		return err
 	}
 	service.Spec.Ports = MergeServicePort(service.Spec.Ports, component.GetServicePorts(mc.Spec))
-	service.Spec.Selector = NewServicePodLabels(mc.Name)
+
+	if mc.IsPodServiceLabelAdded() {
+		// new service will use milvus.io/service to dertermine
+		// which pods to select instead of app.kubernetes.io/component
+		// to no downtime support upgrading from standalone to cluster
+		service.Spec.Selector = NewServicePodLabels(mc.Name)
+	} else {
+		// backward compatibility
+		service.Spec.Selector = NewComponentAppLabels(mc.Name, component.Name)
+	}
+
 	service.Spec.Type = component.GetServiceType(mc.Spec)
 
 	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
@@ -49,17 +56,8 @@ func (r *MilvusReconciler) ReconcileComponentService(
 		return nil
 	}
 
-	isChangingMode := mc.IsChangingMode()
-	isPodServiceLabelAdded := mc.IsPodServiceLabelAdded()
-	if !isPodServiceLabelAdded && !isChangingMode {
+	if mc.IsChangingMode() && !mc.IsPodServiceLabelAdded() {
 		return nil
-	}
-
-	if isChangingMode && !isPodServiceLabelAdded {
-		err := r.labelServicePods(ctx, mc, component)
-		if err != nil {
-			return pkgerr.Wrap(err, "label service pods")
-		}
 	}
 
 	namespacedName := NamespacedName(mc.Namespace, GetServiceInstanceName(mc.Name))

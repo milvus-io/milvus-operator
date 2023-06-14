@@ -97,12 +97,19 @@ func (r *MilvusReconciler) ReconcileComponentDeployment(
 		return err
 	}
 
-	// if milvus CR annotation shows its pod's milvus.io/service=true label not added, but
-	// the service pod (proxy / standalone)'s label shows it's added, then update the annotation
+	// when updating from standalone to cluster, we need to label the standalone pods
+	// milvus.io/service=true
+	// if milvus CR annotation shows its pod label not added,
+	// then label the pods, and update milvus CR annotation
 	// and raise err to requeue the reconcile
-	if component.IsService() &&
-		!mc.IsPodServiceLabelAdded() &&
-		old.Spec.Template.Labels[v1beta1.ServiceLabel] == v1beta1.TrueStr {
+	if !mc.IsPodServiceLabelAdded() &&
+		mc.IsChangingMode() &&
+		component == MilvusStandalone {
+
+		err := r.labelServicePods(ctx, mc, component)
+		if err != nil {
+			return pkgerr.Wrap(err, "label service pods")
+		}
 
 		mc.Annotations[v1beta1.PodServiceLabelAddedAnnotation] = v1beta1.TrueStr
 		if err := r.Update(ctx, &mc); err != nil {
