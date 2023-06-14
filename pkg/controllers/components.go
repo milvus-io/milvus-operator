@@ -554,5 +554,9 @@ func MergeComponentSpec(src, dst ComponentSpec) ComponentSpec {
 		dst.ServiceAccountName = src.ServiceAccountName
 	}
 
+	if len(src.PriorityClassName) > 0 {
+		dst.PriorityClassName = src.PriorityClassName
+	}
+
 	return dst
 }

@@ -208,7 +208,7 @@ spec:
     spec:
       containers:
       - name: pause
-        image: kubernetes/pause:asm
+        image: nginx:latest
         resources:
           limits:
             memory: "64Mi"
