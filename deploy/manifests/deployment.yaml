@@ -11,10 +11,10 @@ metadata:
   name: "milvus-operator"
   namespace: "milvus-operator"
   labels:
-    helm.sh/chart: milvus-operator-0.7.13
+    helm.sh/chart: milvus-operator-0.7.14
     app.kubernetes.io/name: milvus-operator
     app.kubernetes.io/instance: milvus-operator
-    app.kubernetes.io/version: "0.7.13"
+    app.kubernetes.io/version: "0.7.14"
     app.kubernetes.io/managed-by: Helm
 ---
 # Source: milvus-operator/templates/serviceaccount.yaml
@@ -24,10 +24,10 @@ metadata:
   name: "milvus-operator-checker"
   namespace: "milvus-operator"
   labels:
-    helm.sh/chart: milvus-operator-0.7.13
+    helm.sh/chart: milvus-operator-0.7.14
     app.kubernetes.io/name: milvus-operator
     app.kubernetes.io/instance: milvus-operator
-    app.kubernetes.io/version: "0.7.13"
+    app.kubernetes.io/version: "0.7.14"
     app.kubernetes.io/managed-by: Helm
 ---
 # Source: milvus-operator/templates/crds.yaml
@@ -878,6 +878,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -1407,6 +1409,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -2018,6 +2022,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -2547,6 +2553,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -3078,6 +3086,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -3166,6 +3176,8 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  priorityClassName:
+                    type: string
                   proxy:
                     properties:
                       affinity:
@@ -3644,6 +3656,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -4188,6 +4202,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -4717,6 +4733,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -5265,6 +5283,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -5821,6 +5841,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -7127,6 +7149,8 @@ spec:
                 additionalProperties:
                   type: string
                 type: object
+              priorityClassName:
+                type: string
               replicas:
                 format: int32
                 type: integer
@@ -8208,6 +8232,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -8737,6 +8763,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -9348,6 +9376,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -9877,6 +9907,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -10408,6 +10440,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -10496,6 +10530,8 @@ spec:
                     additionalProperties:
                       type: string
                     type: object
+                  priorityClassName:
+                    type: string
                   proxy:
                     properties:
                       affinity:
@@ -10974,6 +11010,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -11518,6 +11556,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -12047,6 +12087,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -12595,6 +12637,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -13151,6 +13195,8 @@ spec:
                         maximum: 65535
                         minimum: 0
                         type: integer
+                      priorityClassName:
+                        type: string
                       replicas:
                         format: int32
                         minimum: 0
@@ -14566,10 +14612,10 @@ kind: Service
 metadata:
   labels:
     service-kind: metrics
-    helm.sh/chart: milvus-operator-0.7.13
+    helm.sh/chart: milvus-operator-0.7.14
     app.kubernetes.io/name: milvus-operator
     app.kubernetes.io/instance: milvus-operator
-    app.kubernetes.io/version: "0.7.13"
+    app.kubernetes.io/version: "0.7.14"
     app.kubernetes.io/managed-by: Helm
   name: 'milvus-operator-metrics-service'
   namespace: "milvus-operator"
@@ -14587,10 +14633,10 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    helm.sh/chart: milvus-operator-0.7.13
+    helm.sh/chart: milvus-operator-0.7.14
     app.kubernetes.io/name: milvus-operator
     app.kubernetes.io/instance: milvus-operator
-    app.kubernetes.io/version: "0.7.13"
+    app.kubernetes.io/version: "0.7.14"
     app.kubernetes.io/managed-by: Helm
   name: 'milvus-operator-webhook-service'
   namespace: "milvus-operator"
@@ -14609,10 +14655,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    helm.sh/chart: milvus-operator-0.7.13
+    helm.sh/chart: milvus-operator-0.7.14
     app.kubernetes.io/name: milvus-operator
     app.kubernetes.io/instance: milvus-operator
-    app.kubernetes.io/version: "0.7.13"
+    app.kubernetes.io/version: "0.7.14"
     app.kubernetes.io/managed-by: Helm
   name: "milvus-operator"
   namespace: "milvus-operator"
@@ -14642,7 +14688,7 @@ spec:
         - --leader-elect
         command:
         - /manager
-        image: 'milvusdb/milvus-operator:v0.7.13'
+        image: 'milvusdb/milvus-operator:v0.7.14'
         imagePullPolicy: "IfNotPresent"
         livenessProbe:
           httpGet:
@@ -14697,10 +14743,10 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   labels:
-    helm.sh/chart: milvus-operator-0.7.13
+    helm.sh/chart: milvus-operator-0.7.14
     app.kubernetes.io/name: milvus-operator
     app.kubernetes.io/instance: milvus-operator
-    app.kubernetes.io/version: "0.7.13"
+    app.kubernetes.io/version: "0.7.14"
     app.kubernetes.io/managed-by: Helm
   name: "milvus-operator-checker"
   namespace: "milvus-operator"
@@ -14714,7 +14760,7 @@ spec:
       restartPolicy: OnFailure
       containers:
       - name: checker
-        image: 'milvusdb/milvus-operator:v0.7.13'
+        image: 'milvusdb/milvus-operator:v0.7.14'
         imagePullPolicy: "IfNotPresent"
         command: ["/checker"]
         args:
