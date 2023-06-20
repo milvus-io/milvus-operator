@@ -58,7 +58,6 @@ func (v Values) MustAsObj(obj interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	return
 }
 
 func (v Values) AsObject(obj interface{}) error {
@@ -68,6 +67,17 @@ func (v Values) AsObject(obj interface{}) error {
 	}
 	if err := json.Unmarshal(marshaled, obj); err != nil {
 		return fmt.Errorf("failed to unmarshal values as obj[%s]: %v", reflect.TypeOf(obj), err)
+	}
+	return nil
+}
+
+func (v *Values) FromObject(obj interface{}) error {
+	marshaled, err := json.Marshal(obj)
+	if err != nil {
+		return fmt.Errorf("failed to marshal values: %v", err)
+	}
+	if err := json.Unmarshal(marshaled, &v.Data); err != nil {
+		return fmt.Errorf("failed to unmarshal values: %v", err)
 	}
 	return nil
 }
