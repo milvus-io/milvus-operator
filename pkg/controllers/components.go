@@ -262,6 +262,21 @@ func (c MilvusComponent) GetServicePorts(spec v1beta1.MilvusSpec) []corev1.Servi
 		TargetPort: intstr.FromString(MetricPortName),
 	})
 
+	sideCars := c.GetSideCars(spec)
+	for _, sideCar := range sideCars {
+		for _, port := range sideCar.Ports {
+			servicePort := corev1.ServicePort{
+				Name:     port.Name,
+				Protocol: port.Protocol,
+				Port:     port.ContainerPort,
+			}
+			if len(port.Name) > 0 {
+				servicePort.TargetPort = intstr.FromString(port.Name)
+			}
+			servicePorts = append(servicePorts, servicePort)
+		}
+	}
+
 	return servicePorts
 }
 

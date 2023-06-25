@@ -311,6 +311,48 @@ func TestMilvusComponent_GetServicePorts(t *testing.T) {
 	assert.Equal(t, 2, len(ports))
 	assert.Equal(t, com.DefaultPort, ports[0].Port)
 	assert.Equal(t, int32(MetricPort), ports[1].Port)
+
+	t.Run("standalone with sidecars", func(t *testing.T) {
+		com := MilvusStandalone
+		spec := newSpec()
+		sideCars := []corev1.Container{
+			{
+				Ports: []corev1.ContainerPort{
+					{
+						Name:          "envoy-proxy",
+						ContainerPort: 29530,
+					},
+					{
+						Name:          "envoy-proxy-metric",
+						ContainerPort: 29531,
+					},
+				},
+			},
+			{
+				Ports: []corev1.ContainerPort{
+					{
+						Name:          "grpc-proxy",
+						ContainerPort: 32769,
+					},
+				},
+			},
+		}
+
+		var values1, values2 v1beta1.Values
+		values1.FromObject(sideCars[0])
+		values2.FromObject(sideCars[1])
+		spec.Com.Standalone.SideCars = []v1beta1.Values{values1, values2}
+		ports := com.GetServicePorts(spec)
+		assert.Equal(t, 5, len(ports))
+		assert.Equal(t, Proxy.DefaultPort, ports[0].Port)
+		assert.Equal(t, int32(MetricPort), ports[1].Port)
+		assert.Equal(t, "envoy-proxy", ports[2].Name)
+		assert.Equal(t, int32(29530), ports[2].Port)
+		assert.Equal(t, "envoy-proxy-metric", ports[3].Name)
+		assert.Equal(t, int32(29531), ports[3].Port)
+		assert.Equal(t, "grpc-proxy", ports[4].Name)
+		assert.Equal(t, int32(32769), ports[4].Port)
+	})
 }
 
 func TestMilvusComponent_GetComponentPort(t *testing.T) {
