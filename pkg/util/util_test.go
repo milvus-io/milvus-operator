@@ -3,6 +3,8 @@ package util
 import (
 	"errors"
 	"log"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -190,16 +192,26 @@ func TestCheckSum(t *testing.T) {
 }
 
 func TestHTTPGetBytes(t *testing.T) {
+	var testCase int
+	testserver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if testCase == 0 {
+			// ok
+			w.WriteHeader(http.StatusOK)
+		}
+		if testCase == 1 {
+			// code err
+			w.WriteHeader(http.StatusBadRequest)
+		}
+	}))
 	// connect failed
 	_, err := HTTPGetBytes("localhost:10000")
 	assert.Error(t, err)
 
-	// ok
-	_, err = HTTPGetBytes("https://httpbin.org/get")
+	testCase = 0
+	_, err = HTTPGetBytes(testserver.URL)
 	assert.NoError(t, err)
-
-	// code err
-	_, err = HTTPGetBytes("https://httpbin.org/post")
+	testCase = 1
+	_, err = HTTPGetBytes(testserver.URL)
 	assert.Error(t, err)
 }
 
