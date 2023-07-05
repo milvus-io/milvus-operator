@@ -198,6 +198,10 @@ func GetServiceInstanceName(instance string) string {
 	return instance + "-milvus"
 }
 
+func (c MilvusComponent) GetHeadlessServiceInstanceName(instance string) string {
+	return fmt.Sprintf("%s-%s-headless", instance, c.Name)
+}
+
 // GetContainerName returns the name of the component container
 func (c MilvusComponent) GetContainerName() string {
 	return c.Name
@@ -226,7 +230,7 @@ func (c MilvusComponent) GetContainerPorts(spec v1beta1.MilvusSpec) []corev1.Con
 	return []corev1.ContainerPort{
 		{
 			Name:          c.GetPortName(),
-			ContainerPort: c.GetComponentPort(spec),
+			ContainerPort: c.GetComponentPort(),
 			Protocol:      corev1.ProtocolTCP,
 		},
 		{
@@ -252,7 +256,7 @@ func (c MilvusComponent) GetServicePorts(spec v1beta1.MilvusSpec) []corev1.Servi
 	servicePorts = append(servicePorts, corev1.ServicePort{
 		Name:       c.GetPortName(),
 		Protocol:   corev1.ProtocolTCP,
-		Port:       c.GetComponentPort(spec),
+		Port:       c.GetComponentPort(),
 		TargetPort: intstr.FromString(c.GetPortName()),
 	})
 	servicePorts = append(servicePorts, corev1.ServicePort{
@@ -281,7 +285,7 @@ func (c MilvusComponent) GetServicePorts(spec v1beta1.MilvusSpec) []corev1.Servi
 }
 
 // GetComponentPort returns the port of the component
-func (c MilvusComponent) GetComponentPort(spec v1beta1.MilvusSpec) int32 {
+func (c MilvusComponent) GetComponentPort() int32 {
 	return c.DefaultPort
 }
 

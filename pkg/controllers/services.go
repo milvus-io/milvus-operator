@@ -7,6 +7,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/milvus-io/milvus-operator/apis/milvus.io/v1beta1"
@@ -24,6 +25,10 @@ func (r *MilvusReconciler) updateService(
 	service.Spec.Selector = appLabels
 	service.Spec.Type = component.GetServiceType(mc.Spec)
 
+	if component.IsNode() || component.IsCoord() {
+		service.Spec.ClusterIP = "None"
+	}
+
 	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
 		service.Labels = MergeLabels(service.Labels, mc.Spec.Com.Proxy.ServiceLabels)
 		service.Annotations = MergeLabels(service.Annotations, mc.Spec.Com.Proxy.ServiceAnnotations)
@@ -39,11 +44,15 @@ func (r *MilvusReconciler) updateService(
 func (r *MilvusReconciler) ReconcileComponentService(
 	ctx context.Context, mc v1beta1.Milvus, component MilvusComponent,
 ) error {
+
+	var namespacedName types.NamespacedName
+
 	if component.IsNode() || component.IsCoord() {
-		return nil
+		namespacedName = NamespacedName(mc.Namespace, component.GetHeadlessServiceInstanceName(mc.Name))
+	} else {
+		namespacedName = NamespacedName(mc.Namespace, GetServiceInstanceName(mc.Name))
 	}
 
-	namespacedName := NamespacedName(mc.Namespace, GetServiceInstanceName(mc.Name))
 	old := &corev1.Service{}
 	err := r.Get(ctx, namespacedName, old)
 	if errors.IsNotFound(err) {
@@ -85,10 +94,20 @@ func (r *MilvusReconciler) ReconcileComponentService(
 
 func (r *MilvusReconciler) ReconcileServices(ctx context.Context, mc v1beta1.Milvus) error {
 	var err error
+	var components []MilvusComponent
+
 	if mc.Spec.Mode == v1beta1.MilvusModeCluster {
-		err = r.ReconcileComponentService(ctx, mc, Proxy)
+		components = append(components, Proxy, RootCoord, DataCoord, QueryCoord, IndexCoord, DataNode, QueryNode, IndexNode)
 	} else {
-		err = r.ReconcileComponentService(ctx, mc, MilvusStandalone)
+		components = append(components, MilvusStandalone)
+	}
+
+	for _, component := range components {
+		err = r.ReconcileComponentService(ctx, mc, component)
+		if err != nil {
+			r.logger.Error(err, "ReconcileComponentService", "component", component.GetName())
+			break
+		}
 	}
 
 	return pkgerr.Wrap(err, "reconcile milvus services")
