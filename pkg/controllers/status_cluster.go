@@ -36,6 +36,7 @@ const (
 	MessageDecodeErr         = "accesskey or secretkey decode error"
 	MessageMilvusHealthy     = "All Milvus components are healthy"
 	MessageMilvusStopped     = "All Milvus components are stopped"
+	MessageMilvusStopping    = "All Milvus components are stopping"
 )
 
 var (
@@ -218,6 +219,7 @@ func (r *MilvusStatusSyncer) UpdateStatusRoutine(ctx context.Context, mc *v1beta
 
 func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, mc *v1beta1.Milvus) error {
 	beginStatus := mc.Status.DeepCopy()
+	mc.Status.ObservedGeneration = mc.Generation
 	if !mc.Spec.IsStopping() {
 		funcs := []Func{
 			r.GetEtcdCondition,
@@ -237,6 +239,13 @@ func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, m
 		if len(errTexts) > 0 {
 			return fmt.Errorf("update status error: %s", strings.Join(errTexts, ":"))
 		}
+	} else {
+		// is stopping, remove all dependency conditions
+		RemoveConditions(&mc.Status, []v1beta1.MilvusConditionType{
+			v1beta1.EtcdReady,
+			v1beta1.StorageReady,
+			v1beta1.MsgStreamReady,
+		})
 	}
 
 	err := r.UpdateIngressStatus(ctx, mc)
@@ -473,7 +482,8 @@ func GetMilvusUpdatedCondition(m *v1beta1.Milvus) v1beta1.MilvusCondition {
 	var isUpdatingImage bool
 	for _, component := range components {
 		componentStatus := status[component.Name]
-		if componentStatus.GetState() != v1beta1.DeploymentComplete {
+		deployState := componentStatus.GetState()
+		if deployState != v1beta1.DeploymentComplete && deployState != v1beta1.DeploymentPaused {
 			updatingComponent = append(updatingComponent, component.Name)
 		}
 		if m.IsRollingUpdateEnabled() &&

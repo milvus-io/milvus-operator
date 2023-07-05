@@ -218,6 +218,10 @@ func (in *MilvusComponents) DeepCopyInto(out *MilvusComponents) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.PodMonitor != nil {
+		in, out := &in.PodMonitor, &out.PodMonitor
+		*out = (*in).DeepCopy()
+	}
 	if in.Proxy != nil {
 		in, out := &in.Proxy, &out.Proxy
 		*out = new(MilvusProxy)

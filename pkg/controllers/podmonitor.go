@@ -16,23 +16,35 @@ func (r *MilvusReconciler) updatePodMonitor(
 
 	appLabels := NewAppLabels(mc.Name)
 	podmonitor.Labels = MergeLabels(podmonitor.Labels, appLabels)
+
 	if err := SetControllerReference(&mc, podmonitor, r.Scheme); err != nil {
 		r.logger.Error(err, "PodMonitor SetControllerReference error", "name", mc.Name, "namespace", mc.Namespace)
 		return err
+	}
+
+	if mc.Spec.Com.PodMonitor != nil {
+		customPodMonitor := &monitoringv1.PodMonitor{}
+		mc.Spec.Com.PodMonitor.MustAsObj(customPodMonitor)
+		podmonitor.Labels = MergeLabels(podmonitor.Labels, customPodMonitor.Labels)
+		podmonitor.Annotations = MergeLabels(podmonitor.Annotations, customPodMonitor.Annotations)
+		podmonitor.Spec = customPodMonitor.Spec
 	}
 
 	interval := mc.Spec.Com.MetricInterval
 	if interval == "" {
 		interval = "30s"
 	}
-	podmonitor.Spec.PodMetricsEndpoints = []monitoringv1.PodMetricsEndpoint{
-		{
-			HonorLabels: true,
-			Interval:    interval,
-			Path:        MetricPath,
-			Port:        MetricPortName,
-		},
+	if len(podmonitor.Spec.PodMetricsEndpoints) == 0 {
+		podmonitor.Spec.PodMetricsEndpoints = []monitoringv1.PodMetricsEndpoint{
+			{
+				HonorLabels: true,
+				Interval:    interval,
+				Path:        MetricPath,
+				Port:        MetricPortName,
+			},
+		}
 	}
+
 	podmonitor.Spec.NamespaceSelector = monitoringv1.NamespaceSelector{
 		MatchNames: []string{mc.Namespace},
 	}
@@ -82,7 +94,6 @@ func (r *MilvusReconciler) ReconcilePodMonitor(ctx context.Context, mc v1beta1.M
 	}
 
 	if IsEqual(old, cur) {
-		//r.logger.Info("Equal", "cur", cur.Name)
 		return nil
 	}
 

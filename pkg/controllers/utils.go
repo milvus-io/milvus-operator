@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "crypto/sha256"
 	"fmt"
-	"log"
 	"reflect"
 	"runtime"
 	"strings"
@@ -225,6 +224,12 @@ func NewAppLabels(instance string) map[string]string {
 	}
 }
 
+func NewServicePodLabels(instance string) map[string]string {
+	labels := NewAppLabels(instance)
+	labels[v1beta1.ServiceLabel] = v1beta1.TrueStr
+	return labels
+}
+
 const ManagerName = "milvus-operator"
 
 var MergeAnnotations = MergeLabels
@@ -303,12 +308,28 @@ func GetNotReadyDependencyConditions(conditions []v1beta1.MilvusCondition) map[v
 				delete(ret, iter.Type)
 				continue
 			}
-			log.Println("condition not ready", iter.Type, iter.Status, iter.Reason, iter.Message)
 			conditionCopy := iter
 			ret[iter.Type] = &conditionCopy
 		}
 	}
 	return ret
+}
+
+func RemoveConditions(status *v1beta1.MilvusStatus, typesToRemove []v1beta1.MilvusConditionType) {
+	var newConditions []v1beta1.MilvusCondition
+	for _, c := range status.Conditions {
+		shouldRemove := false
+		for _, typeToRemove := range typesToRemove {
+			if c.Type == typeToRemove {
+				shouldRemove = true
+				continue
+			}
+		}
+		if !shouldRemove {
+			newConditions = append(newConditions, c)
+		}
+	}
+	status.Conditions = newConditions
 }
 
 func UpdateCondition(status *v1beta1.MilvusStatus, c v1beta1.MilvusCondition) {

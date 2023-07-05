@@ -85,7 +85,7 @@ func GetComponentErrorDetail(ctx context.Context, cli client.Client, component s
 			return ret, nil
 		}
 	}
-	return nil, errors.New("all pods are ready")
+	return ret, nil
 }
 
 func GetDeploymentFalseCondition(deploy appsv1.Deployment) (*appsv1.DeploymentCondition, error) {
@@ -117,6 +117,15 @@ func GetDeploymentFalseCondition(deploy appsv1.Deployment) (*appsv1.DeploymentCo
 		if condition.Status != corev1.ConditionTrue {
 			return &condition, nil
 		}
+	}
+
+	if deploy.Status.ReadyReplicas < 1 {
+		return &appsv1.DeploymentCondition{
+			Type:    appsv1.DeploymentProgressing,
+			Status:  corev1.ConditionFalse,
+			Reason:  reasonInitializing,
+			Message: progressingMessage,
+		}, nil
 	}
 
 	return nil, errors.New("all conditions are ok")
