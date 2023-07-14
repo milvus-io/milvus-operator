@@ -237,6 +237,13 @@ func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, m
 		if len(errTexts) > 0 {
 			return fmt.Errorf("update status error: %s", strings.Join(errTexts, ":"))
 		}
+	} else {
+		// is stopping, remove all dependency conditions
+		RemoveConditions(&mc.Status, []v1beta1.MilvusConditionType{
+			v1beta1.EtcdReady,
+			v1beta1.StorageReady,
+			v1beta1.MsgStreamReady,
+		})
 	}
 
 	err := r.UpdateIngressStatus(ctx, mc)
@@ -256,7 +263,7 @@ func (r *MilvusStatusSyncer) UpdateStatusForNewGeneration(ctx context.Context, m
 
 	mc.Status.Endpoint = r.GetMilvusEndpoint(ctx, *mc)
 
-	milvusCond, err := GetMilvusInstanceCondition(ctx, r.Client, *mc)
+	milvusCond, err := GetComponentConditionGetter().GetMilvusInstanceCondition(ctx, r.Client, *mc)
 	if err != nil {
 		return err
 	}

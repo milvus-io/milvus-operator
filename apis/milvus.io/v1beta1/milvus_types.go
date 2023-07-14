@@ -337,7 +337,7 @@ const (
 	ReasonStorageReady       = "StorageReady"
 	ReasonStorageNotReady    = "StorageNotReady"
 	ReasonMsgStreamReady     = "MsgStreamReady"
-	ReasonMsgStreamNotReady  = "MsgStreamReady"
+	ReasonMsgStreamNotReady  = "MsgStreamNotReady"
 	ReasonSecretNotExist     = "SecretNotExist"
 	ReasonSecretErr          = "SecretError"
 	ReasonSecretDecodeErr    = "SecretDecodeError"
