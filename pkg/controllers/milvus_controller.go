@@ -37,7 +37,8 @@ import (
 )
 
 const (
-	MilvusFinalizerName = "milvus.milvus.io/finalizer"
+	MilvusFinalizerName      = "milvus.milvus.io/finalizer"
+	PauseReconcileAnnotation = "milvus.io/pause-reconcile"
 )
 
 // MilvusReconciler reconciles a Milvus object
@@ -132,6 +133,10 @@ func (r *MilvusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctr
 
 	old := milvus.DeepCopy()
 	milvus.Default()
+
+	if milvus.GetAnnotations()[PauseReconcileAnnotation] == "true" {
+		return ctrl.Result{}, nil
+	}
 
 	if !IsEqual(old.Spec, milvus.Spec) {
 		diff, _ := diffObject(old, milvus)

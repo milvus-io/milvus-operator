@@ -154,18 +154,20 @@ type ComponentDeployStatus struct {
 }
 
 // DeploymentState is defined according to https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#deployment-status
-// It's enum of "Progressing", "Complete", "Failed"
+// It's enum of "Progressing", "Complete", "Failed", "Paused"
 type DeploymentState string
 
 const (
 	DeploymentProgressing DeploymentState = "Progressing"
 	DeploymentComplete    DeploymentState = "Complete"
 	DeploymentFailed      DeploymentState = "Failed"
+	DeploymentPaused      DeploymentState = "Paused"
 )
 
 var (
 	// NewReplicaSetAvailableReason is the Complelete Reason
 	NewReplicaSetAvailableReason = "NewReplicaSetAvailable"
+	DeploymentPausedReason       = "DeploymentPaused"
 )
 
 func (c ComponentDeployStatus) GetState() DeploymentState {
@@ -175,6 +177,9 @@ func (c ComponentDeployStatus) GetState() DeploymentState {
 	processingCondition := getDeploymentConditionByType(c.Status.Conditions, appsv1.DeploymentProgressing)
 	if processingCondition == nil {
 		return DeploymentProgressing
+	}
+	if processingCondition.Reason == DeploymentPausedReason {
+		return DeploymentPaused
 	}
 	if processingCondition.Status != corev1.ConditionTrue {
 		return DeploymentFailed
