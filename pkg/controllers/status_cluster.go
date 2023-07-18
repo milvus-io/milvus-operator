@@ -480,7 +480,8 @@ func GetMilvusUpdatedCondition(m *v1beta1.Milvus) v1beta1.MilvusCondition {
 	var isUpdatingImage bool
 	for _, component := range components {
 		componentStatus := status[component.Name]
-		if componentStatus.GetState() != v1beta1.DeploymentComplete {
+		deployState := componentStatus.GetState()
+		if deployState != v1beta1.DeploymentComplete && deployState != v1beta1.DeploymentPaused {
 			updatingComponent = append(updatingComponent, component.Name)
 		}
 		if m.IsRollingUpdateEnabled() &&
