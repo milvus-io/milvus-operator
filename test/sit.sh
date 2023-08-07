@@ -89,6 +89,8 @@ case_create_delete_cluster(){
         log "MilvusCluster final yaml: \n $(kubectl get -n mc-sit milvus/milvus -o yaml)"
         log "MilvusCluster helm values: \n $(helm -n mc-sit get values milvus-$msgStream)"
         log "MilvusCluster describe pods: \n $(kubectl -n mc-sit describe pods)"
+        log "pulsar pods: \n $(kubectl -n mc-sit get pods -l app=pulsar)"
+        log "pulsar logs: \n $(kubectl -n mc-sit logs -l app=pulsar)"
         delete_milvus_cluster
         return 1
     fi

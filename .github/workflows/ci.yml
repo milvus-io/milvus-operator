@@ -74,7 +74,6 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v2
         with:
-          # token: ${{ secrets.CODECOV_TOKEN }}
           files: ./cover.out
           name: ubuntu-${{ matrix.ubuntu }}-unittests
 
@@ -87,6 +86,12 @@ jobs:
       matrix:
         os: [ubuntu18.04]
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v7
+        with:
+          root-reserve-mb: 20480
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
       - name: Checkout
         uses: actions/checkout@v2
       - name: Prepare Docker Images
@@ -112,6 +117,12 @@ jobs:
       matrix:
         os: [ubuntu18.04]
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@v7
+        with:
+          root-reserve-mb: 20480
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
       - name: Checkout
         uses: actions/checkout@v2
       - name: Prepare Docker Images
