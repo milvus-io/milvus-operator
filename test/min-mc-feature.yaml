@@ -14,7 +14,7 @@ metadata:
 spec:
   mode: "cluster"
   components:
-    image: milvusdb/milvus:master-20230103-72184eae
+    image: milvusdb/milvus:master-20230814-ae780e03
     proxy:
       ingress:
         hosts: ["mc-sit.milvus.io"]

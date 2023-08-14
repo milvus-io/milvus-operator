@@ -26,12 +26,10 @@ spec:
         pvcDeletion: true
         values:
           replicaCount: 1
-    msgStreamType: kafka
-    kafka:
-      inCluster:
-        deletionPolicy: Delete
-        pvcDeletion: true
-        values: {}
+    msgStreamType: natsmq
+    natsmq:
+      persistence:
+        enabled: true
     storage:
       inCluster:
         deletionPolicy: Delete
